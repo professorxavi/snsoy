@@ -32,6 +32,11 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# 5e content corpus — never commit the full dump, it is read from CONTENT_SOURCE_DIR
+/content/full/
+/data/
 
 # vercel
 .vercel

@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: snsoy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: snsoy
+      POSTGRES_PASSWORD: snsoy
+      POSTGRES_DB: snsoy
+    ports:
+      - "5433:5432"
+    volumes:
+      - snsoy-pgdata:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snsoy -d snsoy"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  snsoy-pgdata:
