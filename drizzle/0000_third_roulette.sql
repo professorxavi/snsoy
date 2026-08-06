@@ -1,4 +1,4 @@
-CREATE TYPE "public"."entity_type" AS ENUM('spell', 'monster', 'item', 'baseitem', 'itemGroup', 'magicvariant', 'race', 'subrace', 'background', 'feat', 'class', 'subclass', 'classFeature', 'subclassFeature', 'optionalfeature', 'action', 'boon', 'card', 'charoption', 'condition', 'cult', 'deck', 'deity', 'disease', 'hazard', 'language', 'object', 'psionic', 'raceFeature', 'recipe', 'reward', 'sense', 'skill', 'status', 'table', 'trap', 'variantrule', 'vehicle', 'vehicleUpgrade');--> statement-breakpoint
+CREATE TYPE "public"."entity_type" AS ENUM('spell', 'monster', 'item', 'baseitem', 'itemGroup', 'magicvariant', 'race', 'subrace', 'background', 'feat', 'class', 'subclass', 'classFeature', 'subclassFeature', 'optionalfeature', 'bookSection', 'action', 'boon', 'card', 'charoption', 'condition', 'cult', 'deck', 'deity', 'disease', 'hazard', 'language', 'object', 'psionic', 'raceFeature', 'recipe', 'reward', 'sense', 'skill', 'status', 'table', 'trap', 'variantrule', 'vehicle', 'vehicleUpgrade');--> statement-breakpoint
 CREATE TYPE "public"."granted_via" AS ENUM('provider', 'manual');--> statement-breakpoint
 CREATE TYPE "public"."support_kind" AS ENUM('itemProperty', 'itemType', 'itemEntry', 'itemTypeAdditionalEntries', 'legendaryGroup', 'monsterTemplate', 'magicVariant');--> statement-breakpoint
 CREATE TYPE "public"."sync_status" AS ENUM('pending', 'success', 'failed');--> statement-breakpoint
@@ -186,11 +186,9 @@ CREATE TABLE "subclasses" (
 );
 --> statement-breakpoint
 CREATE TABLE "book_sections" (
-	"id" serial PRIMARY KEY NOT NULL,
-	"source_id" varchar(32) NOT NULL,
+	"entity_id" uuid PRIMARY KEY NOT NULL,
+	"book_id" varchar(32) NOT NULL,
 	"ordinal" integer NOT NULL,
-	"name" text NOT NULL,
-	"slug" text NOT NULL,
 	"ordinal_type" varchar(16),
 	"ordinal_label" varchar(8),
 	"headers" text[],
@@ -258,7 +256,7 @@ ALTER TABLE "races" ADD CONSTRAINT "races_parent_race_id_entities_id_fk" FOREIGN
 ALTER TABLE "spells" ADD CONSTRAINT "spells_entity_id_entities_id_fk" FOREIGN KEY ("entity_id") REFERENCES "public"."entities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subclasses" ADD CONSTRAINT "subclasses_entity_id_entities_id_fk" FOREIGN KEY ("entity_id") REFERENCES "public"."entities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subclasses" ADD CONSTRAINT "subclasses_class_id_entities_id_fk" FOREIGN KEY ("class_id") REFERENCES "public"."entities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "book_sections" ADD CONSTRAINT "book_sections_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "book_sections" ADD CONSTRAINT "book_sections_entity_id_entities_id_fk" FOREIGN KEY ("entity_id") REFERENCES "public"."entities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "entitlement_syncs" ADD CONSTRAINT "entitlement_syncs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "provider_source_map" ADD CONSTRAINT "provider_source_map_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_entitlements" ADD CONSTRAINT "user_entitlements_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -292,8 +290,6 @@ CREATE INDEX "spells_school_index" ON "spells" USING btree ("school");--> statem
 CREATE INDEX "spells_is_concentration_index" ON "spells" USING btree ("is_concentration");--> statement-breakpoint
 CREATE INDEX "spells_classes_index" ON "spells" USING gin ("classes");--> statement-breakpoint
 CREATE INDEX "subclasses_class_id_index" ON "subclasses" USING btree ("class_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "book_sections_source_id_slug_index" ON "book_sections" USING btree ("source_id","slug");--> statement-breakpoint
-CREATE INDEX "book_sections_source_id_ordinal_index" ON "book_sections" USING btree ("source_id","ordinal");--> statement-breakpoint
 CREATE INDEX "support_data_kind_index" ON "support_data" USING btree ("kind");--> statement-breakpoint
 CREATE INDEX "entitlement_syncs_user_id_synced_at_index" ON "entitlement_syncs" USING btree ("user_id","synced_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "provider_source_map_provider_source_id_source_id_index" ON "provider_source_map" USING btree ("provider_source_id","source_id");--> statement-breakpoint

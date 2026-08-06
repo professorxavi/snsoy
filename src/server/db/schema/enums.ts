@@ -29,6 +29,13 @@ export const entityTypeEnum = pgEnum("entity_type", [
   "classFeature",
   "subclassFeature",
   "optionalfeature",
+  /**
+   * A top-level chapter of a book or adventure. Not a corpus array key like
+   * the rest — body text ships one file per source — but sections are entities
+   * for the same reasons everything else is: they are searched, linked to by
+   * `{@book}` and `{@adventure}`, and gated by the source that printed them.
+   */
+  "bookSection",
   // generic_entities
   "action",
   "boon",

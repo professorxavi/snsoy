@@ -1,5 +1,5 @@
 {
-  "id": "3f9d9630-c8ca-4499-9143-bb6ac026e8e1",
+  "id": "26c8e8c8-3105-487f-b29f-9900a73c9df4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1833,14 +1833,14 @@
       "name": "book_sections",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
-        "source_id": {
-          "name": "source_id",
+        "book_id": {
+          "name": "book_id",
           "type": "varchar(32)",
           "primaryKey": false,
           "notNull": true
@@ -1848,18 +1848,6 @@
         "ordinal": {
           "name": "ordinal",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1888,57 +1876,14 @@
           "notNull": true
         }
       },
-      "indexes": {
-        "book_sections_source_id_slug_index": {
-          "name": "book_sections_source_id_slug_index",
-          "columns": [
-            {
-              "expression": "source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "slug",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "book_sections_source_id_ordinal_index": {
-          "name": "book_sections_source_id_ordinal_index",
-          "columns": [
-            {
-              "expression": "source_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "ordinal",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "book_sections_source_id_sources_id_fk": {
-          "name": "book_sections_source_id_sources_id_fk",
+        "book_sections_entity_id_entities_id_fk": {
+          "name": "book_sections_entity_id_entities_id_fk",
           "tableFrom": "book_sections",
-          "tableTo": "sources",
+          "tableTo": "entities",
           "columnsFrom": [
-            "source_id"
+            "entity_id"
           ],
           "columnsTo": [
             "id"
@@ -2333,6 +2278,7 @@
         "classFeature",
         "subclassFeature",
         "optionalfeature",
+        "bookSection",
         "action",
         "boon",
         "card",

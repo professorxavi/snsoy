@@ -38,6 +38,10 @@ yarn-error.log*
 /content/full/
 /data/
 
+# Spot-check exports. Content pulled straight out of the database, including
+# non-SRD sources, so these are for local inspection only.
+/example/
+
 # Ingest and data-validation tooling.
 #
 # Ingest runs once, ever. Once the corpus is loaded and dumped to a seed, this
