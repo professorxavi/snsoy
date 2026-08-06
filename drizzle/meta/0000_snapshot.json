@@ -1,5 +1,5 @@
 {
-  "id": "205c62a9-8f50-4486-8f5a-c783b9a16399",
+  "id": "3f9d9630-c8ca-4499-9143-bb6ac026e8e1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -108,10 +108,17 @@
       "name": "entities",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "id": {
+          "name": "id",
+          "type": "uuid",
           "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "natural_key": {
+          "name": "natural_key",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true
         },
         "entity_type": {
@@ -173,6 +180,21 @@
         }
       },
       "indexes": {
+        "entities_natural_key_index": {
+          "name": "entities_natural_key_index",
+          "columns": [
+            {
+              "expression": "natural_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "entities_entity_type_source_id_slug_index": {
           "name": "entities_entity_type_source_id_slug_index",
           "columns": [
@@ -278,15 +300,15 @@
       "name": "entity_links",
       "schema": "",
       "columns": {
-        "from_uid": {
-          "name": "from_uid",
-          "type": "text",
+        "from_id": {
+          "name": "from_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "to_uid": {
-          "name": "to_uid",
-          "type": "text",
+        "to_id": {
+          "name": "to_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -298,11 +320,11 @@
         }
       },
       "indexes": {
-        "entity_links_to_uid_index": {
-          "name": "entity_links_to_uid_index",
+        "entity_links_to_id_index": {
+          "name": "entity_links_to_id_index",
           "columns": [
             {
-              "expression": "to_uid",
+              "expression": "to_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -315,39 +337,39 @@
         }
       },
       "foreignKeys": {
-        "entity_links_from_uid_entities_uid_fk": {
-          "name": "entity_links_from_uid_entities_uid_fk",
+        "entity_links_from_id_entities_id_fk": {
+          "name": "entity_links_from_id_entities_id_fk",
           "tableFrom": "entity_links",
           "tableTo": "entities",
           "columnsFrom": [
-            "from_uid"
+            "from_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "entity_links_to_uid_entities_uid_fk": {
-          "name": "entity_links_to_uid_entities_uid_fk",
+        "entity_links_to_id_entities_id_fk": {
+          "name": "entity_links_to_id_entities_id_fk",
           "tableFrom": "entity_links",
           "tableTo": "entities",
           "columnsFrom": [
-            "to_uid"
+            "to_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "entity_links_from_uid_to_uid_tag_type_pk": {
-          "name": "entity_links_from_uid_to_uid_tag_type_pk",
+        "entity_links_from_id_to_id_tag_type_pk": {
+          "name": "entity_links_from_id_to_id_tag_type_pk",
           "columns": [
-            "from_uid",
-            "to_uid",
+            "from_id",
+            "to_id",
             "tag_type"
           ]
         }
@@ -361,9 +383,9 @@
       "name": "search_index",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -393,11 +415,21 @@
           "notNull": true,
           "default": false
         },
+        "body": {
+          "name": "body",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "tsv": {
           "name": "tsv",
           "type": "tsvector",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false,
+          "generated": {
+            "as": "setweight(to_tsvector('english', coalesce(name, '')), 'A') || setweight(to_tsvector('english', coalesce(body, '')), 'B')",
+            "type": "stored"
+          }
         }
       },
       "indexes": {
@@ -454,15 +486,15 @@
         }
       },
       "foreignKeys": {
-        "search_index_uid_entities_uid_fk": {
-          "name": "search_index_uid_entities_uid_fk",
+        "search_index_entity_id_entities_id_fk": {
+          "name": "search_index_entity_id_entities_id_fk",
           "tableFrom": "search_index",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -478,9 +510,9 @@
       "name": "backgrounds",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -517,15 +549,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "backgrounds_uid_entities_uid_fk": {
-          "name": "backgrounds_uid_entities_uid_fk",
+        "backgrounds_entity_id_entities_id_fk": {
+          "name": "backgrounds_entity_id_entities_id_fk",
           "tableFrom": "backgrounds",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -541,21 +573,21 @@
       "name": "class_features",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
-        "class_uid": {
-          "name": "class_uid",
-          "type": "text",
+        "class_id": {
+          "name": "class_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "subclass_uid": {
-          "name": "subclass_uid",
-          "type": "text",
+        "subclass_id": {
+          "name": "subclass_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -580,11 +612,11 @@
         }
       },
       "indexes": {
-        "class_features_class_uid_level_index": {
-          "name": "class_features_class_uid_level_index",
+        "class_features_class_id_level_index": {
+          "name": "class_features_class_id_level_index",
           "columns": [
             {
-              "expression": "class_uid",
+              "expression": "class_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -601,11 +633,11 @@
           "method": "btree",
           "with": {}
         },
-        "class_features_subclass_uid_level_index": {
-          "name": "class_features_subclass_uid_level_index",
+        "class_features_subclass_id_level_index": {
+          "name": "class_features_subclass_id_level_index",
           "columns": [
             {
-              "expression": "subclass_uid",
+              "expression": "subclass_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -624,17 +656,43 @@
         }
       },
       "foreignKeys": {
-        "class_features_uid_entities_uid_fk": {
-          "name": "class_features_uid_entities_uid_fk",
+        "class_features_entity_id_entities_id_fk": {
+          "name": "class_features_entity_id_entities_id_fk",
           "tableFrom": "class_features",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "class_features_class_id_entities_id_fk": {
+          "name": "class_features_class_id_entities_id_fk",
+          "tableFrom": "class_features",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "class_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "class_features_subclass_id_entities_id_fk": {
+          "name": "class_features_subclass_id_entities_id_fk",
+          "tableFrom": "class_features",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "subclass_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -648,9 +706,9 @@
       "name": "classes",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -700,15 +758,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "classes_uid_entities_uid_fk": {
-          "name": "classes_uid_entities_uid_fk",
+        "classes_entity_id_entities_id_fk": {
+          "name": "classes_entity_id_entities_id_fk",
           "tableFrom": "classes",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -724,9 +782,9 @@
       "name": "feats",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -758,15 +816,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "feats_uid_entities_uid_fk": {
-          "name": "feats_uid_entities_uid_fk",
+        "feats_entity_id_entities_id_fk": {
+          "name": "feats_entity_id_entities_id_fk",
           "tableFrom": "feats",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -782,9 +840,9 @@
       "name": "generic_entities",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -797,15 +855,15 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "generic_entities_uid_entities_uid_fk": {
-          "name": "generic_entities_uid_entities_uid_fk",
+        "generic_entities_entity_id_entities_id_fk": {
+          "name": "generic_entities_entity_id_entities_id_fk",
           "tableFrom": "generic_entities",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -821,9 +879,9 @@
       "name": "items",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -891,9 +949,9 @@
           "notNull": true,
           "default": false
         },
-        "base_item_uid": {
-          "name": "base_item_uid",
-          "type": "text",
+        "base_item_id": {
+          "name": "base_item_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -998,17 +1056,30 @@
         }
       },
       "foreignKeys": {
-        "items_uid_entities_uid_fk": {
-          "name": "items_uid_entities_uid_fk",
+        "items_entity_id_entities_id_fk": {
+          "name": "items_entity_id_entities_id_fk",
           "tableFrom": "items",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "items_base_item_id_entities_id_fk": {
+          "name": "items_base_item_id_entities_id_fk",
+          "tableFrom": "items",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "base_item_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1022,9 +1093,9 @@
       "name": "monsters",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -1138,9 +1209,9 @@
           "primaryKey": false,
           "notNull": false
         },
-        "legendary_group_uid": {
-          "name": "legendary_group_uid",
-          "type": "text",
+        "legendary_group_id": {
+          "name": "legendary_group_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -1229,17 +1300,30 @@
         }
       },
       "foreignKeys": {
-        "monsters_uid_entities_uid_fk": {
-          "name": "monsters_uid_entities_uid_fk",
+        "monsters_entity_id_entities_id_fk": {
+          "name": "monsters_entity_id_entities_id_fk",
           "tableFrom": "monsters",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "monsters_legendary_group_id_entities_id_fk": {
+          "name": "monsters_legendary_group_id_entities_id_fk",
+          "tableFrom": "monsters",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "legendary_group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1253,9 +1337,9 @@
       "name": "optional_features",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -1296,15 +1380,15 @@
         }
       },
       "foreignKeys": {
-        "optional_features_uid_entities_uid_fk": {
-          "name": "optional_features_uid_entities_uid_fk",
+        "optional_features_entity_id_entities_id_fk": {
+          "name": "optional_features_entity_id_entities_id_fk",
           "tableFrom": "optional_features",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1320,15 +1404,15 @@
       "name": "races",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
-        "parent_race_uid": {
-          "name": "parent_race_uid",
-          "type": "text",
+        "parent_race_id": {
+          "name": "parent_race_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -1389,11 +1473,11 @@
         }
       },
       "indexes": {
-        "races_parent_race_uid_index": {
-          "name": "races_parent_race_uid_index",
+        "races_parent_race_id_index": {
+          "name": "races_parent_race_id_index",
           "columns": [
             {
-              "expression": "parent_race_uid",
+              "expression": "parent_race_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1406,17 +1490,30 @@
         }
       },
       "foreignKeys": {
-        "races_uid_entities_uid_fk": {
-          "name": "races_uid_entities_uid_fk",
+        "races_entity_id_entities_id_fk": {
+          "name": "races_entity_id_entities_id_fk",
           "tableFrom": "races",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "races_parent_race_id_entities_id_fk": {
+          "name": "races_parent_race_id_entities_id_fk",
+          "tableFrom": "races",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "parent_race_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1430,9 +1527,9 @@
       "name": "spells",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -1620,15 +1717,15 @@
         }
       },
       "foreignKeys": {
-        "spells_uid_entities_uid_fk": {
-          "name": "spells_uid_entities_uid_fk",
+        "spells_entity_id_entities_id_fk": {
+          "name": "spells_entity_id_entities_id_fk",
           "tableFrom": "spells",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -1644,15 +1741,15 @@
       "name": "subclasses",
       "schema": "",
       "columns": {
-        "uid": {
-          "name": "uid",
-          "type": "text",
+        "entity_id": {
+          "name": "entity_id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
-        "class_uid": {
-          "name": "class_uid",
-          "type": "text",
+        "class_id": {
+          "name": "class_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -1682,11 +1779,11 @@
         }
       },
       "indexes": {
-        "subclasses_class_uid_index": {
-          "name": "subclasses_class_uid_index",
+        "subclasses_class_id_index": {
+          "name": "subclasses_class_id_index",
           "columns": [
             {
-              "expression": "class_uid",
+              "expression": "class_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1699,15 +1796,28 @@
         }
       },
       "foreignKeys": {
-        "subclasses_uid_entities_uid_fk": {
-          "name": "subclasses_uid_entities_uid_fk",
+        "subclasses_entity_id_entities_id_fk": {
+          "name": "subclasses_entity_id_entities_id_fk",
           "tableFrom": "subclasses",
           "tableTo": "entities",
           "columnsFrom": [
-            "uid"
+            "entity_id"
           ],
           "columnsTo": [
-            "uid"
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "subclasses_class_id_entities_id_fk": {
+          "name": "subclasses_class_id_entities_id_fk",
+          "tableFrom": "subclasses",
+          "tableTo": "entities",
+          "columnsFrom": [
+            "class_id"
+          ],
+          "columnsTo": [
+            "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -2267,7 +2377,7 @@
         "itemTypeAdditionalEntries",
         "legendaryGroup",
         "monsterTemplate",
-        "monsterFeature"
+        "magicVariant"
       ]
     },
     "public.sync_status": {

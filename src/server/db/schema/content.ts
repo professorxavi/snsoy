@@ -8,6 +8,7 @@ import {
   pgTable,
   real,
   text,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { entities } from "./entities";
@@ -22,14 +23,23 @@ import { entities } from "./entities";
  * a facet we did not project, add a column and re-run ingest.
  */
 const entityRef = () =>
-  text()
+  uuid()
     .primaryKey()
-    .references(() => entities.uid, { onDelete: "cascade" });
+    .references(() => entities.id, { onDelete: "cascade" });
+
+/** A nullable reference to another entity. */
+const optionalRef = () => uuid().references(() => entities.id, { onDelete: "set null" });
+
+/** A required reference to another entity. */
+const requiredRef = () =>
+  uuid()
+    .notNull()
+    .references(() => entities.id, { onDelete: "cascade" });
 
 export const spells = pgTable(
   "spells",
   {
-    uid: entityRef(),
+    entityId: entityRef(),
     /** 0 = cantrip. */
     level: integer().notNull(),
     /** Single-letter school code: V, A, C, D, E, I, N, T. */
@@ -73,7 +83,7 @@ export const spells = pgTable(
 export const monsters = pgTable(
   "monsters",
   {
-    uid: entityRef(),
+    entityId: entityRef(),
     /**
      * Challenge rating as a number so ranges sort and filter correctly —
      * fractional CRs become 0.125/0.25/0.5. Null where the corpus gives no
@@ -102,7 +112,7 @@ export const monsters = pgTable(
     tags: text().array(),
     damageTags: text().array(),
     /** Lair actions and regional effects live on a shared legendary group. */
-    legendaryGroupUid: text(),
+    legendaryGroupId: optionalRef(),
     data: jsonb().$type<Record<string, unknown>>().notNull(),
   },
   (table) => [
@@ -117,7 +127,7 @@ export const monsters = pgTable(
 export const items = pgTable(
   "items",
   {
-    uid: entityRef(),
+    entityId: entityRef(),
     /** "common".."legendary", "artifact", "varies", "none"/"unknown". */
     rarity: varchar({ length: 24 }),
     /** Corpus type abbreviation: "M" melee, "HA" heavy armor, "SCF"... */
@@ -139,7 +149,7 @@ export const items = pgTable(
      */
     isGeneratedVariant: boolean().notNull().default(false),
     /** For generated variants, the base item this was built from. */
-    baseItemUid: text(),
+    baseItemId: optionalRef(),
     properties: text().array(),
     weaponCategory: varchar({ length: 24 }),
     armorClass: integer(),
@@ -156,7 +166,7 @@ export const items = pgTable(
 );
 
 export const classes = pgTable("classes", {
-  uid: entityRef(),
+  entityId: entityRef(),
   /** Hit die faces: 6, 8, 10, 12. */
   hitDie: integer(),
   /** "full", "1/2", "1/3", "pact", or null for non-casters. */
@@ -173,15 +183,15 @@ export const classes = pgTable("classes", {
 export const subclasses = pgTable(
   "subclasses",
   {
-    uid: entityRef(),
-    classUid: text().notNull(),
+    entityId: entityRef(),
+    classId: requiredRef(),
     /** Short label used by cross-reference tags, e.g. "Evocation". */
     shortName: text(),
     casterProgression: varchar({ length: 16 }),
     spellcastingAbility: varchar({ length: 8 }),
     data: jsonb().$type<Record<string, unknown>>().notNull(),
   },
-  (table) => [index().on(table.classUid)],
+  (table) => [index().on(table.classId)],
 );
 
 /**
@@ -191,27 +201,27 @@ export const subclasses = pgTable(
 export const classFeatures = pgTable(
   "class_features",
   {
-    uid: entityRef(),
-    classUid: text().notNull(),
+    entityId: entityRef(),
+    classId: requiredRef(),
     /** Null for base class features. */
-    subclassUid: text(),
+    subclassId: optionalRef(),
     level: integer().notNull(),
     /** Feature grants an ability score improvement / feat choice. */
     isAbilityScoreImprovement: boolean().notNull().default(false),
     data: jsonb().$type<Record<string, unknown>>().notNull(),
   },
   (table) => [
-    index().on(table.classUid, table.level),
-    index().on(table.subclassUid, table.level),
+    index().on(table.classId, table.level),
+    index().on(table.subclassId, table.level),
   ],
 );
 
 export const races = pgTable(
   "races",
   {
-    uid: entityRef(),
+    entityId: entityRef(),
     /** Null for base races; set for subraces. */
-    parentRaceUid: text(),
+    parentRaceId: optionalRef(),
     size: text().array(),
     speedWalk: integer(),
     speedFly: integer(),
@@ -224,11 +234,11 @@ export const races = pgTable(
     languageProficiencies: text().array(),
     data: jsonb().$type<Record<string, unknown>>().notNull(),
   },
-  (table) => [index().on(table.parentRaceUid)],
+  (table) => [index().on(table.parentRaceId)],
 );
 
 export const backgrounds = pgTable("backgrounds", {
-  uid: entityRef(),
+  entityId: entityRef(),
   skillProficiencies: text().array(),
   toolProficiencies: text().array(),
   languageCount: integer(),
@@ -238,7 +248,7 @@ export const backgrounds = pgTable("backgrounds", {
 });
 
 export const feats = pgTable("feats", {
-  uid: entityRef(),
+  entityId: entityRef(),
   /** Ability minimums, race gates, spellcasting gates. */
   prerequisites: jsonb().$type<unknown[]>(),
   /** Feat includes an ability score increase. */
@@ -254,7 +264,7 @@ export const feats = pgTable("feats", {
 export const optionalFeatures = pgTable(
   "optional_features",
   {
-    uid: entityRef(),
+    entityId: entityRef(),
     /** "EI" eldritch invocation, "FS:F" fighting style (fighter), "MM"... */
     featureTypes: text().array(),
     prerequisites: jsonb().$type<unknown[]>(),
@@ -272,72 +282,78 @@ export const optionalFeatures = pgTable(
  * of here the moment it needs real filtering.
  */
 export const genericEntities = pgTable("generic_entities", {
-  uid: entityRef(),
+  entityId: entityRef(),
   data: jsonb().$type<Record<string, unknown>>().notNull(),
 });
 
-/* Every detail table joins back to the registry on `uid`. */
+/* Every detail table joins back to the registry on its entity id. */
 
 export const spellsRelations = relations(spells, ({ one }) => ({
-  entity: one(entities, { fields: [spells.uid], references: [entities.uid] }),
+  entity: one(entities, { fields: [spells.entityId], references: [entities.id] }),
 }));
 
 export const monstersRelations = relations(monsters, ({ one }) => ({
-  entity: one(entities, { fields: [monsters.uid], references: [entities.uid] }),
+  entity: one(entities, {
+    fields: [monsters.entityId],
+    references: [entities.id],
+  }),
   legendaryGroup: one(entities, {
-    fields: [monsters.legendaryGroupUid],
-    references: [entities.uid],
+    fields: [monsters.legendaryGroupId],
+    references: [entities.id],
     relationName: "legendaryGroup",
   }),
 }));
 
 export const itemsRelations = relations(items, ({ one }) => ({
-  entity: one(entities, { fields: [items.uid], references: [entities.uid] }),
+  entity: one(entities, { fields: [items.entityId], references: [entities.id] }),
   baseItem: one(items, {
-    fields: [items.baseItemUid],
-    references: [items.uid],
+    fields: [items.baseItemId],
+    references: [items.entityId],
     relationName: "baseItem",
   }),
 }));
 
 export const classesRelations = relations(classes, ({ one, many }) => ({
-  entity: one(entities, { fields: [classes.uid], references: [entities.uid] }),
+  entity: one(entities, {
+    fields: [classes.entityId],
+    references: [entities.id],
+  }),
   subclasses: many(subclasses),
   features: many(classFeatures),
 }));
 
 export const subclassesRelations = relations(subclasses, ({ one, many }) => ({
   entity: one(entities, {
-    fields: [subclasses.uid],
-    references: [entities.uid],
+    fields: [subclasses.entityId],
+    references: [entities.id],
   }),
   class: one(classes, {
-    fields: [subclasses.classUid],
-    references: [classes.uid],
+    fields: [subclasses.classId],
+    references: [classes.entityId],
   }),
   features: many(classFeatures),
 }));
 
 export const classFeaturesRelations = relations(classFeatures, ({ one }) => ({
   entity: one(entities, {
-    fields: [classFeatures.uid],
-    references: [entities.uid],
+    fields: [classFeatures.entityId],
+    references: [entities.id],
   }),
   class: one(classes, {
-    fields: [classFeatures.classUid],
-    references: [classes.uid],
+    fields: [classFeatures.classId],
+    references: [classes.entityId],
   }),
   subclass: one(subclasses, {
-    fields: [classFeatures.subclassUid],
-    references: [subclasses.uid],
+    fields: [classFeatures.subclassId],
+    references: [subclasses.entityId],
   }),
 }));
 
 export const racesRelations = relations(races, ({ one, many }) => ({
-  entity: one(entities, { fields: [races.uid], references: [entities.uid] }),
+  entity: one(entities, { fields: [races.entityId], references: [entities.id] }),
   parentRace: one(races, {
-    fields: [races.parentRaceUid],
-    references: [races.uid],
+    fields: [races.parentRaceId],
+    references: [races.entityId],
     relationName: "subraces",
   }),
   subraces: many(races, { relationName: "subraces" }),
@@ -345,21 +361,21 @@ export const racesRelations = relations(races, ({ one, many }) => ({
 
 export const backgroundsRelations = relations(backgrounds, ({ one }) => ({
   entity: one(entities, {
-    fields: [backgrounds.uid],
-    references: [entities.uid],
+    fields: [backgrounds.entityId],
+    references: [entities.id],
   }),
 }));
 
 export const featsRelations = relations(feats, ({ one }) => ({
-  entity: one(entities, { fields: [feats.uid], references: [entities.uid] }),
+  entity: one(entities, { fields: [feats.entityId], references: [entities.id] }),
 }));
 
 export const optionalFeaturesRelations = relations(
   optionalFeatures,
   ({ one }) => ({
     entity: one(entities, {
-      fields: [optionalFeatures.uid],
-      references: [entities.uid],
+      fields: [optionalFeatures.entityId],
+      references: [entities.id],
     }),
   }),
 );
@@ -368,8 +384,8 @@ export const genericEntitiesRelations = relations(
   genericEntities,
   ({ one }) => ({
     entity: one(entities, {
-      fields: [genericEntities.uid],
-      references: [entities.uid],
+      fields: [genericEntities.entityId],
+      references: [entities.id],
     }),
   }),
 );

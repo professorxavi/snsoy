@@ -81,5 +81,5 @@ export const supportKindEnum = pgEnum("support_kind", [
   "itemTypeAdditionalEntries",
   "legendaryGroup",
   "monsterTemplate",
-  "monsterFeature",
+  "magicVariant",
 ]);

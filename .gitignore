@@ -34,9 +34,33 @@ yarn-error.log*
 .env*
 !.env.example
 
-# 5e content corpus — never commit the full dump, it is read from CONTENT_SOURCE_DIR
+# Content corpus — never commit it; ingest reads it from CONTENT_SOURCE_DIR
 /content/full/
 /data/
+
+# Ingest and data-validation tooling.
+#
+# Ingest runs once, ever. Once the corpus is loaded and dumped to a seed, this
+# code is obsolete — every instance thereafter is built by restoring the seed.
+# The repo carries only what the app runs long term.
+#
+# Note that this code exists nowhere else. If it matters to you, back it up
+# outside version control before wiping a working copy.
+#
+# Render-time modules it depends on (tags, dnd, variables, walk) deliberately
+# live in src/lib/content/ and ARE committed — the renderer and builder need
+# them on every request.
+/scripts/ingest/
+
+# Seed dumps.
+#
+# Ignored wholesale by default because the full-corpus seed is the entire
+# licensed dataset. Only the SRD-only seed is ever committable, and it must be
+# allowlisted explicitly once it exists — an ignore rule that lets seeds
+# through by default would leak the full corpus on the first careless `git add`.
+/seed/*
+!/seed/.gitkeep
+!/seed/README.md
 
 # vercel
 .vercel

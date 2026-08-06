@@ -14,6 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:dump": "tsx scripts/db/dump.ts",
+    "db:seed": "tsx scripts/db/seed.ts",
     "ingest": "tsx scripts/ingest/cli.ts"
   },
   "dependencies": {

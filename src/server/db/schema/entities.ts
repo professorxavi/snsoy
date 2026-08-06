@@ -9,6 +9,7 @@ import {
   primaryKey,
   text,
   uniqueIndex,
+  uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 import { entityTypeEnum } from "./enums";
@@ -29,15 +30,24 @@ export const tsvector = customType<{ data: string; driverData: string }>({
 export const entities = pgTable(
   "entities",
   {
+    id: uuid().primaryKey().defaultRandom(),
+
     /**
-     * Corpus identity: lowercased `name|source`, e.g. "fireball|phb".
+     * The corpus's own identity for this entity: `type|name|source`, lowercased
+     * — `spell|fireball|phb`.
+     *
+     * Not the primary key, but unique and indexed, because it is what
+     * cross-reference tags encode. Ingest resolves `{@spell fireball|phb}`
+     * through this column to reach the id, and re-seeding upserts on it so an
+     * entity keeps its id across corpus updates.
      *
      * Some types need more parts to be unique — a class feature is
-     * `name|className|classSource|level|source`. Build these with
-     * `makeUid()` from `@/lib/content/uid` rather than by hand; the format has
-     * to match what cross-reference tags encode or links will not resolve.
+     * `classfeature|name|class|classSource|level|source`. Build these with
+     * `naturalKeyFor()` from `@/lib/content/identity` rather than by hand; the
+     * format has to match what tags encode or links will not resolve.
      */
-    uid: text().primaryKey(),
+    naturalKey: text().notNull(),
+
     entityType: entityTypeEnum().notNull(),
     name: text().notNull(),
     /**
@@ -63,6 +73,7 @@ export const entities = pgTable(
     fluff: jsonb().$type<unknown>(),
   },
   (table) => [
+    uniqueIndex().on(table.naturalKey),
     uniqueIndex().on(table.entityType, table.sourceId, table.slug),
     index().on(table.entityType),
     index().on(table.sourceId),
@@ -87,36 +98,36 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
  *
  * Resolving these up front rather than at render time means a page can
  * prefetch what it links to, "what references this spell?" is a plain query,
- * and broken references surface as an ingest assertion instead of a dead link
+ * and broken references surface as an ingest statistic instead of a dead link
  * discovered by a user.
  */
 export const entityLinks = pgTable(
   "entity_links",
   {
-    fromUid: text()
+    fromId: uuid()
       .notNull()
-      .references(() => entities.uid, { onDelete: "cascade" }),
-    toUid: text()
+      .references(() => entities.id, { onDelete: "cascade" }),
+    toId: uuid()
       .notNull()
-      .references(() => entities.uid, { onDelete: "cascade" }),
+      .references(() => entities.id, { onDelete: "cascade" }),
     /** The originating tag: "spell", "item", "creature", "condition"... */
     tagType: varchar({ length: 32 }).notNull(),
   },
   (table) => [
-    primaryKey({ columns: [table.fromUid, table.toUid, table.tagType] }),
-    index().on(table.toUid),
+    primaryKey({ columns: [table.fromId, table.toId, table.tagType] }),
+    index().on(table.toId),
   ],
 );
 
 export const entityLinksRelations = relations(entityLinks, ({ one }) => ({
   from: one(entities, {
-    fields: [entityLinks.fromUid],
-    references: [entities.uid],
+    fields: [entityLinks.fromId],
+    references: [entities.id],
     relationName: "linksOut",
   }),
   to: one(entities, {
-    fields: [entityLinks.toUid],
-    references: [entities.uid],
+    fields: [entityLinks.toId],
+    references: [entities.id],
     relationName: "linksIn",
   }),
 }));
@@ -130,15 +141,26 @@ export const entityLinksRelations = relations(entityLinks, ({ one }) => ({
 export const searchIndex = pgTable(
   "search_index",
   {
-    uid: text()
+    entityId: uuid()
       .primaryKey()
-      .references(() => entities.uid, { onDelete: "cascade" }),
+      .references(() => entities.id, { onDelete: "cascade" }),
     name: text().notNull(),
     entityType: entityTypeEnum().notNull(),
     sourceId: varchar({ length: 32 }).notNull(),
     isSrd: boolean().notNull().default(false),
-    /** Name weighted 'A', body text 'B', so name matches outrank body hits. */
-    tsv: tsvector().notNull(),
+    /**
+     * The entity's prose, flattened and stripped of markup at ingest so a
+     * search for "fireball" matches text that mentions it.
+     */
+    body: text(),
+    /**
+     * Generated rather than populated, so it can never drift from the columns
+     * it summarises. Name is weighted 'A' and body 'B', so an entity actually
+     * called "Fireball" outranks the dozens that merely mention it.
+     */
+    tsv: tsvector().generatedAlwaysAs(
+      sql`setweight(to_tsvector('english', coalesce(name, '')), 'A') || setweight(to_tsvector('english', coalesce(body, '')), 'B')`,
+    ),
   },
   (table) => [
     index().using("gin", table.tsv),
