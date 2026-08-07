@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Alfa_Slab_One, IBM_Plex_Sans, Literata } from "next/font/google";
+import { AppFrame } from "@/components/shell";
 import { Provider } from "@/components/ui/provider";
 import "./globals.css";
 
@@ -48,7 +49,9 @@ export default function RootLayout({
       <body
         className={`${literata.variable} ${plexSans.variable} ${alfaSlab.variable}`}
       >
-        <Provider>{children}</Provider>
+        <Provider>
+          <AppFrame>{children}</AppFrame>
+        </Provider>
       </body>
     </html>
   );

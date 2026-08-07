@@ -124,6 +124,27 @@ const config = defineConfig({
         l2: { value: "3px" },
         l3: { value: "4px" },
       },
+
+      /**
+       * Shell geometry. Here rather than in the components because the three
+       * widths are interdependent: opening the aside is what forces the rail
+       * to collapse, so they have to be reasoned about together.
+       */
+      sizes: {
+        /** Top bar. Also the sticky offset for the rail, aside and table head. */
+        topbar: { value: "46px" },
+        /** Filter rail, expanded. */
+        rail: { value: "212px" },
+        /** Filter rail once the aside takes the width — icon strip only. */
+        railCollapsed: { value: "46px" },
+        /** Entity detail aside. Below this the aside becomes a full-height sheet. */
+        aside: { value: "400px" },
+        /**
+         * Reading measure for long-form chapters. Held in `ch` so it tracks
+         * the font rather than a pixel guess — the target is ~65–70 characters.
+         */
+        measure: { value: "68ch" },
+      },
     },
 
     semanticTokens: {
