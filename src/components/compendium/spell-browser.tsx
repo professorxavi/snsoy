@@ -10,24 +10,30 @@ import {
   filtersFromSearch,
   filtersToQuery,
   hasActiveFilters,
+  pageCountFor,
+  pageOf,
   sortSpells,
   toggle,
   type SpellFilterState,
   type SpellSort,
 } from "@/lib/content/spell-browse";
 import type { SpellRow } from "@/server/db/queries/spells";
-import { ListToolbar } from "./list-chrome";
+import { ListToolbar, Pager } from "./list-chrome";
 import { CollapsedFilters, SpellFilters } from "./spell-filters";
 import { SpellTable } from "./spell-table";
 
 /**
  * The spell browse view.
  *
- * Holds the whole spell list and does all filtering, searching, sorting and
- * facet counting in memory. That is only reasonable because there are 525
+ * Holds the whole spell list and does all filtering, searching, sorting, paging
+ * and facet counting in memory. That is only reasonable because there are 525
  * spells — see the note on `allSpells` — but where it is reasonable it is much
  * better: typing in the search box updates the table on the keystroke, with no
  * request in between.
+ *
+ * Paging is presentational and nothing more. Every row is already here; a page
+ * is a slice, chosen so the table reads as a page of results rather than a
+ * 525-row scroll. Nothing is fetched when it changes.
  *
  * Filter state is still written to the URL, so a filtered list stays linkable
  * and the back button still works. It is written with the **native History
@@ -39,46 +45,83 @@ import { SpellTable } from "./spell-table";
 export function SpellBrowser({
   spells,
   initialFilters,
+  initialPage,
 }: {
   spells: SpellRow[];
   /** Parsed from the URL on the server, so the first paint is already filtered. */
   initialFilters: SpellFilterState;
+  initialPage: number;
 }) {
   const [filters, setFilters] = useState(initialFilters);
+  const [page, setPage] = useState(initialPage);
 
-  // Back and forward move through filter states, so the URL has to be able to
-  // drive the state as well — but only when the browser says so.
+  // Back and forward move through filter and page states, so the URL has to be
+  // able to drive the state as well — but only when the browser says so.
   useEffect(() => {
     const onPopState = () => {
-      setFilters(filtersFromSearch(new URLSearchParams(window.location.search)));
+      const search = new URLSearchParams(window.location.search);
+      setFilters(filtersFromSearch(search));
+      const raw = Number(search.get("page"));
+      setPage(Number.isInteger(raw) && raw > 0 ? raw : 1);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const update = useCallback(
-    (next: SpellFilterState, options: { replace?: boolean } = {}) => {
+  const write = useCallback(
+    (next: SpellFilterState, nextPage: number, replace = false) => {
       setFilters(next);
+      setPage(nextPage);
 
-      const url = `/compendium/spells${filtersToQuery(next)}`;
+      const url = `/compendium/spells${filtersToQuery(next, nextPage)}`;
       // Typing replaces rather than pushes: every keystroke would otherwise be
       // a history entry, and Back would walk backwards through the word.
-      if (options.replace) window.history.replaceState(null, "", url);
+      if (replace) window.history.replaceState(null, "", url);
       else window.history.pushState(null, "", url);
     },
     [],
   );
 
-  const visible = useMemo(() => {
-    return sortSpells(filterSpells(spells, filters), filters.sort);
-  }, [spells, filters]);
+  /**
+   * Any change to what is being shown returns to page one.
+   *
+   * Page 7 of an unfiltered list is not page 7 of a filtered one, and landing
+   * on an empty page after narrowing is the most confusing thing a paged list
+   * can do.
+   */
+  const update = useCallback(
+    (next: SpellFilterState, options: { replace?: boolean } = {}) =>
+      write(next, 1, options.replace),
+    [write],
+  );
 
-  const facets = useMemo(
-    () => facetOptions(spells, filters),
+  const visible = useMemo(
+    () => sortSpells(filterSpells(spells, filters), filters.sort),
     [spells, filters],
   );
 
+  const facets = useMemo(() => facetOptions(spells, filters), [spells, filters]);
+
+  const pageCount = pageCountFor(visible.length);
+  // Clamped rather than trusted: a hand-edited `?page=99` should show the last
+  // page, not an empty table.
+  const currentPage = Math.min(Math.max(1, page), pageCount);
+  const rows = useMemo(
+    () => pageOf(visible, currentPage),
+    [visible, currentPage],
+  );
+
   const filtered = hasActiveFilters(filters);
+
+  const goToPage = useCallback(
+    (next: number) => {
+      write(filters, Math.min(Math.max(1, next), pageCount));
+      // A new page starts at its top; otherwise Next leaves you mid-table
+      // looking at rows you have not seen the header for.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [filters, pageCount, write],
+  );
 
   return (
     <BrowseColumns>
@@ -101,9 +144,7 @@ export function SpellBrowser({
           onToggleConcentration={() =>
             update({ ...filters, concentration: !filters.concentration })
           }
-          onToggleRitual={() =>
-            update({ ...filters, ritual: !filters.ritual })
-          }
+          onToggleRitual={() => update({ ...filters, ritual: !filters.ritual })}
           onClear={() => update({ ...EMPTY_FILTERS, sort: filters.sort })}
         />
       </FilterRail>
@@ -116,10 +157,11 @@ export function SpellBrowser({
           filtered={filtered}
         />
         <SpellTable
-          rows={visible}
+          rows={rows}
           sort={filters.sort}
           onSort={(sort: SpellSort) => update({ ...filters, sort })}
         />
+        <Pager page={currentPage} pageCount={pageCount} onPage={goToPage} />
       </Box>
     </BrowseColumns>
   );

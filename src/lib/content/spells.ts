@@ -91,9 +91,14 @@ export function levelLabel(level: number): string {
   return level === 0 ? "Cantrip" : `${ordinal(level)}-level`;
 }
 
-/** Compact form for a table cell, where "Cantrip" is too wide. */
+/**
+ * Compact form for a table cell, where "Cantrip" is too wide.
+ *
+ * Cantrips are "C", not a dash: they are a real level a spell can be, and a
+ * dash reads as missing data sitting next to nine rows of digits.
+ */
 export function levelShort(level: number): string {
-  return level === 0 ? "—" : String(level);
+  return level === 0 ? "C" : String(level);
 }
 
 /**

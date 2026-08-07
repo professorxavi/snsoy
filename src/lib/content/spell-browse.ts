@@ -105,7 +105,10 @@ export function filtersFromSearch(search: URLSearchParams): SpellFilterState {
  * URL — otherwise the same view would produce different links depending on the
  * order the reader happened to click things.
  */
-export function filtersToQuery(filters: SpellFilterState): string {
+export function filtersToQuery(
+  filters: SpellFilterState,
+  page = 1,
+): string {
   const search = new URLSearchParams();
 
   if (filters.levels.length) search.set("level", filters.levels.join(","));
@@ -116,10 +119,50 @@ export function filtersToQuery(filters: SpellFilterState): string {
   if (filters.ritual) search.set("ritual", "1");
   if (filters.q.trim()) search.set("q", filters.q.trim());
   if (filters.sort !== "name") search.set("sort", filters.sort);
+  if (page > 1) search.set("page", String(page));
 
   search.sort();
   const query = search.toString();
   return query ? `?${query}` : "";
+}
+
+/* ------------------------------------------------------------------ *
+ * Paging
+ * ------------------------------------------------------------------ */
+
+/**
+ * Rows per page.
+ *
+ * Paging is presentational here, not a fetching strategy — the whole list is
+ * already in memory. It exists so the table is a page of results rather than a
+ * 525-row scroll, which is a different thing from making the data available.
+ */
+export const SPELLS_PER_PAGE = 50;
+
+export function pageFromSearch(search: URLSearchParams): number {
+  const raw = Number(search.get("page"));
+  return Number.isInteger(raw) && raw > 0 ? raw : 1;
+}
+
+export function pageCountFor(total: number, perPage = SPELLS_PER_PAGE): number {
+  return Math.max(1, Math.ceil(total / perPage));
+}
+
+/**
+ * One page of rows.
+ *
+ * Clamps rather than returning an empty page: filtering down while on page 7
+ * would otherwise show a table with nothing in it and no indication why. The
+ * caller clamps its own page number to match — see `SpellBrowser`.
+ */
+export function pageOf<T>(
+  rows: readonly T[],
+  page: number,
+  perPage = SPELLS_PER_PAGE,
+): T[] {
+  const clamped = Math.min(Math.max(1, page), pageCountFor(rows.length, perPage));
+  const start = (clamped - 1) * perPage;
+  return rows.slice(start, start + perPage);
 }
 
 /** Add or remove one value from a multi-value filter. */

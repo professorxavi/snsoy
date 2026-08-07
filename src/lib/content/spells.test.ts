@@ -7,6 +7,7 @@ import {
   formatDuration,
   formatRange,
   levelLabel,
+  levelShort,
   schoolName,
   spellSubtitle,
 } from "./spells";
@@ -30,6 +31,16 @@ describe("spellSubtitle", () => {
     expect(levelLabel(2)).toBe("2nd-level");
     expect(levelLabel(3)).toBe("3rd-level");
     expect(levelLabel(9)).toBe("9th-level");
+  });
+
+  /**
+   * "C", not a dash — a cantrip is a level a spell can be, and a dash in a
+   * column of digits reads as missing data.
+   */
+  it("marks a cantrip with C in the compact column", () => {
+    expect(levelShort(0)).toBe("C");
+    expect(levelShort(1)).toBe("1");
+    expect(levelShort(9)).toBe("9");
   });
 
   it("expands the single-letter school code", () => {

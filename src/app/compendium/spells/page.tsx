@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SpellBrowser } from "@/components/compendium/spell-browser";
-import { filtersFromSearch } from "@/lib/content/spell-browse";
+import { filtersFromSearch, pageFromSearch } from "@/lib/content/spell-browse";
 import { allSpells } from "@/server/db/queries/spells";
 
 export const metadata: Metadata = {
@@ -32,6 +32,10 @@ export default async function SpellsPage({
   }
 
   return (
-    <SpellBrowser spells={spells} initialFilters={filtersFromSearch(search)} />
+    <SpellBrowser
+      spells={spells}
+      initialFilters={filtersFromSearch(search)}
+      initialPage={pageFromSearch(search)}
+    />
   );
 }

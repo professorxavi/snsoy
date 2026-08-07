@@ -6,6 +6,9 @@ import {
   filtersFromSearch,
   filtersToQuery,
   matchesSpell,
+  pageCountFor,
+  pageFromSearch,
+  pageOf,
   sortSpells,
   toggle,
   type BrowsableSpell,
@@ -252,6 +255,47 @@ describe("URL round-trip", () => {
     expect(filtersFromSearch(new URLSearchParams("?sort=nonsense")).sort).toBe(
       "name",
     );
+  });
+});
+
+describe("paging", () => {
+  const rows = Array.from({ length: 125 }, (_, i) => i);
+
+  it("counts pages, and always has at least one", () => {
+    expect(pageCountFor(125, 50)).toBe(3);
+    expect(pageCountFor(100, 50)).toBe(2);
+    expect(pageCountFor(0, 50)).toBe(1);
+  });
+
+  it("slices the requested page", () => {
+    expect(pageOf(rows, 1, 50)[0]).toBe(0);
+    expect(pageOf(rows, 2, 50)[0]).toBe(50);
+    expect(pageOf(rows, 3, 50)).toHaveLength(25);
+  });
+
+  /** A hand-edited `?page=99` should show the last page, not an empty table. */
+  it("clamps a page beyond the end rather than returning nothing", () => {
+    expect(pageOf(rows, 99, 50)).toEqual(pageOf(rows, 3, 50));
+    expect(pageOf(rows, 0, 50)).toEqual(pageOf(rows, 1, 50));
+  });
+
+  it("reads the page from the url, defaulting to one", () => {
+    expect(pageFromSearch(new URLSearchParams("?page=3"))).toBe(3);
+    expect(pageFromSearch(new URLSearchParams("?page=0"))).toBe(1);
+    expect(pageFromSearch(new URLSearchParams("?page=abc"))).toBe(1);
+    expect(pageFromSearch(new URLSearchParams(""))).toBe(1);
+  });
+
+  /** Page one is the default, so it should not clutter the URL. */
+  it("omits page one from the query string", () => {
+    expect(filtersToQuery(EMPTY_FILTERS, 1)).toBe("");
+    expect(filtersToQuery(EMPTY_FILTERS, 3)).toBe("?page=3");
+    expect(filtersToQuery(withFilters({ levels: [3] }), 2)).toBe("?level=3&page=2");
+  });
+
+  it("round-trips a page through the url", () => {
+    const query = filtersToQuery(withFilters({ schools: ["V"] }), 4);
+    expect(pageFromSearch(new URLSearchParams(query))).toBe(4);
   });
 });
 

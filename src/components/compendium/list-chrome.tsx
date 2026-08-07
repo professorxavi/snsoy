@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 
 /**
  * The bar above a list.
@@ -78,6 +79,86 @@ export function ListToolbar({
           {matched} {matched === 1 ? "spell" : "spells"}
         </Text>
       ) : null}
+    </Box>
+  );
+}
+
+/**
+ * The pager.
+ *
+ * Buttons rather than links, because paging changes no data — every row is
+ * already loaded and this only decides which slice is on screen. Hidden
+ * entirely at one page: a pager that can never do anything is noise.
+ */
+export function Pager({
+  page,
+  pageCount,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  onPage: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <Box
+      as="nav"
+      aria-label="Pagination"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      gap="4"
+      px="4"
+      py="5"
+      borderTopWidth="1px"
+      borderColor="border"
+    >
+      <PageButton onClick={() => onPage(page - 1)} disabled={page <= 1}>
+        ← Previous
+      </PageButton>
+
+      <Text
+        fontFamily="ui"
+        fontSize="2xs"
+        color="fg.subtle"
+        fontVariantNumeric="tabular-nums"
+        aria-live="polite"
+      >
+        Page {page} of {pageCount}
+      </Text>
+
+      <PageButton onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+        Next →
+      </PageButton>
+    </Box>
+  );
+}
+
+function PageButton({
+  onClick,
+  disabled,
+  children,
+}: {
+  onClick: () => void;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <Box
+      asChild
+      fontFamily="ui"
+      fontSize="xs"
+      color="brand"
+      px="2"
+      py="1"
+      rounded="l1"
+      _hover={disabled ? {} : { bg: "brand.subtle" }}
+      _disabled={{ opacity: 0.4, cursor: "not-allowed", color: "fg.subtle" }}
+    >
+      <button type="button" onClick={onClick} disabled={disabled}>
+        {children}
+      </button>
     </Box>
   );
 }
