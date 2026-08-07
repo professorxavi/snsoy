@@ -66,6 +66,9 @@ const SEGMENTS = {
 
 export type BrowsableType = keyof typeof SEGMENTS;
 
+/** Every type with a browse route. The compendium index must cover all of them. */
+export const BROWSABLE_TYPES = Object.keys(SEGMENTS) as BrowsableType[];
+
 /**
  * Types with no segment of their own, because they render as a fragment of
  * their parent's page.
