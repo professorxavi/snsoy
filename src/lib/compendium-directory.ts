@@ -38,6 +38,7 @@ export interface DirectoryGroup {
  */
 export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "spell",
+  "race",
 ]);
 
 export const DIRECTORY: DirectoryGroup[] = [

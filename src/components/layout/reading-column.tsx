@@ -16,9 +16,16 @@ import { BELOW_TOPBAR, TOPBAR } from "./constants";
  */
 export function ReadingColumn({
   outline,
+  outlineLabel = "On this page",
   children,
 }: {
   outline?: ReactNode;
+  /**
+   * The outline's accessible name. Defaults to something true everywhere —
+   * this layout serves races and classes as well as book chapters, and "In this
+   * chapter" is a lie on two of the three.
+   */
+  outlineLabel?: string;
   children: ReactNode;
 }) {
   return (
@@ -35,7 +42,7 @@ export function ReadingColumn({
       {outline ? (
         <Box
           as="nav"
-          aria-label="In this chapter"
+          aria-label={outlineLabel}
           display={{ base: "none", lg: "block" }}
           position="sticky"
           top={TOPBAR}
