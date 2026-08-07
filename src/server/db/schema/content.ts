@@ -63,10 +63,20 @@ export const spells = pgTable(
     savingThrows: text().array(),
     conditionsInflicted: text().array(),
     /**
-     * Classes able to cast this spell, as lowercase names.
+     * Classes able to cast this spell, Title-cased — "Cleric", not "cleric".
      *
      * Derived from `generated/gendata-spell-source-lookup.json`, not from the
      * spell object itself — the 2014 corpus stores this mapping externally.
+     *
+     * Merges the lookup's `class` and `classVariant` grants. `classVariant` is
+     * how the corpus records a later book adding a spell to an earlier class's
+     * list, and it is the only grant 119 spells have — reading `class` alone
+     * left every XGE spell with an empty list and invisible to the class
+     * filter. The "added later" distinction is deliberately not preserved.
+     *
+     * Empty is meaningful and rare: 16 spells are subclass-only (the EGW
+     * Chronurgy and Graviturgy wizard lists, plus GGR's Encode Thoughts) and
+     * genuinely belong to no class list.
      */
     classes: text().array(),
     subclasses: text().array(),
