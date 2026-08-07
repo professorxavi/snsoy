@@ -1,9 +1,6 @@
-"use client";
-
 import { Box, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
-import type { SpellSort } from "@/lib/content/spell-browse";
 import {
   componentLetters,
   formatCastingTime,
@@ -12,8 +9,9 @@ import {
   levelShort,
   schoolName,
 } from "@/lib/content/spells";
+import { withValue, type QueryParams } from "@/lib/query-params";
 import { hrefFor } from "@/lib/routes";
-import type { SpellRow } from "@/server/db/queries/spells";
+import type { SpellRow, SpellSort } from "@/server/db/queries/spells";
 
 /**
  * The spell list.
@@ -31,13 +29,11 @@ import type { SpellRow } from "@/server/db/queries/spells";
 
 export function SpellTable({
   rows,
-  sort,
-  onSort,
+  params,
   selectedSlug,
 }: {
   rows: SpellRow[];
-  sort: SpellSort;
-  onSort: (sort: SpellSort) => void;
+  params: QueryParams;
   /** Slug of the spell currently open, so its row reads as selected. */
   selectedSlug?: string;
 }) {
@@ -48,10 +44,10 @@ export function SpellTable({
       <Table.Root size="sm" interactive stickyHeader>
         <Table.Header>
           <Table.Row bg="bg.muted">
-            <SortableHeader current={sort} sort="name" onSort={onSort}>
+            <SortableHeader params={params} sort="name">
               Name
             </SortableHeader>
-            <SortableHeader current={sort} sort="level" onSort={onSort} numeric>
+            <SortableHeader params={params} sort="level" numeric>
               Lvl
             </SortableHeader>
             <Header>School</Header>
@@ -181,19 +177,17 @@ function Header({
 }
 
 function SortableHeader({
-  current,
+  params,
   sort,
-  onSort,
   numeric,
   children,
 }: {
-  current: SpellSort;
+  params: QueryParams;
   sort: SpellSort;
-  onSort: (sort: SpellSort) => void;
   numeric?: boolean;
   children: ReactNode;
 }) {
-  const active = current === sort;
+  const active = (params["sort"] ?? "name") === sort;
 
   return (
     <Header numeric={numeric} sorted={active}>
@@ -202,10 +196,10 @@ function SortableHeader({
         color={active ? "brand" : "inherit"}
         _hover={{ color: "brand" }}
       >
-        <button type="button" onClick={() => onSort(sort)}>
+        <NextLink href={`/compendium/spells${withValue(params, "sort", sort)}`}>
           {children}
           {active ? " ↓" : null}
-        </button>
+        </NextLink>
       </Box>
     </Header>
   );

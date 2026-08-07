@@ -1,29 +1,32 @@
-"use client";
-
 import { Box, Text } from "@chakra-ui/react";
+import NextLink from "next/link";
 import type { ReactNode } from "react";
+import { withValue, type QueryParams } from "@/lib/query-params";
 
 /**
- * The bar above a list.
+ * The bar above a list and the pager below it.
  *
- * The search field is controlled and filters on the keystroke. There is no
- * form, no submit and no request: the whole spell list is already in memory, so
- * the only honest interaction is one that updates the table as you type.
- *
- * `type="search"` rather than `text`, so the browser supplies its own clear
- * button and the field is announced as a search.
+ * Both are server-rendered and URL-driven. The search field is a plain GET
+ * form: filter state already lives in the URL, so the browser's own form
+ * submission produces exactly the right navigation. A controlled input with an
+ * onChange handler would be more code doing less, and would not work before
+ * hydration.
  */
+
+/** Filter params carried through the search form so searching does not reset them. */
+const CARRIED_KEYS = ["level", "school", "time", "class", "conc", "ritual", "sort"];
+
 export function ListToolbar({
-  query,
-  onQueryChange,
+  params,
   matched,
   filtered,
+  basePath,
 }: {
-  query: string;
-  onQueryChange: (value: string) => void;
+  params: QueryParams;
   matched: number;
-  /** Whether anything is filtered. Governs whether a count is shown at all. */
+  /** Whether any filter is applied. Governs whether a count is shown at all. */
   filtered: boolean;
+  basePath: string;
 }) {
   return (
     <Box
@@ -40,27 +43,37 @@ export function ListToolbar({
       top="var(--chakra-sizes-topbar)"
       zIndex="1"
     >
-      <Box
-        asChild
-        w={{ base: "40", sm: "64" }}
-        px="2.5"
-        py="1"
-        fontFamily="ui"
-        fontSize="xs"
-        bg="bg"
-        borderWidth="1px"
-        borderColor="border"
-        rounded="l1"
-        _focusVisible={{ borderColor: "brand" }}
-      >
-        <input
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Search spells"
-          aria-label="Search spells by name"
-        />
-      </Box>
+      <form action={basePath} method="get">
+        {/* Filters survive a search; page does not, since the results change. */}
+        {CARRIED_KEYS.map((key) => {
+          const value = params[key];
+          const single = Array.isArray(value) ? value[0] : value;
+          return single ? (
+            <input key={key} type="hidden" name={key} value={single} />
+          ) : null;
+        })}
+        <Box
+          asChild
+          w={{ base: "40", sm: "64" }}
+          px="2.5"
+          py="1"
+          fontFamily="ui"
+          fontSize="xs"
+          bg="bg"
+          borderWidth="1px"
+          borderColor="border"
+          rounded="l1"
+          _focusVisible={{ borderColor: "brand" }}
+        >
+          <input
+            type="search"
+            name="q"
+            defaultValue={typeof params["q"] === "string" ? params["q"] : ""}
+            placeholder="Search spells"
+            aria-label="Search spells by name"
+          />
+        </Box>
+      </form>
 
       {/*
         A count only once the reader has narrowed something. "525 spells" is a
@@ -74,7 +87,6 @@ export function ListToolbar({
           color="fg.subtle"
           fontVariantNumeric="tabular-nums"
           whiteSpace="nowrap"
-          aria-live="polite"
         >
           {matched} {matched === 1 ? "spell" : "spells"}
         </Text>
@@ -83,21 +95,17 @@ export function ListToolbar({
   );
 }
 
-/**
- * The pager.
- *
- * Buttons rather than links, because paging changes no data — every row is
- * already loaded and this only decides which slice is on screen. Hidden
- * entirely at one page: a pager that can never do anything is noise.
- */
+/** Hidden entirely at one page: a pager that can never do anything is noise. */
 export function Pager({
+  params,
   page,
   pageCount,
-  onPage,
+  basePath,
 }: {
+  params: QueryParams;
   page: number;
   pageCount: number;
-  onPage: (page: number) => void;
+  basePath: string;
 }) {
   if (pageCount <= 1) return null;
 
@@ -114,36 +122,55 @@ export function Pager({
       borderTopWidth="1px"
       borderColor="border"
     >
-      <PageButton onClick={() => onPage(page - 1)} disabled={page <= 1}>
+      <PageLink
+        href={`${basePath}${withValue(params, "page", String(page - 1))}`}
+        disabled={page <= 1}
+      >
         ← Previous
-      </PageButton>
+      </PageLink>
 
       <Text
         fontFamily="ui"
         fontSize="2xs"
         color="fg.subtle"
         fontVariantNumeric="tabular-nums"
-        aria-live="polite"
       >
         Page {page} of {pageCount}
       </Text>
 
-      <PageButton onClick={() => onPage(page + 1)} disabled={page >= pageCount}>
+      <PageLink
+        href={`${basePath}${withValue(params, "page", String(page + 1))}`}
+        disabled={page >= pageCount}
+      >
         Next →
-      </PageButton>
+      </PageLink>
     </Box>
   );
 }
 
-function PageButton({
-  onClick,
+function PageLink({
+  href,
   disabled,
   children,
 }: {
-  onClick: () => void;
+  href: string;
   disabled: boolean;
   children: ReactNode;
 }) {
+  if (disabled) {
+    return (
+      <Text
+        fontFamily="ui"
+        fontSize="xs"
+        color="fg.subtle"
+        opacity="0.5"
+        aria-disabled="true"
+      >
+        {children}
+      </Text>
+    );
+  }
+
   return (
     <Box
       asChild
@@ -153,12 +180,9 @@ function PageButton({
       px="2"
       py="1"
       rounded="l1"
-      _hover={disabled ? {} : { bg: "brand.subtle" }}
-      _disabled={{ opacity: 0.4, cursor: "not-allowed", color: "fg.subtle" }}
+      _hover={{ bg: "brand.subtle" }}
     >
-      <button type="button" onClick={onClick} disabled={disabled}>
-        {children}
-      </button>
+      <NextLink href={href}>{children}</NextLink>
     </Box>
   );
 }
