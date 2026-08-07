@@ -1,99 +1,87 @@
+"use client";
+
 import { Box, Stack, Text } from "@chakra-ui/react";
-import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { levelLabel, schoolName } from "@/lib/content/spells";
-import {
-  clearAll,
-  hasFilters,
-  readBoolean,
-  readList,
-  toggleFlag,
-  toggleValue,
-  type QueryParams,
-} from "@/lib/query-params";
-import type { spellFacets } from "@/server/db/queries/spells";
+import type { FacetOption, SpellFacets } from "@/lib/content/spell-browse";
 
 /**
  * The spell filter rail.
  *
- * Every control is a link, not a checkbox. That is deliberate: filter state is
- * already in the URL, so a link *is* the state change — no form, no client
- * state, no hydration needed for the rail to work, and every option is
- * middle-clickable into a new tab. It also means the rail renders correctly on
- * the server with the counts already filled in.
+ * **Every option is always shown.** One that would return nothing is disabled,
+ * not removed — a rail whose contents rearrange as you filter is a rail you
+ * cannot learn, and a vanished option is indistinguishable from one that never
+ * existed. Disabling keeps the shape of the data visible while still saying
+ * clearly that this route is closed.
  *
- * Counts come from facets computed against the other filters but not their own,
- * so ticking "Evocation" does not zero out every other school. Without that a
- * rail can only ever narrow, and you can never see what else is there.
+ * Counts are computed against the other filters but not their own, so selecting
+ * "Evocation" does not zero out every other school. Without that a rail can
+ * only ever narrow, and you can never see what else is there.
+ *
+ * The controls are buttons rather than links because filtering no longer
+ * navigates — the whole list is already here, so a click is a state change and
+ * the URL is updated afterwards to match.
  */
-
-type Facets = Awaited<ReturnType<typeof spellFacets>>;
-
-/** Parameters that count as filters — `page` and `sort` are not. */
-export const FILTER_KEYS = [
-  "q",
-  "level",
-  "school",
-  "time",
-  "class",
-  "conc",
-  "ritual",
-];
 
 const CASTING_TIME_LABELS: Record<string, string> = {
   action: "Action",
   bonus: "Bonus action",
   reaction: "Reaction",
+  round: "Round",
   minute: "Minute",
   hour: "Hour",
 };
 
 export function SpellFilters({
-  params,
   facets,
+  filtered,
+  onToggleLevel,
+  onToggleSchool,
+  onToggleTime,
+  onToggleClass,
+  onToggleConcentration,
+  onToggleRitual,
+  onClear,
 }: {
-  params: QueryParams;
-  facets: Facets;
+  facets: SpellFacets;
+  filtered: boolean;
+  onToggleLevel: (value: number) => void;
+  onToggleSchool: (value: string) => void;
+  onToggleTime: (value: string) => void;
+  onToggleClass: (value: string) => void;
+  onToggleConcentration: () => void;
+  onToggleRitual: () => void;
+  onClear: () => void;
 }) {
-  const activeLevels = readList(params, "level");
-  const activeSchools = readList(params, "school");
-  const activeTimes = readList(params, "time");
-  const activeClasses = readList(params, "class");
-
-  const levels = [...facets.levels].sort((a, b) => a.value - b.value);
-  const schools = [...facets.schools].sort((a, b) =>
-    schoolName(a.value).localeCompare(schoolName(b.value)),
-  );
-  const classes = [...facets.classes].sort((a, b) =>
-    a.value.localeCompare(b.value),
-  );
-
   return (
     <Stack gap="5" px="3" py="4" pb="12">
-      {hasFilters(params, FILTER_KEYS) ? (
-        <Box
-          asChild
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="wide"
-          textTransform="uppercase"
-          color="brand"
-          _hover={{ textDecoration: "underline" }}
-        >
-          <NextLink href={`/compendium/spells${clearAll(params, ["sort"])}`}>
-            Clear filters
-          </NextLink>
-        </Box>
-      ) : null}
+      {/* Reserves its own row whether or not it is shown, so the groups below
+          do not shift up and down as the first filter is applied. */}
+      <Box minH="4">
+        {filtered ? (
+          <Box
+            asChild
+            fontFamily="ui"
+            fontSize="2xs"
+            fontWeight="medium"
+            letterSpacing="wide"
+            textTransform="uppercase"
+            color="brand"
+            _hover={{ textDecoration: "underline" }}
+          >
+            <button type="button" onClick={onClear}>
+              Clear filters
+            </button>
+          </Box>
+        ) : null}
+      </Box>
 
       <Group label="Level">
-        {levels.map((facet) => (
+        {facets.levels.map((facet) => (
           <Option
             key={facet.value}
-            href={`/compendium/spells${toggleValue(params, "level", String(facet.value))}`}
-            active={activeLevels.includes(String(facet.value))}
-            count={facet.n}
+            facet={facet}
+            onToggle={() => onToggleLevel(facet.value)}
           >
             {levelLabel(facet.value)}
           </Option>
@@ -101,12 +89,11 @@ export function SpellFilters({
       </Group>
 
       <Group label="School">
-        {schools.map((facet) => (
+        {facets.schools.map((facet) => (
           <Option
             key={facet.value}
-            href={`/compendium/spells${toggleValue(params, "school", facet.value)}`}
-            active={activeSchools.includes(facet.value)}
-            count={facet.n}
+            facet={facet}
+            onToggle={() => onToggleSchool(facet.value)}
           >
             {schoolName(facet.value)}
           </Option>
@@ -114,12 +101,11 @@ export function SpellFilters({
       </Group>
 
       <Group label="Casting time">
-        {facets.castingTimes.map((facet) => (
+        {facets.times.map((facet) => (
           <Option
             key={facet.value}
-            href={`/compendium/spells${toggleValue(params, "time", facet.value)}`}
-            active={activeTimes.includes(facet.value)}
-            count={facet.n}
+            facet={facet}
+            onToggle={() => onToggleTime(facet.value)}
           >
             {CASTING_TIME_LABELS[facet.value] ?? facet.value}
           </Option>
@@ -127,12 +113,11 @@ export function SpellFilters({
       </Group>
 
       <Group label="Class">
-        {classes.map((facet) => (
+        {facets.classes.map((facet) => (
           <Option
             key={facet.value}
-            href={`/compendium/spells${toggleValue(params, "class", facet.value)}`}
-            active={activeClasses.includes(facet.value)}
-            count={facet.n}
+            facet={facet}
+            onToggle={() => onToggleClass(facet.value)}
           >
             <Box as="span" textTransform="capitalize">
               {facet.value}
@@ -142,16 +127,10 @@ export function SpellFilters({
       </Group>
 
       <Group label="Requires">
-        <Option
-          href={`/compendium/spells${toggleFlag(params, "conc")}`}
-          active={readBoolean(params, "conc") === true}
-        >
+        <Option facet={facets.concentration} onToggle={onToggleConcentration}>
           Concentration
         </Option>
-        <Option
-          href={`/compendium/spells${toggleFlag(params, "ritual")}`}
-          active={readBoolean(params, "ritual") === true}
-        >
+        <Option facet={facets.ritual} onToggle={onToggleRitual}>
           Ritual
         </Option>
       </Group>
@@ -182,20 +161,22 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 /**
  * One filter option.
  *
- * Active state is carried by fill *and* weight, not colour alone — purple at
+ * Selected state is carried by fill *and* weight, not colour alone — purple at
  * 11px against a panel is not a reliable signal on its own (WCAG 1.4.1).
+ * Disabled state uses `aria-pressed` plus a real `disabled` attribute so it is
+ * announced as an unavailable toggle rather than merely looking greyed out.
  */
-function Option({
-  href,
-  active,
-  count,
+function Option<T>({
+  facet,
+  onToggle,
   children,
 }: {
-  href: string;
-  active: boolean;
-  count?: number;
+  facet: FacetOption<T>;
+  onToggle: () => void;
   children: ReactNode;
 }) {
+  const { selected, disabled, count } = facet;
+
   return (
     <Box
       asChild
@@ -206,35 +187,38 @@ function Option({
       px="2"
       py="1"
       rounded="l1"
+      textAlign="left"
       fontFamily="ui"
       fontSize="xs"
-      fontWeight={active ? "semibold" : "normal"}
-      color={active ? "brand" : "fg.muted"}
-      bg={active ? "brand.subtle" : "transparent"}
+      fontWeight={selected ? "semibold" : "normal"}
+      color={selected ? "brand" : "fg.muted"}
+      bg={selected ? "brand.subtle" : "transparent"}
       transition="background .1s, color .1s"
-      _hover={{ bg: active ? "brand.subtle" : "bg.muted", color: "fg" }}
+      _hover={disabled ? {} : { bg: selected ? "brand.subtle" : "bg.muted", color: "fg" }}
+      _disabled={{ opacity: 0.38, cursor: "not-allowed", color: "fg.subtle" }}
     >
-      <NextLink href={href} aria-current={active ? "true" : undefined}>
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={disabled}
+        aria-pressed={selected}
+      >
         <Box as="span">{children}</Box>
-        {count != null ? (
-          <Box
-            as="span"
-            fontSize="2xs"
-            color="fg.subtle"
-            fontVariantNumeric="tabular-nums"
-          >
-            {count}
-          </Box>
-        ) : null}
-      </NextLink>
+        <Box
+          as="span"
+          fontSize="2xs"
+          color="fg.subtle"
+          fontVariantNumeric="tabular-nums"
+        >
+          {count}
+        </Box>
+      </button>
     </Box>
   );
 }
 
 /** What the rail becomes once the aside takes the width. */
-export function CollapsedFilters({ params }: { params: QueryParams }) {
-  const active = hasFilters(params, FILTER_KEYS);
-
+export function CollapsedFilters({ active }: { active: boolean }) {
   return (
     <Box
       py="4"
@@ -243,7 +227,11 @@ export function CollapsedFilters({ params }: { params: QueryParams }) {
       alignItems="center"
       gap="3"
     >
-      <Text fontSize="md" color={active ? "brand" : "fg.subtle"} aria-hidden="true">
+      <Text
+        fontSize="md"
+        color={active ? "brand" : "fg.subtle"}
+        aria-hidden="true"
+      >
         &#9698;
       </Text>
       <Text

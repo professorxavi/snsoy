@@ -1,24 +1,27 @@
+"use client";
+
 import { Box, Text } from "@chakra-ui/react";
-import NextLink from "next/link";
-import { withValue, type QueryParams } from "@/lib/query-params";
 
 /**
- * The bar above a list and the pager below it.
+ * The bar above a list.
  *
- * The search field is a plain GET form. Filter state lives in the URL, so the
- * browser's own form submission already produces exactly the right navigation —
- * a controlled input with an onChange handler would be more code doing less,
- * and would stop working before hydration.
+ * The search field is controlled and filters on the keystroke. There is no
+ * form, no submit and no request: the whole spell list is already in memory, so
+ * the only honest interaction is one that updates the table as you type.
+ *
+ * `type="search"` rather than `text`, so the browser supplies its own clear
+ * button and the field is announced as a search.
  */
-
 export function ListToolbar({
-  params,
+  query,
+  onQueryChange,
   matched,
   filtered,
 }: {
-  params: QueryParams;
+  query: string;
+  onQueryChange: (value: string) => void;
   matched: number;
-  /** Whether any filter is applied. Governs whether a count is shown at all. */
+  /** Whether anything is filtered. Governs whether a count is shown at all. */
   filtered: boolean;
 }) {
   return (
@@ -36,37 +39,27 @@ export function ListToolbar({
       top="var(--chakra-sizes-topbar)"
       zIndex="1"
     >
-      <form action="/compendium/spells" method="get">
-        {/* Filters survive a search; page does not, since results change. */}
-        {HIDDEN_KEYS.map((key) => {
-          const value = params[key];
-          const single = Array.isArray(value) ? value[0] : value;
-          return single ? (
-            <input key={key} type="hidden" name={key} value={single} />
-          ) : null;
-        })}
-        <Box
-          asChild
-          w={{ base: "40", sm: "64" }}
-          px="2.5"
-          py="1"
-          fontFamily="ui"
-          fontSize="xs"
-          bg="bg"
-          borderWidth="1px"
-          borderColor="border"
-          rounded="l1"
-          _focusVisible={{ borderColor: "brand" }}
-        >
-          <input
-            type="search"
-            name="q"
-            defaultValue={typeof params["q"] === "string" ? params["q"] : ""}
-            placeholder="Search spells"
-            aria-label="Search spells by name"
-          />
-        </Box>
-      </form>
+      <Box
+        asChild
+        w={{ base: "40", sm: "64" }}
+        px="2.5"
+        py="1"
+        fontFamily="ui"
+        fontSize="xs"
+        bg="bg"
+        borderWidth="1px"
+        borderColor="border"
+        rounded="l1"
+        _focusVisible={{ borderColor: "brand" }}
+      >
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Search spells"
+          aria-label="Search spells by name"
+        />
+      </Box>
 
       {/*
         A count only once the reader has narrowed something. "525 spells" is a
@@ -80,98 +73,11 @@ export function ListToolbar({
           color="fg.subtle"
           fontVariantNumeric="tabular-nums"
           whiteSpace="nowrap"
+          aria-live="polite"
         >
           {matched} {matched === 1 ? "spell" : "spells"}
         </Text>
       ) : null}
-    </Box>
-  );
-}
-
-/** Filter params carried through the search form so searching does not reset them. */
-const HIDDEN_KEYS = ["level", "school", "time", "class", "conc", "ritual", "sort"];
-
-export function Pager({
-  params,
-  page,
-  pageCount,
-  basePath,
-}: {
-  params: QueryParams;
-  page: number;
-  pageCount: number;
-  basePath: string;
-}) {
-  if (pageCount <= 1) return null;
-
-  return (
-    <Box
-      as="nav"
-      aria-label="Pagination"
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      gap="4"
-      px="4"
-      py="5"
-      borderTopWidth="1px"
-      borderColor="border"
-    >
-      <PageLink
-        href={`${basePath}${withValue(params, "page", String(page - 1))}`}
-        disabled={page <= 1}
-      >
-        ← Previous
-      </PageLink>
-
-      <Text
-        fontFamily="ui"
-        fontSize="2xs"
-        color="fg.subtle"
-        fontVariantNumeric="tabular-nums"
-      >
-        Page {page} of {pageCount}
-      </Text>
-
-      <PageLink
-        href={`${basePath}${withValue(params, "page", String(page + 1))}`}
-        disabled={page >= pageCount}
-      >
-        Next →
-      </PageLink>
-    </Box>
-  );
-}
-
-function PageLink({
-  href,
-  disabled,
-  children,
-}: {
-  href: string;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
-  if (disabled) {
-    return (
-      <Text fontFamily="ui" fontSize="xs" color="fg.subtle" opacity="0.5">
-        {children}
-      </Text>
-    );
-  }
-
-  return (
-    <Box
-      asChild
-      fontFamily="ui"
-      fontSize="xs"
-      color="brand"
-      px="2"
-      py="1"
-      rounded="l1"
-      _hover={{ bg: "brand.subtle" }}
-    >
-      <NextLink href={href}>{children}</NextLink>
     </Box>
   );
 }

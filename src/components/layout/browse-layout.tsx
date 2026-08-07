@@ -98,7 +98,10 @@ export function BrowseAside({ children }: { children: ReactNode }) {
       right={{ base: "0", lg: "auto" }}
       bottom={{ base: "0", lg: "auto" }}
       zIndex={{ base: "modal", lg: "auto" }}
-      maxH={{ base: "none", lg: BELOW_TOPBAR }}
+      /* A fixed height, not a max: the aside is a panel, and a short spell
+         should not leave it floating as a stub with the list showing beneath
+         where the rest of it ought to be. */
+      h={{ base: "auto", lg: BELOW_TOPBAR }}
       overflowY="auto"
     >
       {children}
@@ -128,7 +131,11 @@ export function FilterRail({
       display={{ base: "none", lg: "block" }}
       position="sticky"
       top={TOPBAR}
-      maxH={BELOW_TOPBAR}
+      /* Full height always, so the rail reads as a wall the list sits beside.
+         Sized to the viewport rather than to its own options — otherwise the
+         panel ends wherever the last filter happens to fall and the border
+         stops mid-page. */
+      h={BELOW_TOPBAR}
       overflowY="auto"
       bg="bg.panel"
       borderRightWidth="1px"

@@ -1,6 +1,9 @@
+"use client";
+
 import { Box, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
+import type { SpellSort } from "@/lib/content/spell-browse";
 import {
   componentLetters,
   formatCastingTime,
@@ -9,7 +12,6 @@ import {
   levelShort,
   schoolName,
 } from "@/lib/content/spells";
-import { withValue, type QueryParams } from "@/lib/query-params";
 import { hrefFor } from "@/lib/routes";
 import type { SpellRow } from "@/server/db/queries/spells";
 
@@ -29,11 +31,13 @@ import type { SpellRow } from "@/server/db/queries/spells";
 
 export function SpellTable({
   rows,
-  params,
+  sort,
+  onSort,
   selectedSlug,
 }: {
   rows: SpellRow[];
-  params: QueryParams;
+  sort: SpellSort;
+  onSort: (sort: SpellSort) => void;
   /** Slug of the spell currently open, so its row reads as selected. */
   selectedSlug?: string;
 }) {
@@ -44,10 +48,10 @@ export function SpellTable({
       <Table.Root size="sm" interactive stickyHeader>
         <Table.Header>
           <Table.Row bg="bg.muted">
-            <SortableHeader params={params} sort="name">
+            <SortableHeader current={sort} sort="name" onSort={onSort}>
               Name
             </SortableHeader>
-            <SortableHeader params={params} sort="level" numeric>
+            <SortableHeader current={sort} sort="level" onSort={onSort} numeric>
               Lvl
             </SortableHeader>
             <Header>School</Header>
@@ -150,14 +154,18 @@ function Header({
   children,
   optional,
   numeric,
+  sorted,
 }: {
   children: ReactNode;
   optional?: boolean;
   numeric?: boolean;
+  /** Announced on the header cell itself, which is where `aria-sort` belongs. */
+  sorted?: boolean;
 }) {
   return (
     <Table.ColumnHeader
       {...(optional ? OPTIONAL_ATTR : {})}
+      aria-sort={sorted ? "ascending" : undefined}
       fontFamily="ui"
       fontSize="2xs"
       fontWeight="semibold"
@@ -173,32 +181,31 @@ function Header({
 }
 
 function SortableHeader({
-  params,
+  current,
   sort,
+  onSort,
   numeric,
   children,
 }: {
-  params: QueryParams;
-  sort: "name" | "level";
+  current: SpellSort;
+  sort: SpellSort;
+  onSort: (sort: SpellSort) => void;
   numeric?: boolean;
   children: ReactNode;
 }) {
-  const active = (params["sort"] ?? "name") === sort;
+  const active = current === sort;
 
   return (
-    <Header numeric={numeric}>
+    <Header numeric={numeric} sorted={active}>
       <Box
         asChild
         color={active ? "brand" : "inherit"}
         _hover={{ color: "brand" }}
       >
-        <NextLink
-          href={`/compendium/spells${withValue(params, "sort", sort)}`}
-          aria-sort={active ? "ascending" : undefined}
-        >
+        <button type="button" onClick={() => onSort(sort)}>
           {children}
           {active ? " ↓" : null}
-        </NextLink>
+        </button>
       </Box>
     </Header>
   );

@@ -1,27 +1,7 @@
 import type { Metadata } from "next";
-import { ListToolbar, Pager } from "@/components/compendium/list-chrome";
-import {
-  CollapsedFilters,
-  FILTER_KEYS,
-  SpellFilters,
-} from "@/components/compendium/spell-filters";
-import { SpellTable } from "@/components/compendium/spell-table";
-import { BrowseColumns, FilterRail } from "@/components/layout";
-import {
-  hasFilters,
-  readBoolean,
-  readList,
-  readNumberList,
-  readPage,
-  readString,
-  type QueryParams,
-} from "@/lib/query-params";
-import {
-  listSpells,
-  spellFacets,
-  type SpellFilters as SpellFilterValues,
-  type SpellSort,
-} from "@/server/db/queries/spells";
+import { SpellBrowser } from "@/components/compendium/spell-browser";
+import { filtersFromSearch } from "@/lib/content/spell-browse";
+import { allSpells } from "@/server/db/queries/spells";
 
 export const metadata: Metadata = {
   title: "Spells",
@@ -30,62 +10,28 @@ export const metadata: Metadata = {
 };
 
 /**
- * The spell browse view.
+ * The spell browse route.
  *
- * Filters are read out of the URL and nowhere else, so this component is a pure
- * function of the address bar. That is what makes a filtered list linkable and
- * the back button correct, and it is why the rail can be plain links with no
- * client state behind them.
+ * Fetches the whole list once and hands it to the client, which does all the
+ * filtering. The URL is still parsed here rather than only in the browser, so
+ * the server's first render is already filtered — arriving on a link to
+ * "2nd-level bard spells" must not paint 525 rows and then remove most of them.
  */
 export default async function SpellsPage({
   searchParams,
 }: {
-  searchParams: Promise<QueryParams>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filters = readFilters(params);
-  const page = readPage(params);
-  const sort = (readString(params, "sort") as SpellSort) ?? "name";
+  const spells = await allSpells();
 
-  // The facet counts are computed against the same filters, so they overlap.
-  const [list, facets] = await Promise.all([
-    listSpells({ ...filters, page, sort }),
-    spellFacets(filters),
-  ]);
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    const single = Array.isArray(value) ? value[0] : value;
+    if (single) search.set(key, single);
+  }
 
   return (
-    <BrowseColumns>
-      <FilterRail collapsed={<CollapsedFilters params={params} />}>
-        <SpellFilters params={params} facets={facets} />
-      </FilterRail>
-
-      <main id="main">
-        <ListToolbar
-          params={params}
-          matched={list.total}
-          filtered={hasFilters(params, FILTER_KEYS)}
-        />
-        <SpellTable rows={list.rows} params={params} />
-        <Pager
-          params={params}
-          page={list.page}
-          pageCount={list.pageCount}
-          basePath="/compendium/spells"
-        />
-      </main>
-    </BrowseColumns>
+    <SpellBrowser spells={spells} initialFilters={filtersFromSearch(search)} />
   );
-}
-
-function readFilters(params: QueryParams): SpellFilterValues {
-  return {
-    levels: readNumberList(params, "level"),
-    schools: readList(params, "school"),
-    castingTimes: readList(params, "time"),
-    classes: readList(params, "class"),
-    sources: readList(params, "source"),
-    concentration: readBoolean(params, "conc"),
-    ritual: readBoolean(params, "ritual"),
-    q: readString(params, "q"),
-  };
 }
