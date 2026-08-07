@@ -1,135 +1,159 @@
-"use client";
-
-import { Box, Grid, Text } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { BELOW_TOPBAR, TOPBAR } from "./constants";
 
 /**
  * The compendium browse layout: filter rail, table, and the entity aside.
  *
- * The three regions are interdependent, which is the whole reason this is one
- * component rather than three. Opening an entity is what forces the rail to
- * collapse — at 1280px there is not room for a 212px rail, a table wide enough
- * to compare rows on, and a 400px aside at once, and the table is the part that
- * must not be squeezed.
+ * The three regions are interdependent. Opening an entity is what forces the
+ * rail to collapse — at 1280px there is not room for a 212px rail, a table wide
+ * enough to compare rows on, and a 400px aside at once, and the table is the
+ * part that must not be squeezed.
  *
- * Below `lg` neither side region can hold its width: the rail moves behind a
- * trigger and the aside becomes a full-height sheet. That sheet is the one
- * place the aside pattern genuinely needs a second component.
+ * **The aside is a route, not a prop.** It arrives as a parallel-route slot
+ * filled by an intercepting route, so opening a spell changes the URL to that
+ * spell's canonical address without unmounting the list. Back closes it, the
+ * link is shareable, and a cold arrival on the same URL gets the full page. The
+ * alternative — client state holding "which entity is open" — would give none
+ * of that.
+ *
+ * That routing choice is why the frame and the rail communicate through CSS
+ * rather than a shared flag: the two live in different subtrees (`layout.tsx`
+ * owns the slot, the page owns the rail), and the *presence of a route* is the
+ * only honest source of truth about whether anything is open. `:has()` reads it
+ * directly, so there is no state to keep in sync and nothing to get wrong on a
+ * back navigation.
  */
-export function BrowseLayout({
-  rail,
+
+/** Marks the aside's content, so `:has()` can tell filled from empty. */
+export const ASIDE_CONTENT_ATTR = "data-aside-content";
+
+export function BrowseFrame({
   aside,
-  onCloseAside,
   children,
 }: {
-  rail?: ReactNode;
-  /** The open entity. Absent means nothing is selected. */
-  aside?: ReactNode;
-  onCloseAside?: () => void;
+  /** The `@aside` slot. Renders empty when no entity is open. */
+  aside: ReactNode;
   children: ReactNode;
 }) {
-  const asideOpen = Boolean(aside);
-
   return (
-    <Grid
-      templateColumns={{
-        base: "1fr",
-        lg: asideOpen
-          ? "var(--chakra-sizes-rail-collapsed) minmax(0, 1fr) var(--chakra-sizes-aside)"
-          : "var(--chakra-sizes-rail) minmax(0, 1fr)",
+    <Box
+      css={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        alignItems: "start",
+
+        /* The rail's width, read by the page that owns the rail. */
+        "--rail-w": "var(--chakra-sizes-rail)",
+
+        [`&:has([${ASIDE_CONTENT_ATTR}])`]: {
+          "--rail-w": "var(--chakra-sizes-rail-collapsed)",
+        },
+
+        /* Below lg the aside is a sheet over the list, so the grid stays 1-up. */
+        "@media (min-width: 62em)": {
+          [`&:has([${ASIDE_CONTENT_ATTR}])`]: {
+            gridTemplateColumns: "minmax(0, 1fr) var(--chakra-sizes-aside)",
+          },
+        },
+
+        /* Which face the rail shows. Both are rendered; CSS picks one, so this
+           needs no JavaScript and survives a back navigation intact. */
+        "[data-rail-mini]": { display: "none" },
+        [`&:has([${ASIDE_CONTENT_ATTR}]) [data-rail-full]`]: { display: "none" },
+        [`&:has([${ASIDE_CONTENT_ATTR}]) [data-rail-mini]`]: { display: "block" },
+
+        /* The table sheds its lowest-value columns to pay for the aside. */
+        [`&:has([${ASIDE_CONTENT_ATTR}]) [data-col-optional]`]: {
+          display: "none",
+        },
       }}
-      alignItems="start"
     >
-      {rail ? (
-        <Box
-          as="aside"
-          aria-label="Filters"
-          display={{ base: "none", lg: "block" }}
-          position="sticky"
-          top={TOPBAR}
-          maxH={BELOW_TOPBAR}
-          overflowY="auto"
-          bg="bg.panel"
-          borderRightWidth="1px"
-          borderColor="border"
-        >
-          {asideOpen ? <CollapsedRail /> : rail}
-        </Box>
-      ) : null}
-
-      <Box as="main" id="main" minW="0">
-        {children}
-      </Box>
-
-      {asideOpen ? (
-        <Box
-          as="aside"
-          aria-label="Entity detail"
-          bg="bg.panel"
-          borderLeftWidth={{ base: "0", lg: "1px" }}
-          borderColor="border"
-          /* Desktop: a sticky column scrolling independently of the list.
-             Mobile: a sheet over it, since 400px is most of the viewport. */
-          position={{ base: "fixed", lg: "sticky" }}
-          top={TOPBAR}
-          left={{ base: "0", lg: "auto" }}
-          right={{ base: "0", lg: "auto" }}
-          bottom={{ base: "0", lg: "auto" }}
-          zIndex={{ base: "modal", lg: "auto" }}
-          maxH={{ base: "none", lg: BELOW_TOPBAR }}
-          overflowY="auto"
-        >
-          {onCloseAside ? (
-            <Box
-              asChild
-              position="sticky"
-              top="0"
-              zIndex="1"
-              display="block"
-              w="100%"
-              textAlign="left"
-              bg="bg.panel"
-              borderBottomWidth="1px"
-              borderColor="border"
-              px="4"
-              py="2"
-              fontSize="xs"
-              color="fg.subtle"
-              _hover={{ color: "brand" }}
-            >
-              <button type="button" onClick={onCloseAside}>
-                Close
-              </button>
-            </Box>
-          ) : null}
-          {aside}
-        </Box>
-      ) : null}
-    </Grid>
+      <Box minW="0">{children}</Box>
+      {aside}
+    </Box>
   );
 }
 
 /**
- * What the rail becomes while an entity is open. Not a real control yet —
- * Phase 5 owns the filters, and it will hang the reopen behaviour off this.
+ * The aside's own shell, rendered by the intercepting route.
+ *
+ * Desktop: a sticky column scrolling independently of the list, because a
+ * monster statblock is roughly three times a spell's height and the two must
+ * not drag each other. Mobile: a sheet over the list, since 400px is most of
+ * the viewport — the one place this pattern genuinely needs a second shape.
  */
-function CollapsedRail() {
+export function BrowseAside({ children }: { children: ReactNode }) {
   return (
-    <Box py="4" display="flex" flexDirection="column" alignItems="center" gap="3">
-      <Text fontSize="md" color="brand" aria-hidden="true">
-        &#9698;
-      </Text>
-      <Text
-        fontSize="2xs"
-        letterSpacing="widest"
-        textTransform="uppercase"
-        color="brand"
-        fontWeight="semibold"
-        css={{ writingMode: "vertical-rl" }}
-      >
-        Filters
-      </Text>
+    <Box
+      as="aside"
+      aria-label="Entity detail"
+      {...{ [ASIDE_CONTENT_ATTR]: "" }}
+      bg="bg.panel"
+      borderLeftWidth={{ base: "0", lg: "1px" }}
+      borderColor="border"
+      position={{ base: "fixed", lg: "sticky" }}
+      top={TOPBAR}
+      left={{ base: "0", lg: "auto" }}
+      right={{ base: "0", lg: "auto" }}
+      bottom={{ base: "0", lg: "auto" }}
+      zIndex={{ base: "modal", lg: "auto" }}
+      maxH={{ base: "none", lg: BELOW_TOPBAR }}
+      overflowY="auto"
+    >
+      {children}
+    </Box>
+  );
+}
+
+/**
+ * The filter rail, owned by the page rather than the layout.
+ *
+ * It has to be: facet counts depend on the current filters, and filters live in
+ * query params — which a layout never receives. So the page renders both faces
+ * of the rail and the frame decides which is visible.
+ */
+export function FilterRail({
+  children,
+  collapsed,
+}: {
+  children: ReactNode;
+  /** The icon strip shown once the aside takes the width. */
+  collapsed: ReactNode;
+}) {
+  return (
+    <Box
+      as="aside"
+      aria-label="Filters"
+      display={{ base: "none", lg: "block" }}
+      position="sticky"
+      top={TOPBAR}
+      maxH={BELOW_TOPBAR}
+      overflowY="auto"
+      bg="bg.panel"
+      borderRightWidth="1px"
+      borderColor="border"
+    >
+      <Box data-rail-full="">{children}</Box>
+      <Box data-rail-mini="">{collapsed}</Box>
+    </Box>
+  );
+}
+
+/** The two-column grid inside the main region: rail, then the list itself. */
+export function BrowseColumns({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      css={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr)",
+        alignItems: "start",
+        "@media (min-width: 62em)": {
+          gridTemplateColumns: "var(--rail-w) minmax(0, 1fr)",
+        },
+      }}
+    >
+      {children}
     </Box>
   );
 }
