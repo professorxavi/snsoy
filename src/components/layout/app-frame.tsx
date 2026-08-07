@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { TopNav } from "./top-nav";
 
 /**
- * The outermost shell: skip link, top bar, and whatever layout the route
+ * The outermost frame: skip link, top bar, and whatever layout the route
  * chooses beneath it.
  *
  * Deliberately does not render `<main>` — each layout owns its own, because a
