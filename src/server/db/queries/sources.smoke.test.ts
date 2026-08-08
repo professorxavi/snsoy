@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { groupByBook } from "@/lib/content/chapters";
 import type * as SourceQueries from "./sources";
@@ -204,6 +206,37 @@ describeDb("source queries against the seed", () => {
       expect(params.every((p) => p.source === p.source.toLowerCase())).toBe(
         true,
       );
+    });
+  });
+
+  /**
+   * Every book cover the index renders, checked against the disk it renders
+   * from.
+   *
+   * Ingest copied these paths out of the corpus; nothing has confirmed they
+   * point at files. A path that does not resolve is a broken cover on the
+   * index, and the page renders perfectly around it — so no amount of looking
+   * at the markup finds this.
+   *
+   * Needs the image set, which lives outside the repo, so it skips when
+   * `CONTENT_IMAGE_DIR` is unset.
+   */
+  describe("book covers", () => {
+    const imageDir = process.env.CONTENT_IMAGE_DIR;
+    const itWithImages = imageDir ? it : it.skip;
+
+    itWithImages("resolve to files that exist", async () => {
+      const all = await queries.listSources();
+      const paths = all
+        .map((source) => source.coverPath)
+        .filter((path): path is string => Boolean(path));
+
+      const missing = paths.filter(
+        (path) => !existsSync(join(imageDir!, path)),
+      );
+
+      expect(paths.length).toBeGreaterThan(0);
+      expect(missing).toEqual([]);
     });
   });
 });
