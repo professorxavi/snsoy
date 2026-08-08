@@ -27,6 +27,7 @@ const chapter = (over: Partial<ChapterDetail> = {}): ChapterDetail => ({
   bookId: "PHB",
   ordinalType: "chapter",
   ordinalLabel: "9",
+  chapterCount: 16,
   data: {
     entries: [
       "Combat is a series of rounds.",
@@ -54,7 +55,10 @@ const outline = () =>
     .queryAllByRole("navigation", { hidden: true })
     .find((nav) => nav.getAttribute("aria-label") === "In this chapter") ?? null;
 
-const chapterNav = () => screen.queryByRole("navigation", { name: "Chapter" });
+/** The bar above the title. Its own rules live in `chapter-nav.test.tsx`. */
+const chapterBar = () => screen.queryByRole("navigation", { name: "Chapter" });
+const chapterNav = () =>
+  screen.queryByRole("navigation", { name: "Continue reading" });
 
 beforeEach(() => {
   vi.mocked(getChapter).mockResolvedValue(chapter());
@@ -190,8 +194,20 @@ describe("a chapter page", () => {
       await renderPage("mot");
 
       expect(
-        screen.getByRole("link", { name: /No Silent Secret/ }),
+        within(chapterNav()!).getByRole("link", { name: /No Silent Secret/ }),
       ).toHaveAttribute("href", "/sources/mot/no-silent-secret");
+    });
+
+    /**
+     * Both navigations are fed from the same three values. This is the wiring,
+     * not the bar's own rules — those are `chapter-nav.test.tsx`.
+     */
+    it("puts the way back to the book's contents above the title", async () => {
+      await renderPage();
+
+      expect(
+        within(chapterBar()!).getByRole("link", { name: /Contents/ }),
+      ).toHaveAttribute("href", "/sources/phb");
     });
   });
 

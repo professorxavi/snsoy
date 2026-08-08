@@ -150,7 +150,13 @@ export async function getChapter(sourceId: string, slug: string) {
     .where(eq(entities.sourceId, chapter.sourceId))
     .orderBy(...CHAPTER_ORDER);
 
-  return { ...chapter, ...neighbours(siblings, chapter.slug) };
+  return {
+    ...chapter,
+    // What the source's own page would list. A body of one chapter has no
+    // contents worth linking to — the reader is already looking at all of it.
+    chapterCount: siblings.length,
+    ...neighbours(siblings, chapter.slug),
+  };
 }
 
 /** Every chapter URL, for `generateStaticParams` and sitemap work later. */

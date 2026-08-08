@@ -2,6 +2,7 @@ import { Box, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
+import { ChapterBar, ChapterNav } from "@/components/compendium/chapter-nav";
 import {
   OutlineNav,
   type OutlineItem,
@@ -11,9 +12,9 @@ import { ReadingColumn } from "@/components/layout";
 import { chapterLabel } from "@/lib/content/chapters";
 import { splitSections } from "@/lib/content/outline";
 import { collectReferences } from "@/lib/content/references";
-import { chapterHref, sourceHref } from "@/lib/routes";
+import { sourceHref } from "@/lib/routes";
 import { resolveReferences } from "@/server/db/queries/references";
-import { getChapter, type ChapterDetail } from "@/server/db/queries/sources";
+import { getChapter } from "@/server/db/queries/sources";
 
 /**
  * One chapter of a book or adventure.
@@ -70,6 +71,14 @@ export default async function ChapterPage({ params }: RouteParams) {
       }
       outlineLabel="In this chapter"
     >
+      <ChapterBar
+        sourceId={found.sourceId}
+        sourceName={found.sourceName}
+        previous={found.previous}
+        next={found.next}
+        hasContents={found.chapterCount > 1}
+      />
+
       <Box as="header" mb="8">
         <Text
           fontFamily="ui"
@@ -145,95 +154,11 @@ export default async function ChapterPage({ params }: RouteParams) {
         </Box>
       ))}
 
-      <ChapterNav chapter={found} />
+      <ChapterNav
+        sourceId={found.sourceId}
+        previous={found.previous}
+        next={found.next}
+      />
     </ReadingColumn>
-  );
-}
-
-/**
- * Previous and next, which is how a book is actually read. Both come from a
- * walk over the whole source, so they cross the seam into a second body rather
- * than stopping at the end of the first.
- */
-function ChapterNav({ chapter }: { chapter: ChapterDetail }) {
-  if (!chapter.previous && !chapter.next) return null;
-
-  return (
-    <Box
-      as="nav"
-      aria-label="Chapter"
-      display="grid"
-      gridTemplateColumns={{ base: "1fr", sm: "1fr 1fr" }}
-      gap="3"
-      mt="12"
-      pt="6"
-      borderTopWidth="1px"
-      borderColor="border"
-    >
-      {chapter.previous ? (
-        <NavLink
-          sourceId={chapter.sourceId}
-          slug={chapter.previous.slug}
-          direction="Previous"
-          name={chapter.previous.name}
-        />
-      ) : (
-        <Box />
-      )}
-      {chapter.next ? (
-        <NavLink
-          sourceId={chapter.sourceId}
-          slug={chapter.next.slug}
-          direction="Next"
-          name={chapter.next.name}
-          align="end"
-        />
-      ) : null}
-    </Box>
-  );
-}
-
-function NavLink({
-  sourceId,
-  slug,
-  direction,
-  name,
-  align = "start",
-}: {
-  sourceId: string;
-  slug: string;
-  direction: string;
-  name: string;
-  align?: "start" | "end";
-}) {
-  return (
-    <Box
-      asChild
-      display="block"
-      textAlign={align}
-      px="4"
-      py="3"
-      rounded="l1"
-      borderWidth="1px"
-      borderColor="border"
-      transition="background .12s, border-color .12s"
-      _hover={{ bg: "bg.muted", borderColor: "border.emphasized" }}
-    >
-      <NextLink href={chapterHref(sourceId, slug)}>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="semibold"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          {direction}
-        </Text>
-        <Text fontFamily="body" fontSize="sm" fontWeight="medium" mt="0.5">
-          {name}
-        </Text>
-      </NextLink>
-    </Box>
   );
 }
