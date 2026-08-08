@@ -36,7 +36,19 @@ export function ReadingColumn({
       justifyContent="center"
     >
       <Box as="main" id="main" minW="0" px={{ base: "5", md: "8" }} py="6" pb="20">
-        <Box maxW="measure" mx={{ base: "0", lg: "auto" }}>
+        <Box
+          maxW="measure"
+          mx={{ base: "0", lg: "auto" }}
+          /*
+           * How far a figure may reach into the margins either side of the
+           * measure. A table set for a printed page is wider than a line of
+           * prose, and the room is there at these widths — the values are what
+           * fits beside the outline once the measure and the gutters are paid
+           * for. Only this layout grants it: the aside renders the same tables
+           * at 400px, sets nothing, and they stay inside their column.
+           */
+          css={{ "--figure-bleed": { base: "0px", lg: "3rem", xl: "8rem" } }}
+        >
           {children}
         </Box>
       </Box>

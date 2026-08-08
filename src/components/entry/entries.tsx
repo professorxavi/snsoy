@@ -8,12 +8,14 @@ import {
   lookupReference,
   type ReferenceIndex,
 } from "@/lib/content/references";
+import { columnStyles } from "@/lib/content/tables";
 import { reportGap } from "./coverage";
 import { Inline } from "./inline";
 import {
   cellsOf,
   isCell,
   isEntryObject,
+  isRow,
   type CellEntry,
   type Entry,
   type EntriesEntry,
@@ -22,6 +24,7 @@ import {
   type ItemEntry,
   type ListEntry,
   type QuoteEntry,
+  type RowEntry,
   type SectionEntry,
   type StatblockEntry,
   type TableEntry,
@@ -234,14 +237,25 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
  * A random table. The first column is usually a die roll, which is what the
  * `cell` entry type carries.
  *
- * Scrolls inside its own container so a wide table never scrolls the page; the
- * aside it may render into is only 400px.
+ * Two things keep a table readable in a column set for prose. It may use the
+ * margins either side of the reading measure, which `--figure-bleed` grants it
+ * where there is room — a six-column table is a figure, not a paragraph, and
+ * shrinking one to 68 characters sets every cell one word to the line. Beyond
+ * that it scrolls inside its own container, so a wide table never scrolls the
+ * page; the aside it may also render into is only 400px and grants no bleed.
  */
 function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   if (!entry.rows?.length) return null;
 
+  const columns = Math.max(
+    entry.colLabels?.length ?? 0,
+    ...entry.rows.map((row) => cellsOf(row).length),
+  );
+  const styles = columnStyles(entry.colStyles, columns);
+  const sized = styles.some((style) => style.width);
+
   return (
-    <Box my="1">
+    <Box my="1" mx="calc(-1 * var(--figure-bleed, 0px))">
       {entry.caption ? (
         <Text
           fontFamily="ui"
@@ -257,7 +271,27 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
       ) : null}
 
       <Box overflowX="auto" borderWidth="1px" borderColor="border" rounded="l1">
-        <Table.Root size="sm" variant="line">
+        <Table.Root size="sm" variant="line" width="100%">
+          {/*
+           * Declared widths, not `table-layout: fixed`. The layout stays auto so
+           * a column whose content cannot fit its printed share still takes the
+           * room it needs, and the shares apply to everything that is left.
+           */}
+          {/*
+           * Plain elements with an inline width, not `Table.Column` with a
+           * style prop. A styled component emits its rule as a `<style>` tag
+           * beside itself, and the HTML parser throws out anything inside a
+           * `<colgroup>` that is not a `<col>` — so the parsed DOM loses them,
+           * and every table on the page fails to hydrate.
+           */}
+          {sized ? (
+            <colgroup>
+              {styles.map((style, index) => (
+                <col key={index} style={{ width: style.width }} />
+              ))}
+            </colgroup>
+          ) : null}
+
           {entry.colLabels?.length ? (
             <Table.Header>
               <Table.Row bg="bg.muted">
@@ -267,7 +301,11 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
                     fontFamily="ui"
                     fontSize="xs"
                     fontWeight="semibold"
-                    whiteSpace="nowrap"
+                    // A long heading wraps. Holding it on one line makes it the
+                    // column's minimum width, which is how "Saving Throw
+                    // Proficiencies" came to be wider than the sentence beside it.
+                    whiteSpace={styles[index]?.noWrap ? "nowrap" : undefined}
+                    textAlign={styles[index]?.align}
                   >
                     {inline(label, ctx)}
                   </Table.ColumnHeader>
@@ -286,8 +324,16 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
                     fontSize="sm"
                     lineHeight="1.5"
                     verticalAlign="top"
-                    whiteSpace={isCell(cell) ? "nowrap" : undefined}
+                    whiteSpace={
+                      isCell(cell) || styles[cellIndex]?.noWrap
+                        ? "nowrap"
+                        : undefined
+                    }
                     fontVariantNumeric={isCell(cell) ? "tabular-nums" : undefined}
+                    textAlign={styles[cellIndex]?.align}
+                    // The equipment tables group their rows under a plain row of
+                    // headings — "Light Armor" — and indent what belongs to it.
+                    ps={indentsFirstCell(row) && cellIndex === 0 ? "6" : undefined}
                   >
                     {isCell(cell) ? (
                       rollLabel(cell)
@@ -303,6 +349,11 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
       </Box>
     </Box>
   );
+}
+
+/** Whether a row hangs under the grouping row above it. */
+function indentsFirstCell(row: (Entry | CellEntry)[] | RowEntry): boolean {
+  return isRow(row) && row.style === "row-indent-first";
 }
 
 /** "01-05" or "17". Padding comes from the cell's `pad` flag, not the width. */
