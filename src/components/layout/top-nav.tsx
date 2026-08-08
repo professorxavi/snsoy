@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { ColorModeButton } from "@/components/ui/color-mode";
@@ -10,10 +10,15 @@ import { ColorModeButton } from "@/components/ui/color-mode";
  * the product. Everything cyan stays inline in content; nothing in here is.
  */
 
+/**
+ * Search is deliberately absent here. The box on the right *is* the search
+ * entry point — submitting it goes to `/search` — and a nav link beside it
+ * would be a second door to the same room, competing with the control that
+ * actually does the job.
+ */
 const LINKS = [
   { href: "/compendium", label: "Compendium" },
   { href: "/sources", label: "Sources" },
-  { href: "/search", label: "Search" },
 ] as const;
 
 export function TopNav() {
@@ -42,7 +47,12 @@ export function TopNav() {
         <NextLink href="/">S&amp;S</NextLink>
       </Box>
 
-      <Flex as="nav" aria-label="Main" gap="0.5" display={{ base: "none", md: "flex" }}>
+      <Flex
+        as="nav"
+        aria-label="Main"
+        gap="0.5"
+        display={{ base: "none", md: "flex" }}
+      >
         {LINKS.map((link) => {
           // `startsWith` so a nested entity route keeps its section highlighted.
           const active = pathname.startsWith(link.href);
@@ -59,7 +69,10 @@ export function TopNav() {
               bg={active ? "whiteAlpha.300" : "transparent"}
               _hover={{ opacity: 1, bg: "whiteAlpha.200" }}
             >
-              <NextLink href={link.href} aria-current={active ? "page" : undefined}>
+              <NextLink
+                href={link.href}
+                aria-current={active ? "page" : undefined}
+              >
                 {link.label}
               </NextLink>
             </Box>
@@ -67,26 +80,44 @@ export function TopNav() {
         })}
       </Flex>
 
-      {/* Placeholder until omnisearch exists — it lands after the first few
-          compendium slices, once there is enough indexed variety for ranking
-          work to mean anything. */}
-      <Text
-        ml="auto"
-        fontSize="xs"
-        px="2.5"
-        py="1"
-        rounded="l1"
-        minW={{ base: "auto", sm: "44" }}
-        bg="whiteAlpha.200"
-        borderWidth="1px"
-        borderColor="whiteAlpha.300"
-        opacity={0.85}
-        display={{ base: "none", sm: "block" }}
-      >
-        Search…
-      </Text>
+      {/*
+        A plain GET form, so Enter submits and lands on `/search?q=…` with no
+        JavaScript involved. The result page is not built yet; wiring the box
+        now means the only thing left to add is the page it already points at.
+      */}
+      <Box asChild ml="auto">
+        <form action="/search" method="get">
+          <Box
+            asChild
+            fontSize="xs"
+            px="2.5"
+            py="1"
+            rounded="l1"
+            w={{ base: "32", sm: "44" }}
+            bg="whiteAlpha.200"
+            borderWidth="1px"
+            borderColor="whiteAlpha.300"
+            color="brand.contrast"
+            _placeholder={{ color: "brand.contrast", opacity: 0.7 }}
+            _focusVisible={{
+              bg: "whiteAlpha.300",
+              borderColor: "whiteAlpha.500",
+            }}
+          >
+            <input
+              type="search"
+              name="q"
+              placeholder="Search…"
+              aria-label="Search the compendium"
+            />
+          </Box>
+        </form>
+      </Box>
 
-      <ColorModeButton color="brand.contrast" _hover={{ bg: "whiteAlpha.300" }} />
+      <ColorModeButton
+        color="brand.contrast"
+        _hover={{ bg: "whiteAlpha.300" }}
+      />
     </Flex>
   );
 }
