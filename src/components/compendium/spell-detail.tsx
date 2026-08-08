@@ -3,6 +3,7 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { Entries } from "@/components/entry";
 import type { ReferenceIndex } from "@/lib/content/references";
+import { sourceHref } from "@/lib/routes";
 import {
   formatCastingTime,
   formatClassList,
@@ -139,7 +140,7 @@ function SourceLine({
       color="fg.subtle"
     >
       <Box asChild _hover={{ color: "brand" }}>
-        <NextLink href={`/sources/${sourceId.toLowerCase()}`} title={sourceName}>
+        <NextLink href={sourceHref(sourceId)} title={sourceName}>
           {sourceId}
         </NextLink>
       </Box>

@@ -145,3 +145,12 @@ export function listHrefFor(type: BrowsableType): string {
 export function sourceHref(sourceId: string): string {
   return `/sources/${sourceId.toLowerCase()}`;
 }
+
+/**
+ * One chapter in the reader. The segment is the section's slug, never its
+ * ordinal — ordinals restart when a source carries a second body, and the
+ * index form `{@book …|DMG|2|…}` stays internal to the natural key.
+ */
+export function chapterHref(sourceId: string, slug: string): string {
+  return `${sourceHref(sourceId)}/${slug}`;
+}

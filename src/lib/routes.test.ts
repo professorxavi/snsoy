@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { hrefFor, listHrefFor, segmentFor, typeForSegment } from "./routes";
+import {
+  chapterHref,
+  hrefFor,
+  listHrefFor,
+  segmentFor,
+  sourceHref,
+  typeForSegment,
+} from "./routes";
 
 /**
  * The URL scheme rests on `entities` being unique on
@@ -112,5 +119,33 @@ describe("hrefFor", () => {
 describe("listHrefFor", () => {
   it("points at the browse view", () => {
     expect(listHrefFor("spell")).toBe("/compendium/spells");
+  });
+});
+
+describe("sourceHref and chapterHref", () => {
+  it("lowercases the source segment", () => {
+    expect(sourceHref("PHB")).toBe("/sources/phb");
+    expect(chapterHref("TftYP-ToH", "credits")).toBe(
+      "/sources/tftyp-toh/credits",
+    );
+  });
+
+  /**
+   * The chapter segment is the slug, never the ordinal. Ordinals restart when a
+   * source carries a second body, so MOT would have two chapter "0"s.
+   */
+  it("addresses a chapter by slug", () => {
+    expect(chapterHref("MOT", "credits-2")).toBe("/sources/mot/credits-2");
+  });
+
+  /** Whatever `hrefFor` emits for a section must be what the reader serves. */
+  it("agrees with hrefFor for a book section", () => {
+    expect(
+      hrefFor({
+        entityType: "bookSection",
+        sourceId: "DMG",
+        slug: "creating-a-multiverse",
+      }),
+    ).toBe(chapterHref("DMG", "creating-a-multiverse"));
   });
 });

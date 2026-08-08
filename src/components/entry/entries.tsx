@@ -1,19 +1,31 @@
 import { Box, Stack, Table, Text } from "@chakra-ui/react";
+import NextLink from "next/link";
 import type { ReactNode } from "react";
-import type { ReferenceIndex } from "@/lib/content/references";
+import { Illustration, isLandscape } from "@/components/compendium/entity-image";
+import type { ImageEntry } from "@/lib/content/media";
+import {
+  candidateKeysForStatblock,
+  lookupReference,
+  type ReferenceIndex,
+} from "@/lib/content/references";
 import { reportGap } from "./coverage";
 import { Inline } from "./inline";
 import {
+  cellsOf,
   isCell,
   isEntryObject,
   type CellEntry,
   type Entry,
   type EntriesEntry,
+  type GalleryEntry,
   type InsetEntry,
   type ItemEntry,
   type ListEntry,
   type QuoteEntry,
+  type SectionEntry,
+  type StatblockEntry,
   type TableEntry,
+  type TableGroupEntry,
 } from "./types";
 
 /**
@@ -27,8 +39,12 @@ interface RenderContext {
   selfKey?: string;
   /** Entity name, for the coverage report. */
   context?: string;
-  /** Heading level for the outermost named sub-section. */
-  headingLevel?: 3 | 4 | 5;
+  /**
+   * Heading level for the outermost named sub-section. Chapter bodies start at
+   * 2, since the chapter title is the page's `h1`; a spell or race detail passes
+   * nothing and starts at 3, below its own section headings.
+   */
+  headingLevel?: 2 | 3 | 4 | 5;
 }
 
 export interface EntriesProps extends RenderContext {
@@ -58,6 +74,7 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
 
   switch (entry.type) {
     case "entries":
+    case "section":
       return <SubSection entry={entry as EntriesEntry} ctx={ctx} />;
 
     case "list":
@@ -71,12 +88,27 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "table":
       return <TableBlock entry={entry as TableEntry} ctx={ctx} />;
 
+    case "tableGroup":
+      return <TableGroupBlock entry={entry as TableGroupEntry} ctx={ctx} />;
+
     case "quote":
       return <QuoteBlock entry={entry as QuoteEntry} ctx={ctx} />;
 
     case "inset":
     case "insetReadaloud":
       return <InsetBlock entry={entry as InsetEntry} ctx={ctx} />;
+
+    case "image":
+      return <ImageBlock entry={entry as ImageEntry} ctx={ctx} />;
+
+    case "gallery":
+      return <GalleryBlock entry={entry as GalleryEntry} ctx={ctx} />;
+
+    case "statblock":
+      return <StatblockLink entry={entry as StatblockEntry} ctx={ctx} />;
+
+    case "hr":
+      return <Box as="hr" borderTopWidth="1px" borderColor="border" my="2" />;
 
     default:
       reportGap("entry", String(entry.type), ctx.context);
@@ -111,11 +143,17 @@ function Paragraph({ children }: { children: ReactNode }) {
  * A named sub-section. The name is often absent, in which case this is only a
  * grouping and must not emit an empty heading.
  */
-function SubSection({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) {
+function SubSection({
+  entry,
+  ctx,
+}: {
+  entry: EntriesEntry | SectionEntry;
+  ctx: RenderContext;
+}) {
   const level = ctx.headingLevel ?? 3;
   const nested: RenderContext = {
     ...ctx,
-    headingLevel: level < 5 ? ((level + 1) as 4 | 5) : 5,
+    headingLevel: level < 5 ? ((level + 1) as 3 | 4 | 5) : 5,
   };
 
   return (
@@ -125,8 +163,14 @@ function SubSection({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext })
           as={`h${level}`}
           fontFamily="body"
           fontWeight="semibold"
-          fontSize="md"
-          mb="1"
+          // The top two levels carry a chapter's structure, so they are set
+          // larger and ruled; deeper ones are run-in headings above a paragraph.
+          fontSize={level <= 3 ? "lg" : "md"}
+          lineHeight="1.25"
+          mb={level <= 3 ? "2" : "1"}
+          pb={level <= 3 ? "1" : "0"}
+          borderBottomWidth={level === 2 ? "1px" : "0"}
+          borderColor="border"
         >
           {inline(entry.name, ctx)}
         </Text>
@@ -235,7 +279,7 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
           <Table.Body>
             {entry.rows.map((row, rowIndex) => (
               <Table.Row key={rowIndex}>
-                {(Array.isArray(row) ? row : [row]).map((cell, cellIndex) => (
+                {cellsOf(row).map((cell, cellIndex) => (
                   <Table.Cell
                     key={cellIndex}
                     fontFamily="body"
@@ -276,6 +320,173 @@ function rollLabel(cell: CellEntry): string {
       : `${pad(roll.min)}–${pad(roll.max)}`;
   }
   return "";
+}
+
+/** Several tables under one heading, printed as a single figure. */
+function TableGroupBlock({
+  entry,
+  ctx,
+}: {
+  entry: TableGroupEntry;
+  ctx: RenderContext;
+}) {
+  if (!entry.tables?.length) return null;
+
+  return (
+    <Box>
+      {entry.name ? (
+        <Text
+          as="h4"
+          fontFamily="body"
+          fontWeight="semibold"
+          fontSize="md"
+          mb="2"
+        >
+          {inline(entry.name, ctx)}
+        </Text>
+      ) : null}
+      <Stack gap="3">
+        {entry.tables.map((table, index) => (
+          <TableBlock key={index} entry={table} ctx={ctx} />
+        ))}
+      </Stack>
+    </Box>
+  );
+}
+
+/**
+ * Art printed inside body text. Wide images run the full column; taller ones are
+ * height-capped and centred, so a portrait plate cannot push a page of prose
+ * off the screen.
+ */
+function ImageBlock({ entry, ctx }: { entry: ImageEntry; ctx: RenderContext }) {
+  const wide = isLandscape(entry);
+
+  return (
+    <Box
+      as="figure"
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      my="2"
+    >
+      <Box w={wide ? "100%" : "auto"} maxW="100%">
+        <Illustration
+          image={entry}
+          entityName={ctx.context ?? ""}
+          maxHeight={wide ? 420 : 520}
+          sizes="(max-width: 48em) 100vw, 36rem"
+        />
+      </Box>
+      {entry.title ? (
+        <Text
+          as="figcaption"
+          mt="1.5"
+          fontFamily="ui"
+          fontSize="xs"
+          color="fg.subtle"
+          textAlign="center"
+        >
+          {inline(entry.title, ctx)}
+        </Text>
+      ) : null}
+    </Box>
+  );
+}
+
+/** Images printed together. Two up on anything wider than a phone. */
+function GalleryBlock({
+  entry,
+  ctx,
+}: {
+  entry: GalleryEntry;
+  ctx: RenderContext;
+}) {
+  if (!entry.images?.length) return null;
+
+  return (
+    <Box
+      display="grid"
+      gridTemplateColumns={{
+        base: "1fr",
+        sm: `repeat(${Math.min(entry.images.length, 2)}, minmax(0, 1fr))`,
+      }}
+      gap="3"
+      alignItems="center"
+      my="2"
+    >
+      {entry.images.map((image, index) => (
+        <Illustration
+          key={image.href?.path ?? index}
+          image={image}
+          entityName={ctx.context ?? ""}
+          maxHeight={320}
+          sizes="(max-width: 48em) 100vw, 18rem"
+        />
+      ))}
+    </Box>
+  );
+}
+
+/**
+ * Where the printed book reproduces another entity in full. That entity has its
+ * own page, so this links to it rather than duplicating a statblock the reader
+ * would have to keep in sync.
+ */
+function StatblockLink({
+  entry,
+  ctx,
+}: {
+  entry: StatblockEntry;
+  ctx: RenderContext;
+}) {
+  const label = entry.displayName ?? entry.name;
+  const hit = ctx.refs
+    ? lookupReference(candidateKeysForStatblock(entry), ctx.refs)
+    : null;
+
+  if (!label) return null;
+
+  const body = (
+    <>
+      <Text
+        as="span"
+        fontFamily="ui"
+        fontSize="2xs"
+        fontWeight="semibold"
+        letterSpacing="widest"
+        textTransform="uppercase"
+        color="fg.subtle"
+        display="block"
+        mb="0.5"
+      >
+        {entry.tag ?? entry.prop?.replace(/Fluff$/, "") ?? "Entry"}
+      </Text>
+      <Text as="span" fontFamily="body" fontWeight="medium">
+        {label}
+      </Text>
+    </>
+  );
+
+  return (
+    <Box
+      borderWidth="1px"
+      borderColor="border"
+      borderLeftWidth="3px"
+      borderLeftColor={hit?.target.href ? "reference" : "border.emphasized"}
+      rounded="l1"
+      px="4"
+      py="2.5"
+    >
+      {hit?.target.href ? (
+        <Box asChild _hover={{ color: "reference" }}>
+          <NextLink href={hit.target.href}>{body}</NextLink>
+        </Box>
+      ) : (
+        body
+      )}
+    </Box>
+  );
 }
 
 /** Flavour text, set in italic with its attribution below. */

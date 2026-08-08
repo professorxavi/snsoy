@@ -17,12 +17,14 @@ import {
 import { SubraceList } from "@/components/compendium/subrace-accordion";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
+import { splitSections } from "@/lib/content/outline";
 import {
   formatAbilityBonuses,
   formatSize,
   formatSpeed,
 } from "@/lib/content/races";
 import { collectReferences } from "@/lib/content/references";
+import { sourceHref } from "@/lib/routes";
 import { resolveReferences } from "@/server/db/queries/references";
 import {
   getRace,
@@ -64,7 +66,7 @@ export default async function RacePage({ params }: RouteParams) {
   if (!race) notFound();
 
   const data = race.data as { entries?: Entry[] };
-  const { intro, sections } = splitSections(data.entries);
+  const { intro, sections } = splitSections<Entry>(data.entries);
 
   // 111 of 134 races have illustrations, so this has to handle none. Subraces
   // are skipped: none have images, despite 68 claiming `hasFluffImages`.
@@ -132,7 +134,7 @@ export default async function RacePage({ params }: RouteParams) {
             >
               {/* Book name rather than abbreviation. */}
               <Box asChild _hover={{ color: "brand" }}>
-                <NextLink href={`/sources/${race.sourceId.toLowerCase()}`}>
+                <NextLink href={sourceHref(race.sourceId)}>
                   {race.sourceName}
                 </NextLink>
               </Box>
@@ -276,58 +278,6 @@ function toItem(
       .join(" · "),
     body: <SubraceBody subrace={sub} refs={refs} parentName={parentName} />,
   };
-}
-
-/**
- * Splits the flat entry list into an intro and named sections. Only the top
- * level, since only top-level traits are worth an outline entry; the renderer
- * handles deeper nesting.
- */
-function splitSections(entries: Entry[] | undefined) {
-  const intro: Entry[] = [];
-  const sections: { id: string; title: string; entries: Entry[] }[] = [];
-  const used = new Set<string>();
-
-  for (const entry of entries ?? []) {
-    const named =
-      typeof entry === "object" &&
-      entry !== null &&
-      "name" in entry &&
-      typeof entry.name === "string" &&
-      entry.name.trim();
-
-    if (!named) {
-      intro.push(entry);
-      continue;
-    }
-
-    const title = (entry as { name: string }).name;
-    sections.push({
-      id: uniqueAnchor(title, used),
-      title,
-      entries: ((entry as { entries?: Entry[] }).entries ?? []) as Entry[],
-    });
-  }
-
-  return { intro, sections };
-}
-
-/**
- * An in-page anchor. Safe to derive, unlike an entity slug, because it only
- * addresses a heading within this document.
- */
-function uniqueAnchor(text: string, used: Set<string>): string {
-  const base =
-    text
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "section";
-
-  let id = base;
-  let n = 2;
-  while (used.has(id)) id = `${base}-${n++}`;
-  used.add(id);
-  return id;
 }
 
 /**

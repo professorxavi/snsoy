@@ -249,6 +249,47 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
 }
 
 /**
+ * The tag that addresses what a statblock's `prop` names. `prop` is written in
+ * entity-property vocabulary rather than tag vocabulary, and the two differ for
+ * creatures — the property is `monster`, the tag is `{@creature}`. Anything not
+ * listed here has no tag that reaches it.
+ */
+const PROP_TAGS: Record<string, string> = {
+  monster: "creature",
+};
+
+/**
+ * A `statblock` entry addresses another entity the same way an inline tag does,
+ * so it resolves through the same index rather than a second mechanism.
+ *
+ * `tag` carries a tag name directly; `prop` names an entity property instead,
+ * and its fluff variants (`monsterFluff`) point at the entity whose fluff it is.
+ */
+export function candidateKeysForStatblock(entry: {
+  tag?: string;
+  prop?: string;
+  name?: string;
+  source?: string;
+}): string[] {
+  const name = entry.name?.trim();
+  if (!name) return [];
+
+  let kind = entry.tag;
+  if (!kind && entry.prop) {
+    const prop = entry.prop.replace(/Fluff$/, "");
+    kind = PROP_TAGS[prop] ?? prop;
+  }
+  if (!kind) return [];
+
+  return candidateKeysForTag({
+    kind: "tag",
+    name: kind,
+    parts: [name, entry.source ?? ""],
+    raw: "",
+  });
+}
+
+/**
  * The natural key of the entity a fragment renders inside. Derived from the
  * fragment's own key, which already carries the parent's identity:
  *
@@ -379,6 +420,10 @@ export function collectReferences(value: unknown): Set<string> {
     if (typeof node === "string") return visitString(node);
     if (Array.isArray(node)) return node.forEach(visit);
     if (node && typeof node === "object") {
+      // A statblock's target is in its fields, not in any tag text.
+      if ((node as { type?: unknown }).type === "statblock") {
+        for (const key of candidateKeysForStatblock(node)) found.add(key);
+      }
       Object.values(node).forEach(visit);
     }
   };

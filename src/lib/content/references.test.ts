@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  candidateKeysForStatblock,
   candidateKeysForTag,
   collectReferences,
   kindOfTag,
@@ -181,6 +182,53 @@ describe("collectReferences", () => {
 
   it("ignores text with no markup at all", () => {
     expect(collectReferences("A plain sentence.").size).toBe(0);
+  });
+
+  /**
+   * A statblock's target is in its fields, not in tag text, so a walker that
+   * only reads strings would resolve nothing and the block would not link.
+   */
+  it("collects the target of a statblock entry", () => {
+    const found = collectReferences({
+      entries: [{ type: "statblock", tag: "creature", name: "Goblin", source: "MM" }],
+    });
+
+    expect([...found]).toContain("monster|goblin|mm");
+  });
+});
+
+describe("candidateKeysForStatblock", () => {
+  it("addresses the same entity the equivalent tag would", () => {
+    expect(
+      candidateKeysForStatblock({
+        tag: "spell",
+        name: "Fireball",
+        source: "PHB",
+      }),
+    ).toEqual(["spell|fireball|phb"]);
+  });
+
+  /** `{@item}` covers three types, and a statblock inherits that ambiguity. */
+  it("keeps every candidate an item may be", () => {
+    expect(
+      candidateKeysForStatblock({ tag: "item", name: "Club", source: "PHB" }),
+    ).toEqual(["item|club|phb", "baseitem|club|phb", "itemgroup|club|phb"]);
+  });
+
+  /** Fluff belongs to the entity it describes, so it points at the same key. */
+  it("strips the Fluff suffix from a prop", () => {
+    expect(
+      candidateKeysForStatblock({
+        prop: "monsterFluff",
+        name: "Aboleth",
+        source: "MM",
+      }),
+    ).toEqual(["monster|aboleth|mm"]);
+  });
+
+  it("returns nothing without a name or a kind", () => {
+    expect(candidateKeysForStatblock({ tag: "creature" })).toEqual([]);
+    expect(candidateKeysForStatblock({ name: "Goblin" })).toEqual([]);
   });
 });
 
