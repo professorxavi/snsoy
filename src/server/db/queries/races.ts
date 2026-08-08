@@ -1,5 +1,5 @@
 import { and, asc, eq, ilike, sql } from "drizzle-orm";
-import type { AbilityBonus, RaceSpeed } from "@/lib/content/races";
+import { NPC_RACE_TAG, type AbilityBonus, type RaceSpeed } from "@/lib/content/races";
 import { db } from "../client";
 import { races } from "../schema/content";
 import { entities } from "../schema/entities";
@@ -49,6 +49,27 @@ const GROUP_RANK = sql<number>`
 `;
 
 /**
+ * Races the corpus prints for building NPCs rather than for play.
+ *
+ * Excluded from the list, never from the entity page — a browse-time filter,
+ * not a deletion. Finding Zombie while shopping for a character is wrong;
+ * reaching it deliberately is not.
+ *
+ * Nothing ingested links here today: `entity_links` holds zero inbound edges to
+ * all sixteen. The `{@race Goblin|DMG}` tags do exist, but only in
+ * `bestiary/template.json`, which is a support collection and is never
+ * link-scanned. Keeping the pages live is therefore about direct URLs, search
+ * and bookmarks now, and about not having to revisit this if templates are ever
+ * promoted to entities.
+ *
+ * `coalesce` because `trait_tags` is nullable and `NULL @> ARRAY[…]` is NULL,
+ * not false, which would silently drop every untagged race from the list.
+ */
+const IS_NPC_RACE = sql<boolean>`
+  coalesce(${races.traitTags}, '{}') @> ARRAY[${NPC_RACE_TAG}]::text[]
+`;
+
+/**
  * Every race, grouped by the book that printed it.
  *
  * Grouped rather than alphabetical because "the Player's Handbook ones" is how
@@ -56,7 +77,7 @@ const GROUP_RANK = sql<number>`
  * everyone knows in among 125 they do not.
  *
  * Subraces are deliberately absent: they are sections of their parent's page,
- * not entries in this list.
+ * not entries in this list. So are NPC races — see `IS_NPC_RACE`.
  */
 export async function listRacesBySource() {
   const rows = await db
@@ -71,7 +92,7 @@ export async function listRacesBySource() {
     .from(races)
     .innerJoin(entities, eq(entities.id, races.entityId))
     .innerJoin(sources, eq(sources.id, entities.sourceId))
-    .where(eq(entities.entityType, "race"))
+    .where(and(eq(entities.entityType, "race"), sql`NOT ${IS_NPC_RACE}`))
     // Ordering by columns that are not selected is fine, and keeps the row
     // shape free of sort keys the page has no use for.
     .orderBy(GROUP_RANK, asc(sources.sortOrder), asc(entities.name));
@@ -107,6 +128,10 @@ export type SubraceDetail = RaceDetail["subraces"][number];
  * Two queries rather than a join: the subraces are a second list rather than
  * extra columns, and the parent's `data` blob is large enough that repeating it
  * across thirteen Tiefling rows would be the dominant cost of the page.
+ *
+ * Deliberately unfiltered. NPC races are hidden from the list but must still
+ * open here; the page explains itself rather than 404ing on a URL that names a
+ * race the corpus really does print.
  */
 export async function getRace(sourceId: string, slug: string) {
   const [race] = await db
@@ -120,6 +145,7 @@ export async function getRace(sourceId: string, slug: string) {
       page: entities.page,
       fluff: entities.fluff,
       data: races.data,
+      isNpcRace: IS_NPC_RACE,
       ...displayColumns,
     })
     .from(races)

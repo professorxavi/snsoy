@@ -1,11 +1,14 @@
-import { Box, Stack, Text } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import {
   fluffImages,
   Illustration,
+  IllustrationBanner,
   IllustrationRow,
+  imageCredits,
+  isLandscape,
 } from "@/components/compendium/entity-image";
 import {
   OutlineNav,
@@ -75,7 +78,9 @@ export default async function RacePage({ params }: RouteParams) {
    * this has to be absent-safe rather than merely empty. Subraces are skipped
    * deliberately — none have images, despite 68 of them claiming `hasFluffImages`.
    */
-  const [lead, ...rest] = fluffImages(race.fluff);
+  const images = fluffImages(race.fluff);
+  const [lead, ...rest] = images;
+  const credits = imageCredits(images);
 
   // One resolve for the whole page, parent and subraces together — otherwise
   // a Tiefling page would make fourteen round trips to build its links.
@@ -109,23 +114,39 @@ export default async function RacePage({ params }: RouteParams) {
 
   return (
     <ReadingColumn outline={<OutlineNav items={outline} />}>
-      <Stack gap="6">
+      {/*
+        A plain block, not a flex Stack.
+
+        The illustration is *floated* so the prose runs around it the way it does
+        on a printed page. A float has no effect inside a flex container — its
+        siblings sit beside it as flex items instead of wrapping — so the whole
+        column has to be normal flow, with spacing carried on the blocks
+        themselves.
+      */}
+      <Box>
         {/*
-          Header and lead illustration as a grid, not a float. The page's outer
-          container is a flex Stack, and a float inside a flex container does
-          not wrap its siblings — text would simply sit beside a floated figure
-          with no relationship to it. A grid gets the same look and behaves.
+          Only portrait and square art floats. Landscape art is composed wide and
+          becomes an unreadable stamp at 15rem, so it runs as a banner below the
+          header instead — see the note in `entity-image`.
         */}
-        <Box
-          as="header"
-          display="grid"
-          gridTemplateColumns={{
-            base: "1fr",
-            sm: lead ? "minmax(0, 1fr) 13rem" : "1fr",
-          }}
-          gap={{ base: "4", sm: "6" }}
-          alignItems="start"
-        >
+        {lead && !isLandscape(lead) ? (
+          <Box
+            float={{ base: "none", sm: "right" }}
+            w={{ base: "100%", sm: "15rem" }}
+            maxW="100%"
+            ml={{ base: "0", sm: "6" }}
+            mb="4"
+          >
+            <Illustration
+              image={lead}
+              entityName={race.name}
+              maxHeight={400}
+              priority
+            />
+          </Box>
+        ) : null}
+
+        <Box as="header" mb="6">
           <Box>
             <Text
               fontFamily="ui"
@@ -157,32 +178,39 @@ export default async function RacePage({ params }: RouteParams) {
               {race.name}
             </Text>
 
+            {/*
+              Wide art sits between the name and the stat line, not after it.
+              Size and speed are the first thing you read *about* the race, so
+              they belong against its traits — dropping the art in between left
+              the stat line orphaned above an illustration it had nothing to do
+              with.
+            */}
+            {lead && isLandscape(lead) ? (
+              <Box mt="4">
+                <IllustrationBanner
+                  image={lead}
+                  entityName={race.name}
+                  priority
+                />
+              </Box>
+            ) : null}
+
             <TraitSummary race={race} />
           </Box>
-
-          {lead ? (
-            <Illustration
-              image={lead}
-              entityName={race.name}
-              width={208}
-              priority
-            />
-          ) : null}
         </Box>
 
-        {/* The 24 races that carry more than one illustration. */}
-        {rest.length > 0 ? (
-          <IllustrationRow images={rest} entityName={race.name} />
-        ) : null}
+        {race.isNpcRace ? <NpcRaceNote /> : null}
 
         {/* Prose before the first named trait — flavour, usually. */}
         {intro.length > 0 ? (
-          <Entries
-            entries={intro}
-            refs={refs}
-            selfKey={race.naturalKey}
-            context={race.name}
-          />
+          <Box mb="6">
+            <Entries
+              entries={intro}
+              refs={refs}
+              selfKey={race.naturalKey}
+              context={race.name}
+            />
+          </Box>
         ) : null}
 
         {sections.map((section) => (
@@ -191,6 +219,7 @@ export default async function RacePage({ params }: RouteParams) {
             key={section.id}
             id={section.id}
             scrollMarginTop="4rem"
+            mb="6"
           >
             <SectionHeading>
               <Inline text={section.title} refs={refs} context={race.name} />
@@ -205,19 +234,68 @@ export default async function RacePage({ params }: RouteParams) {
         ))}
 
         {/*
+          Everything below clears the float, so a tall illustration cannot push
+          into the subrace list or leave a lone image stranded beside it.
+        */}
+        {rest.length > 0 ? (
+          <Box clear="both" mb="6">
+            <IllustrationRow images={rest} entityName={race.name} />
+          </Box>
+        ) : null}
+
+        {/*
           The bodies are built here, on the server — they resolve
           cross-references against the database, so they cannot be built in the
           browser — and handed to the list as props.
         */}
         {race.subraces.length > 0 ? (
-          <Box as="section" id={SUBRACES_ID} scrollMarginTop="4rem">
+          <Box
+            as="section"
+            id={SUBRACES_ID}
+            scrollMarginTop="4rem"
+            clear="both"
+          >
             <SectionHeading>Subraces</SectionHeading>
             <SubraceList
               items={race.subraces.map((sub) => toItem(sub, refs, race.name))}
             />
           </Box>
         ) : null}
-      </Stack>
+
+        {/*
+          Attribution in one place at the foot of the page.
+
+          It used to be a caption inside the figure, which for a floated
+          illustration meant it surfaced wherever the float happened to end —
+          an artist's name stranded halfway through an unrelated trait.
+        */}
+        {credits.length > 0 ? (
+          <Box
+            as="section"
+            clear="both"
+            mt="10"
+            pt="4"
+            borderTopWidth="1px"
+            borderColor="border"
+          >
+            <Text
+              as="h2"
+              fontFamily="ui"
+              fontSize="2xs"
+              fontWeight="semibold"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              color="fg.subtle"
+              mb="1"
+            >
+              Art credits
+            </Text>
+            <Text fontFamily="body" fontSize="sm" color="fg.muted">
+              {credits.join(" · ")}
+            </Text>
+          </Box>
+        ) : null}
+      </Box>
     </ReadingColumn>
   );
 }
@@ -304,10 +382,46 @@ function uniqueAnchor(text: string, used: Set<string>): string {
   return id;
 }
 
+/**
+ * Why this page is reachable but not listed.
+ *
+ * These races are excluded from the races index, so anyone standing here
+ * arrived by URL, search or bookmark rather than by browsing. Saying nothing
+ * would read as an oversight — the page looks like any other race — and hiding
+ * it outright would 404 a race the books really do print.
+ */
+function NpcRaceNote() {
+  return (
+    <Box
+      as="aside"
+      mb="6"
+      px="4"
+      py="3"
+      borderLeftWidth="2px"
+      borderColor="border.emphasized"
+      bg="bg.subtle"
+    >
+      <Text fontFamily="body" fontSize="sm" color="fg.muted">
+        The <Box as="i">Dungeon Master&rsquo;s Guide</Box> lists this race as an
+        option for creating NPCs. It is not designed to be played as a player
+        character, so it is left out of the races index.
+      </Text>
+    </Box>
+  );
+}
+
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
     <Text
       as="h2"
+      /*
+       * `flow-root` makes the heading establish its own formatting context,
+       * which is what stops it overlapping the floated illustration. Without
+       * it the text would wrap correctly but the rule underneath would run
+       * straight across behind the artwork — a block's border spans the full
+       * column even when its line boxes are shortened by a float.
+       */
+      display="flow-root"
       fontFamily="body"
       fontWeight="semibold"
       fontSize="lg"

@@ -164,3 +164,24 @@ export function formatAbilityBonuses(
   const spreads = ability.map(formatOne).filter(Boolean);
   return spreads.length > 0 ? spreads.join(" or ") : "—";
 }
+
+/* ------------------------------------------------------------------ *
+ * NPC races
+ * ------------------------------------------------------------------ */
+
+/**
+ * The corpus's marker for a race printed as an NPC option rather than a
+ * playable one.
+ *
+ * Sixteen races carry it, all from the Dungeon Master's Guide p. 282, the
+ * "monstrous adventurer" appendix — Goblin, Orc, Skeleton, Zombie and the like.
+ *
+ * The tag is the only reliable discriminator: filtering by source would be
+ * wrong, because the DMG also prints Aasimar and Eladrin on p. 286 as genuine
+ * player options and neither is tagged.
+ */
+export const NPC_RACE_TAG = "NPC Race";
+
+export function isNpcRace(traitTags: string[] | null | undefined): boolean {
+  return traitTags?.includes(NPC_RACE_TAG) ?? false;
+}
