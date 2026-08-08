@@ -30,10 +30,8 @@ describe("tokenPath", () => {
     );
   });
 
-  /*
-   * Both rules come from the corpus's own filename function. Getting either
-   * wrong yields a 404 rather than an error, which is why they are pinned.
-   */
+  // Both rules mirror the upstream filename function. Getting either wrong
+  // yields a 404 rather than an error, which is why they are pinned.
   it("folds accents to ASCII", () => {
     expect(tokenPath("monster", "Deep Gnome (Svirfneblin)", "MM")).toBe(
       "bestiary/tokens/MM/Deep Gnome (Svirfneblin).webp",

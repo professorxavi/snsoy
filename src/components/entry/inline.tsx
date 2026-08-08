@@ -15,36 +15,23 @@ import { splitByTags, type TagSegment } from "@/lib/content/tags";
 import { reportGap } from "./coverage";
 
 /**
- * Inline markup, rendered.
+ * Renders inline `{@tag}` markup.
  *
- * This is where the design system's central idea becomes code. Body text holds
- * roughly 118,000 inline tags, and a reader has to tell three things apart at a
- * glance, mid-sentence, without stopping to think:
- *
- * - **Cross-references** are the corpus speaking. Cyan, always underlined,
- *   never a filled control — cyan means "this goes somewhere".
- * - **Rolls** (`{@damage 8d6}`, `{@hit +5}`) are interactive but navigate
- *   nowhere, so they get a third treatment rather than borrowing either voice:
- *   ink-coloured with a dotted underline. Rendering them cyan would promise a
- *   destination that does not exist.
- * - **Emphasis** carries no colour at all.
- *
- * Purple appears nowhere here on purpose. It is the app's voice — nav, buttons,
- * focus — and prose is not the app talking.
+ * Three visual treatments: cross-references are cyan and underlined, dice rolls
+ * get a dotted underline (interactive, but they navigate nowhere), and emphasis
+ * carries no colour. The UI accent is not used here; this is body text.
  */
 
 export interface InlineProps {
   text: string;
-  /** Resolved targets for this page. Absent means nothing links. */
+  /** Resolved link targets. Absent means nothing links. */
   refs?: ReferenceIndex;
   /**
-   * The natural key of the entity being rendered.
-   *
-   * A spell's own text often names the spell — `{@spell wish}` inside Wish —
-   * and linking a page to itself is a dead end dressed up as navigation.
+   * Natural key of the entity being rendered, so its own text does not link
+   * back to the page it is on.
    */
   selfKey?: string;
-  /** Entity name, so an unsupported tag can be reported somewhere findable. */
+  /** Entity name, used to label unsupported tags in the coverage report. */
   context?: string;
 }
 
@@ -91,8 +78,7 @@ function Segment({
     case "reference": {
       const hit = lookupReference(candidateKeysForTag(segment), refs);
 
-      // Unresolved, unaddressable, or pointing at the page we are already on.
-      // All three render as prose: no colour, because there is nowhere to go.
+      // Unresolved, unaddressable, or self-referential: render as plain text.
       if (!hit || !hit.target.href || hit.key === selfKey) {
         return <>{label || hit?.target.name || ""}</>;
       }
@@ -114,7 +100,7 @@ function Segment({
         </Emphasis>
       );
 
-    /** Recognised, deliberately inert — render the words and move on. */
+    // Recognised but not actionable; render the label only.
     case "plain":
       return <>{label}</>;
 
@@ -125,13 +111,8 @@ function Segment({
 }
 
 /**
- * The corpus's voice.
- *
- * Underline is not decoration here, it is the redundant channel: cyan and
- * purple are both cool and converge at body size, so the distinction has to
- * survive without colour vision (WCAG 1.4.1). The line sits in a lighter tone
- * than the text and strengthens on hover, which keeps a paragraph carrying
- * thirty of these from turning into a grid.
+ * A link to another entity. Underlined as well as coloured, so it stays
+ * distinguishable without colour vision.
  */
 function CrossReference({
   href,
@@ -143,12 +124,12 @@ function CrossReference({
   return (
     <Box
       asChild
-      color="corpus"
+      color="reference"
       textDecoration="underline"
-      textDecorationColor="corpus.line"
+      textDecorationColor="reference.line"
       textUnderlineOffset="2px"
       transition="text-decoration-color .12s"
-      _hover={{ textDecorationColor: "corpus" }}
+      _hover={{ textDecorationColor: "reference" }}
     >
       <NextLink href={href}>{children}</NextLink>
     </Box>
@@ -156,11 +137,8 @@ function CrossReference({
 }
 
 /**
- * Dice. Interactive later, inert for now — but styled as its own thing from the
- * start, because retrofitting a third treatment after readers have learned two
- * is the expensive way to do it.
- *
- * Tabular figures so a column of damage values in a table lines up.
+ * A die roll. Inert for now, but styled distinctly from links because it will
+ * not navigate anywhere. Tabular figures so table columns line up.
  */
 function Roll({ children }: { children: ReactNode }) {
   return (
@@ -201,11 +179,11 @@ function Emphasis({
       return <Text as="s">{children}</Text>;
     case "highlight":
       return (
-        <Text as="mark" bg="corpus.subtle" color="fg" px="0.5">
+        <Text as="mark" bg="reference.subtle" color="fg" px="0.5">
           {children}
         </Text>
       );
-    /** An aside from the authors, not part of the rule being stated. */
+    // An authorial aside, not part of the rule.
     case "note":
       return (
         <Text as="em" color="fg.muted">
@@ -215,12 +193,7 @@ function Emphasis({
   }
 }
 
-/**
- * Visibly unhandled.
- *
- * Loud on purpose. A fallback that blends in is a fallback nobody reports, and
- * the coverage report is only useful if the gaps it lists were also seen.
- */
+/** Fallback for unknown tags. Deliberately conspicuous so gaps get noticed. */
 function Unsupported({ children }: { children: ReactNode }) {
   return (
     <Text

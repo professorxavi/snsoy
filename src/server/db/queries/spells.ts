@@ -21,23 +21,15 @@ import { entities } from "../schema/entities";
 import { sources } from "../schema/sources";
 
 /**
- * Spell list and detail queries.
+ * Spell list and detail queries. Filtering, sorting and paging run in the
+ * database; other compendium types are far larger, so this is the shape they
+ * will reuse.
  *
- * Filtering, sorting and paging all run in the database. Spells are small
- * enough to have been sent to the client whole, and were for a while — but
- * every other compendium type is not (monsters 3,808, items 3,501), and one
- * browsing model across all of them is worth more than spells alone being
- * instant. This is the shape those slices will reuse.
+ * Filters use the indexed typed columns. Display values come from the raw
+ * `data` object, because the typed columns are lossy (see `@/lib/content/spells`).
  *
- * Filtering runs on the **typed columns**, which are indexed for exactly that.
- * Display values come from the original `data` object alongside them, because
- * the typed columns are lossy by design — see the note in
- * `@/lib/content/spells`. Selecting both is what lets a Range filter be fast
- * and a Range cell be correct at the same time.
- *
- * No `is_srd` condition anywhere, on purpose: the public build is a separate
- * seed containing only SRD rows, so there is nothing to gate at runtime.
- * Source-level access control arrives whole in Phase 6.
+ * No `is_srd` condition: the public build uses an SRD-only seed, so there is
+ * nothing to gate at runtime.
  */
 
 export const SPELLS_PER_PAGE = 50;
@@ -49,7 +41,7 @@ export interface SpellFilters {
   schools?: string[];
   /** Casting time units: "action", "bonus", "reaction", "minute", "hour". */
   castingTimes?: string[];
-  /** Class names as stored — Title-cased, e.g. "Cleric". */
+  /** Class names as stored, Title-cased. */
   classes?: string[];
   sources?: string[];
   concentration?: boolean;
@@ -66,7 +58,7 @@ export interface SpellListParams extends SpellFilters {
   sort?: SpellSort;
 }
 
-/** The display shapes, pulled out of the untouched corpus object. */
+/** Display values, read straight out of the stored JSON. */
 const displayColumns = {
   time: sql<SpellTime[] | null>`${spells.data}->'time'`,
   range: sql<SpellRange | null>`${spells.data}->'range'`,
@@ -75,11 +67,8 @@ const displayColumns = {
 };
 
 /**
- * Filter clauses, optionally omitting one group.
- *
- * `skip` exists for facet counting: a facet must be counted against every
- * *other* filter but not its own, or selecting "Evocation" would zero out every
- * other school and you could never switch.
+ * Filter clauses, optionally omitting one group. `skip` is for facet counting,
+ * where a facet is counted against the other filters but not its own.
  */
 function buildWhere(
   f: SpellFilters,
@@ -116,14 +105,9 @@ export async function listSpells(params: SpellListParams = {}) {
   const where = buildWhere(params);
 
   /*
-   * The count runs first, and the two are deliberately not parallelised.
-   *
-   * The offset cannot be computed until the page number has been clamped, and
-   * the page number cannot be clamped without knowing how many pages there
-   * are. Running them together and clamping only the *reported* page is the
-   * subtle version of this bug: `?page=999` then returns a sensible-looking
-   * "page 11 of 11" with an empty table under it, because the offset was built
-   * from 999. One extra round trip on an indexed count is worth not doing that.
+   * Count first, not in parallel: the offset depends on the clamped page, and
+   * clamping needs the total. Running them together and clamping only the
+   * reported page gives "page 11 of 11" above an empty table for `?page=999`.
    */
   const [total] = await db
     .select({ value: count() })
@@ -135,8 +119,7 @@ export async function listSpells(params: SpellListParams = {}) {
   const pageCount = Math.max(1, Math.ceil(matched / perPage));
   const page = Math.min(Math.max(1, params.page ?? 1), pageCount);
 
-  // Level ties break by name; without it, paging through a level is unstable
-  // and a row can appear on two pages or none.
+  // Level ties break by name, or paging through a level is unstable.
   const orderBy =
     params.sort === "level"
       ? [asc(spells.level), asc(entities.name)]
@@ -167,10 +150,7 @@ export async function listSpells(params: SpellListParams = {}) {
 
 export type SpellDetail = NonNullable<Awaited<ReturnType<typeof getSpell>>>;
 
-/**
- * A single spell, addressed the way the route map addresses it — by source and
- * slug, which is unique together with the entity type.
- */
+/** A single spell by source and slug, which is unique with the entity type. */
 export async function getSpell(sourceId: string, slug: string) {
   const [row] = await db
     .select({
@@ -194,7 +174,7 @@ export async function getSpell(sourceId: string, slug: string) {
     .from(spells)
     .innerJoin(entities, eq(entities.id, spells.entityId))
     .innerJoin(sources, eq(sources.id, entities.sourceId))
-    // Source ids are mixed case in the corpus ("TftYP-ToH") but lowercase in
+    // Source ids are mixed case in the data ("TftYP-ToH") but lowercase in
     // URLs, so match case-insensitively rather than forcing the caller to know.
     .where(
       and(
@@ -214,10 +194,10 @@ export async function getSpell(sourceId: string, slug: string) {
 
 export interface FacetOption<T> {
   value: T;
-  /** How many spells this option would leave, given the *other* filters. */
+  /** How many spells this option would leave, given the other filters. */
   count: number;
   selected: boolean;
-  /** Nothing to show. Kept visible and inert rather than removed. */
+  /** Nothing to show. Rendered inert rather than removed. */
   disabled: boolean;
 }
 
@@ -231,17 +211,11 @@ export interface SpellFacetOptions {
 }
 
 /**
- * One row per facet value: the value, and how many spells it would leave.
+ * One row per facet value, with the number of spells it would leave.
  *
- * The `GROUP BY` runs over **every** spell, so the result is the full domain —
- * every level, school, casting time and class the corpus contains — while the
- * count is a `FILTER` against the other filters. That combination is the whole
- * point: options never appear or disappear as you filter, they only become
- * unavailable. A rail whose contents rearrange cannot be learned, and a
- * vanished option is indistinguishable from one that never existed.
- *
- * Doing it as one grouped pass rather than a domain query plus a counts query
- * also keeps it to a single round trip per facet.
+ * The GROUP BY runs over every spell so the result is the full domain, while
+ * the count is a FILTER against the other filters. That way options never
+ * appear or disappear as you filter, they only become unavailable.
  */
 async function facetCounts<T extends string | number>(
   column: SQL | typeof spells.level | typeof spells.school | typeof spells.castingTimeUnit,
@@ -284,7 +258,7 @@ function toOptions<T extends string | number>(
     });
 }
 
-/** Action economy order, not alphabetical — "action" before "bonus". */
+/** Action economy order, not alphabetical. */
 const TIME_ORDER = ["action", "bonus", "reaction", "round", "minute", "hour"];
 
 function byTimeOrder(a: string, b: string): number {
@@ -319,7 +293,7 @@ export async function spellFacets(
     return rows.map((row) => ({ value: row.value, n: Number(row.n) }));
   };
 
-  /** A boolean facet has a domain of one: the count of spells that have it. */
+  /** A boolean facet has one value: the count of spells that have it. */
   const flagCount = async (
     column: typeof spells.isConcentration | typeof spells.isRitual,
     skip: keyof SpellFilters,

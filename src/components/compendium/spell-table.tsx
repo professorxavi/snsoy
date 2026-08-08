@@ -14,17 +14,10 @@ import { hrefFor } from "@/lib/routes";
 import type { SpellRow, SpellSort } from "@/server/db/queries/spells";
 
 /**
- * The spell list.
+ * The spell list, as a dense comparison table.
  *
- * A dense table rather than roomy cards, because browsing 525 spells is a
- * *comparison* task — you are scanning down a column for a 1st-level bard spell
- * with a bonus-action cast, not reading each entry in turn. Cards make that
- * scan impossible by putting every value in a different place on every row.
- *
- * Four columns are marked optional and drop out when the aside opens. That is
- * the measured cost of the pattern: a 400px aside plus a rail leaves the table
- * about 500px, and Duration, Components and Classes are the values you are
- * least likely to be comparing at the moment you have opened one spell to read.
+ * Columns marked `optional` drop out when the aside opens, which leaves the
+ * table around 500px.
  */
 
 export function SpellTable({
@@ -89,9 +82,9 @@ function SpellRowView({ row, selected }: { row: SpellRow; selected: boolean }) {
     >
       <Cell fontWeight="medium">
         {/*
-          One anchor, stretched over the whole row by a pseudo-element. Wrapping
-          every cell in its own link would put nine identical links on one row
-          for anyone tabbing or using a screen reader.
+          One anchor stretched over the whole row by a pseudo-element, rather
+          than a link per cell — nine identical links per row is unusable with a
+          keyboard or screen reader.
         */}
         <Box
           asChild
@@ -122,10 +115,8 @@ function SpellRowView({ row, selected }: { row: SpellRow; selected: boolean }) {
 }
 
 /**
- * Duration, minus the "Concentration, up to" prefix.
- *
- * The row already carries a C marker beside the name, so repeating the word in
- * every duration cell would cost a third of the column's width to say nothing.
+ * Duration, minus the "Concentration, up to" prefix — the row already carries a
+ * C marker beside the name.
  */
 function formatDurationShort(row: SpellRow): string {
   const durations = row.duration;
@@ -143,7 +134,7 @@ function formatDurationShort(row: SpellRow): string {
   return `${value.amount} ${unit}`;
 }
 
-/** Optional columns are hidden by the frame's CSS when the aside is open. */
+/** Columns the browse frame's CSS hides while the aside is open. */
 const OPTIONAL_ATTR = { "data-col-optional": "" };
 
 function Header({
@@ -234,7 +225,7 @@ function Cell({
   );
 }
 
-/** A one-letter flag. Title carries the word for anyone who needs it. */
+/** A one-letter flag; the title attribute spells it out. */
 function Marker({ children, title }: { children: ReactNode; title: string }) {
   return (
     <Text

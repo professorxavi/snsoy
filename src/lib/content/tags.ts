@@ -1,5 +1,5 @@
 /**
- * Tokenizer for the inline markup found throughout corpus entry text:
+ * Tokenizer for the inline markup found throughout entry text:
  *
  *   "A target takes {@damage 8d6} fire damage"
  *   "{@spell fireball|phb|a fireball}"
@@ -7,8 +7,7 @@
  *
  * Tags nest ({@b bold with a {@i nested} tag}), so this cannot be a regex.
  *
- * This module is deliberately free of React and of database access: the copy
- * resolver needs it at ingest time and the renderer needs it at request time.
+ * No React and no database access here — ingest and the renderer both use it.
  */
 
 /** A tag opens on `{` followed by one of these. `{` otherwise is literal. */
@@ -106,11 +105,8 @@ export function parseTag(raw: string): TagSegment {
 
 /**
  * Apply a string transform to the literal text of `input`, leaving the
- * interior of every tag untouched.
- *
- * This is what makes `_copy._mod.replaceTxt` safe: rewriting "the githyanki"
- * to a proper name must not corrupt `{@creature githyanki|MM}`, whose parts
- * are lookup keys rather than prose.
+ * interior of every tag untouched. A tag's parts are lookup keys rather than
+ * prose, so a text substitution that reached inside one would break the link.
  */
 export function replaceOutsideTags(
   input: string,

@@ -1,6 +1,6 @@
 /**
  * Rules arithmetic shared by the copy resolver, the ingest pipeline, and the
- * renderer. Pure functions over corpus values — no I/O, no React.
+ * renderer. Pure functions over raw data values — no I/O, no React.
  */
 
 export const CR_UNKNOWN = Symbol("cr-unknown");

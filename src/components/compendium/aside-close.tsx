@@ -4,12 +4,9 @@ import { Box } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 
 /**
- * Closing the entity aside.
- *
- * `router.back()` rather than a push to the list URL, because the aside was
- * opened by a navigation — going back is what actually undoes it, and it leaves
- * the history stack clean instead of growing an entry every time someone opens
- * and closes a spell.
+ * Closes the entity aside. Uses `router.back()` rather than pushing the list
+ * URL, since the aside was opened by a navigation and back undoes it without
+ * growing the history stack.
  */
 export function AsideClose() {
   const router = useRouter();

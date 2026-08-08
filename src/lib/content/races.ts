@@ -1,10 +1,8 @@
 /**
- * Race display.
- *
- * As with spells, the corpus stores these for a rules engine rather than for a
- * reader: a size is a letter, a speed is either a number or an object whose
- * values may be `true`, and an ability bonus may be a choice rather than a
- * number. These turn that into what a player expects to see on a race entry.
+ * Race display formatters. The source data is machine-shaped — a size is a
+ * letter code, a speed is a number or an object, an ability bonus may be a
+ * choice rather than a number — so each of these turns one field into the text
+ * a player expects to read.
  */
 
 /* ------------------------------------------------------------------ *
@@ -52,15 +50,14 @@ export function formatSize(size: string[] | null | undefined): string {
  * Speed
  * ------------------------------------------------------------------ */
 
-/** Walking is unlabelled; every other mode is named, as the books print it. */
+/** Walking is unlabelled; every other mode is named, as the books print them. */
 const SPEED_ORDER = ["walk", "burrow", "climb", "fly", "swim"];
 
 /**
  * "30 ft.", or "25 ft., fly 50 ft., swim 25 ft."
  *
- * A mode's value may be `true` rather than a number, which the corpus uses to
- * mean "equal to your walking speed" — reading that as a boolean and printing
- * nothing would silently drop a winged race's flight.
+ * A mode's value may be `true` rather than a number, meaning "equal to your
+ * walking speed". Treating that as a plain boolean drops a winged race's flight.
  */
 export function formatSpeed(speed: RaceSpeed | null | undefined): string {
   if (speed == null) return "—";
@@ -113,9 +110,7 @@ function formatChoice(choice: AbilityChoice): string {
   const amount = choice.amount ?? 1;
   const count = choice.count ?? 1;
 
-  // A choice from all six is "your choice"; a narrower one names the options,
-  // because "+2 to one of your choice" and "+2 to DEX or CHA" are different
-  // characters to build.
+  // A choice from all six reads as "your choice"; a narrower one names them.
   const isOpen = choice.from.length >= ABILITY_ORDER.length;
   if (isOpen) {
     return `${signed(amount)} to ${COUNT_WORDS[count] ?? count} of your choice`;
@@ -152,9 +147,8 @@ function formatOne(bonus: AbilityBonus): string {
 /**
  * "+2 CON", "+2 DEX, +1 WIS", "+2 to one of your choice".
  *
- * The outer array is a list of *alternatives* — a few races offer a whole
- * second spread rather than a single choice — so they join with "or" rather
- * than stacking.
+ * The outer array is a list of alternatives, not a set to sum: a few races
+ * offer a whole second spread, so entries join with "or".
  */
 export function formatAbilityBonuses(
   ability: AbilityBonus[] | null | undefined,
@@ -170,15 +164,10 @@ export function formatAbilityBonuses(
  * ------------------------------------------------------------------ */
 
 /**
- * The corpus's marker for a race printed as an NPC option rather than a
- * playable one.
+ * Marks a race printed as an NPC option rather than a playable one.
  *
- * Sixteen races carry it, all from the Dungeon Master's Guide p. 282, the
- * "monstrous adventurer" appendix — Goblin, Orc, Skeleton, Zombie and the like.
- *
- * The tag is the only reliable discriminator: filtering by source would be
- * wrong, because the DMG also prints Aasimar and Eladrin on p. 286 as genuine
- * player options and neither is tagged.
+ * The tag is the only reliable test — filtering by source would be wrong, since
+ * the DMG prints both these and genuine player options like Aasimar.
  */
 export const NPC_RACE_TAG = "NPC Race";
 

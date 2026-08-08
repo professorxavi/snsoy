@@ -10,17 +10,16 @@ import {
 import { parseTag } from "./tags";
 
 /**
- * Every expectation here is a real string from the corpus, and the natural keys
- * are the ones actually present in the loaded database. The resolver was also
- * checked wholesale against `entity_links` — the links ingest resolved from the
- * same text — and across all 525 spells the two agree exactly. These tests pin
- * the cases that disagreement exposed.
+ * Every expectation here is a real tag string, and the natural keys are ones
+ * actually present in the database. The resolver was also checked wholesale
+ * against the `entity_links` ingest resolved from the same text; these tests
+ * pin the cases where the two initially disagreed.
  */
 
 const tag = (raw: string) => parseTag(raw);
 
 describe("kindOfTag", () => {
-  it("separates the three ink treatments", () => {
+  it("separates the three rendered treatments", () => {
     expect(kindOfTag("spell")).toBe("reference");
     expect(kindOfTag("damage")).toBe("roll");
     expect(kindOfTag("b")).toBe("format");
@@ -37,7 +36,7 @@ describe("kindOfTag", () => {
 });
 
 describe("candidateKeysForTag", () => {
-  it("uses the corpus's default source when the tag omits one", () => {
+  it("uses the default source when the tag omits one", () => {
     expect(candidateKeysForTag(tag("{@spell fireball}"))).toEqual([
       "spell|fireball|phb",
     ]);
@@ -63,9 +62,8 @@ describe("candidateKeysForTag", () => {
   });
 
   /**
-   * The bug this caught: `{@item club|phb}` is a `baseitem`, not an `item`.
-   * Mundane gear, magic items and item groups all arrive under one tag, so the
-   * tag name cannot determine the entity type.
+   * `{@item club|phb}` is a `baseitem`, not an `item` — mundane gear, magic
+   * items and item groups all share one tag.
    */
   it("offers every type an item tag might address", () => {
     expect(candidateKeysForTag(tag("{@item club|phb}"))).toEqual([
@@ -76,9 +74,7 @@ describe("candidateKeysForTag", () => {
   });
 
   /**
-   * The other bug: `{@race dwarf (hill)}` addresses the *subrace*
-   * `subrace|hill|dwarf|phb|phb`. The parenthesised form is how the corpus
-   * names a subrace from inside a race tag.
+   * `{@race dwarf (hill)}` addresses the subrace `subrace|hill|dwarf|phb|phb`.
    */
   it("recognises the parenthesised subrace form", () => {
     expect(candidateKeysForTag(tag("{@race dwarf (hill)||Dwarf, hill}"))).toEqual(

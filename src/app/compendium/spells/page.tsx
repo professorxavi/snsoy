@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ListToolbar, Pager } from "@/components/compendium/list-chrome";
+import { ListToolbar, Pager } from "@/components/compendium/list-controls";
 import {
   CollapsedFilters,
   FILTER_KEYS,
@@ -32,16 +32,9 @@ export const metadata: Metadata = {
 const BASE = "/compendium/spells";
 
 /**
- * The spell browse view.
- *
- * Filters, sort and page are read out of the URL and nowhere else, so this
- * component is a pure function of the address bar — which is what makes a
- * filtered list linkable, the back button correct, and the rail plain links
- * with no client state behind them.
- *
- * Everything is resolved in the database rather than in the browser. Spells are
- * small enough to have been sent whole, and were for a while, but the types
- * that follow are not — this is the shape they will reuse.
+ * The spell browse view. Filters, sort and page are read from the URL and
+ * nowhere else, and resolved in the database rather than the browser — the
+ * larger content types to come cannot be sent whole.
  */
 export default async function SpellsPage({
   searchParams,
@@ -53,7 +46,7 @@ export default async function SpellsPage({
   const page = readPage(params);
   const sort = (readString(params, "sort") as SpellSort) ?? "name";
 
-  // The facet counts are computed against the same filters, so they overlap.
+  // Facet counts are computed against the same filters, so the two overlap.
   const [list, facets] = await Promise.all([
     listSpells({ ...filters, page, sort }),
     spellFacets(filters),

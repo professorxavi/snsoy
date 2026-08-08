@@ -14,16 +14,11 @@ import { getSpell } from "@/server/db/queries/spells";
 /**
  * A spell opened from the list.
  *
- * This intercepts the spell's canonical route, so clicking a row navigates to
- * `/compendium/spells/phb/fireball` — the URL updates, the link is shareable,
- * and back closes the aside — while the list underneath is never unmounted.
- * Scroll position and filter state survive, which is the whole reason browsing
- * works this way: comparing 525 spells means opening a dozen of them, and
- * losing your place each time would make the list useless.
+ * Intercepts the spell's own route, so clicking a row updates the URL to
+ * `/compendium/spells/phb/fireball` — shareable, and back closes the aside —
+ * without unmounting the list beneath, preserving scroll and filter state.
  *
- * It renders the same `SpellDetail` as the canonical page. Nothing is
- * abbreviated for the aside — someone who lands on this URL cold has to see
- * what the person who sent it saw.
+ * Renders the same `SpellDetail` as the full page, with nothing abbreviated.
  */
 export default async function SpellAside({
   params,
@@ -50,7 +45,7 @@ export default async function SpellAside({
         density="aside"
       />
 
-      {/* The way out of a 400px column into the full page. */}
+      {/* The way out of the aside into the full page. */}
       <Box px="4" pb="6">
         <Text
           asChild

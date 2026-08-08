@@ -14,20 +14,13 @@ import type { FacetOption, SpellFacetOptions } from "@/server/db/queries/spells"
 /**
  * The spell filter rail.
  *
- * **Every option is always shown.** One that would return nothing is disabled,
- * not removed — a rail whose contents rearrange as you filter is a rail you
- * cannot learn, and a vanished option is indistinguishable from one that never
- * existed. The counts come from a facet query that groups over every spell but
- * counts against the *other* filters, so selecting "Evocation" does not zero
- * out every other school.
+ * Every option is always shown; one that would return nothing is disabled
+ * rather than removed, so the rail never rearranges as you filter. Counts come
+ * from a facet query that counts each facet against the *other* filters, so
+ * selecting "Evocation" does not zero out every other school.
  *
- * Controls are links, and that is deliberate now that filtering is a server
- * round trip: filter state already lives in the URL, so a link *is* the state
- * change. No client state, no hydration needed for the rail to work, and every
- * option is middle-clickable into a new tab.
- *
- * A disabled option renders as a `<span>` rather than a dead `<a>`, so it is
- * neither focusable nor announced as a link to somewhere.
+ * Options are links, not client-side controls: filter state lives in the URL,
+ * so a link is the state change. Nothing here needs hydration.
  */
 
 const CASTING_TIME_LABELS: Record<string, string> = {
@@ -63,8 +56,8 @@ export function SpellFilters({
 
   return (
     <Stack gap="5" px="3" py="4" pb="12">
-      {/* Reserves its own row whether or not it is shown, so the groups below
-          do not shift as the first filter is applied. */}
+      {/* Holds its height when empty, so applying the first filter does not
+          shift the groups below. */}
       <Box minH="4">
         {filtered ? (
           <Box
@@ -171,10 +164,8 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * One filter option.
- *
- * Selected state is carried by fill *and* weight, not colour alone — purple at
- * 11px against a panel is not a reliable signal on its own (WCAG 1.4.1).
+ * One filter option. Selected state is carried by fill and weight as well as
+ * colour, since colour alone is not a sufficient signal (WCAG 1.4.1).
  */
 function Option<T extends string | number>({
   facet,
@@ -224,8 +215,8 @@ function Option<T extends string | number>({
       }
     >
       {disabled ? (
-        // Not a link: there is nowhere useful to go, and a disabled control
-        // should not be focusable or announced as a destination.
+        // A span, not a dead anchor, so it is neither focusable nor announced
+        // as a destination.
         <span aria-disabled="true">{body}</span>
       ) : (
         <NextLink href={href} aria-current={selected ? "true" : undefined}>
@@ -236,7 +227,7 @@ function Option<T extends string | number>({
   );
 }
 
-/** What the rail becomes once the aside takes the width. */
+/** The collapsed rail shown once the aside takes the width. */
 export function CollapsedFilters({ params }: { params: QueryParams }) {
   const active = hasFilters(params, FILTER_KEYS);
 

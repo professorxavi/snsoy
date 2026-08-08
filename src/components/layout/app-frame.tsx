@@ -3,12 +3,11 @@ import type { ReactNode } from "react";
 import { TopNav } from "./top-nav";
 
 /**
- * The outermost frame: skip link, top bar, and whatever layout the route
- * chooses beneath it.
+ * The outermost frame: skip link, top bar, and the route's own layout below.
  *
- * Deliberately does not render `<main>` — each layout owns its own, because a
- * filter rail is a sibling of the main region rather than part of it. Every
- * layout below must therefore provide `id="main"` for the skip link to land on.
+ * Does not render `<main>` — a filter rail is a sibling of the main region, not
+ * part of it, so each layout owns its own. Every layout below must supply
+ * `id="main"` for the skip link to land on.
  */
 export function AppFrame({ children }: { children: ReactNode }) {
   return (

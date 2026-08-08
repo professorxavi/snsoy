@@ -11,13 +11,9 @@ import {
 import { getSpell } from "@/server/db/queries/spells";
 
 /**
- * The canonical page for one spell.
- *
- * This route has to exist and be complete regardless of how good the browse
- * aside is. Roughly 118,000 inline cross-reference tags resolve to pages like
- * this one, and a cold arrival — a pasted link, a search result, a `{@spell}`
- * tag inside a chapter — must render the whole spell with its own way back.
- * The aside intercepts this route; it does not replace it.
+ * The full page for one spell, and the target every inline `{@spell}` tag
+ * resolves to. The browse aside intercepts this route rather than replacing it,
+ * so this must stand alone for anyone arriving from a link or a search result.
  */
 
 interface RouteParams {
@@ -46,7 +42,7 @@ export default async function SpellPage({ params }: RouteParams) {
 
   if (!spell) notFound();
 
-  // Both are per-spell and independent, so they overlap rather than queue.
+  // Independent queries, so they overlap rather than queue.
   const [refs, inbound] = await Promise.all([
     resolveReferences(collectReferences(spell.data)),
     inboundReferences(spell.id),

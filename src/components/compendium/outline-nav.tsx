@@ -1,23 +1,16 @@
 import { Box, Stack, Text } from "@chakra-ui/react";
 
 /**
- * The section list that sits on the trailing edge of a reading page.
+ * Section list for the trailing edge of a reading page.
  *
- * Long entries lose you. A PHB Tiefling page carries its own traits plus
- * thirteen subraces; a class page will be far worse. The outline is the cheap
- * fix — it says what is on the page and lets you jump, without putting anything
- * between the reader and the text.
- *
- * Plain in-page anchors, so it works with no JavaScript, is linkable, and lands
- * in browser history. Scroll-spy highlighting is deliberately not here: it
- * would need a client component and an observer to solve a problem this page
- * does not have yet.
+ * Plain in-page anchors: no JavaScript, linkable, and they land in history.
+ * No scroll-spy highlighting, which would need a client component.
  */
 
 export interface OutlineItem {
   id: string;
   label: string;
-  /** Nested a level in — subraces under a "Subraces" grouping, for example. */
+  /** Nested a level in, e.g. subraces under a "Subraces" heading. */
   depth?: 0 | 1;
 }
 

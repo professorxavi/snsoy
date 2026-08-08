@@ -23,13 +23,11 @@ export const users = pgTable("users", {
 
 /**
  * Audit trail of entitlement syncs against an external account provider.
- *
  * `rawResponse` keeps the provider's payload so a mapping bug can be replayed
  * without asking the user to re-authenticate.
  *
- * The user's credential is NEVER stored — not here, not anywhere. It is used
- * for a single request and discarded. There is no column for it by design; if
- * one ever appears in a diff, that is the bug.
+ * The user's credential is never stored — it is used for one request and
+ * discarded. There is deliberately no column for it.
  */
 export const entitlementSyncs = pgTable(
   "entitlement_syncs",
@@ -47,8 +45,8 @@ export const entitlementSyncs = pgTable(
     resolvedSourceIds: text().array(),
     /**
      * Provider source ids with no row in `providerSourceMap`. Non-empty means
-     * the mapping table needs a new entry — surfaced as an admin warning
-     * rather than silently dropping content the user paid for.
+     * the mapping table needs a new entry; surfaced as an admin warning rather
+     * than silently dropping content the user paid for.
      */
     unmappedProviderIds: text().array(),
   },
@@ -78,10 +76,9 @@ export const userEntitlements = pgTable(
 );
 
 /**
- * Hand-maintained bridge from an external provider's source identifiers to our
- * own source abbreviations. Seeded from a checked-in fixture and extended as
- * the provider adds books; `entitlementSyncs.unmappedProviderIds` reports what
- * is still missing.
+ * Hand-maintained map from an external provider's source identifiers to our own
+ * source abbreviations. Seeded from a checked-in fixture;
+ * `entitlementSyncs.unmappedProviderIds` reports what is still missing.
  */
 export const providerSourceMap = pgTable(
   "provider_source_map",

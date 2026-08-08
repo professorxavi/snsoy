@@ -15,17 +15,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * The compendium index.
- *
- * Five groups rather than one alphabetical list of 34. The types are wildly
- * unequal in how often anyone reaches for them — spells and monsters carry most
- * of the traffic, `statuses` has two entries — so the index has to decide
- * prominence rather than pretend they are peers. Grouping is the cheapest way
- * to do that without hiding anything.
- *
- * Types whose slice is not built are listed but inert. Showing the whole shape
- * is worth more than hiding the gaps, and a link that 404s is worse than one
- * that says plainly it is not here yet.
+ * The compendium index: 34 content types in five groups, with the ones that
+ * have no browse view yet listed but inert rather than linking to a 404.
  */
 export default function CompendiumPage() {
   return (
@@ -142,11 +133,8 @@ function TypeCard({ entry }: { entry: DirectoryEntry }) {
     h: "100%",
   };
 
-  /**
-   * An unbuilt type is a `<div>`, not a dimmed link. Rendering it as an anchor
-   * would put it in the tab order and announce a destination that answers with
-   * a 404.
-   */
+  // A `<div>`, not a dimmed anchor: an unbuilt type should not be in the tab
+  // order or announced as a destination.
   if (!ready) {
     return (
       <Box {...shared} borderStyle="dashed" opacity="0.55">

@@ -1,14 +1,10 @@
 /**
- * Filter state, held in the URL.
+ * Read and write browse-view filter state, which lives in the URL and nowhere
+ * else — no component state mirrors it, so filtered lists stay linkable and the
+ * back button works.
  *
- * Every filter on a browse view is a query parameter and nothing else — there
- * is no component state mirroring it. That is what makes a filtered list
- * linkable, back-and-forward correct, and shareable: "here are the 2nd-level
- * concentration spells a bard can cast" is a URL someone can paste into chat
- * mid-session, which is when people actually need it.
- *
- * Values are comma-separated rather than repeated (`?level=3,4`, not
- * `?level=3&level=4`) so the URL stays short enough to read.
+ * Multi-values are comma-separated rather than repeated (`?level=3,4`, not
+ * `?level=3&level=4`) to keep URLs short.
  */
 
 export type QueryParams = Record<string, string | string[] | undefined>;
@@ -68,11 +64,8 @@ function toSearchParams(params: QueryParams): URLSearchParams {
 }
 
 /**
- * Serialise back to a query string.
- *
- * Keys are sorted so the same filter state always produces the same URL —
- * otherwise two identical views would be two different cache entries and two
- * different history entries.
+ * Serialise back to a query string. Keys are sorted so the same filter state
+ * always produces the same URL, and therefore the same cache and history entry.
  */
 function stringify(search: URLSearchParams): string {
   search.sort();
@@ -80,12 +73,7 @@ function stringify(search: URLSearchParams): string {
   return query ? `?${query}` : "";
 }
 
-/**
- * Add or remove one value from a multi-value filter.
- *
- * Paging is reset on every filter change: page 7 of an unfiltered list is
- * almost never a meaningful page 7 once a filter narrows it to twelve results.
- */
+/** Add or remove one value from a multi-value filter. Resets paging. */
 export function toggleValue(
   params: QueryParams,
   key: string,

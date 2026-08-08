@@ -1,24 +1,17 @@
 import type { BrowsableType } from "./routes";
 
 /**
- * The compendium's front door: which content types exist, and how they group.
+ * Which content types the compendium index lists, and how they group.
  *
- * Grouping is **navigation, not URL structure**. Every type keeps its own
- * top-level segment (`/compendium/spells`, `/compendium/traps`) because the URL
- * scheme depends on one segment naming exactly one entity type. This file only
- * decides what sits next to what on the index, and what gets prominence — a
- * flat grid of 34 equally-weighted links would be a table of contents for a
- * database rather than a way into the game.
- *
- * Deliberately no counts. "Monsters 3,808" is a fact about our import, not
- * something that helps anyone prepare a session, and it is the fastest way to
- * make the product read as a database browser.
+ * Grouping affects navigation only, not URLs: every type keeps its own
+ * top-level segment (`/compendium/spells`, `/compendium/traps`), because the
+ * URL scheme requires one segment to name exactly one entity type.
  */
 
 export interface DirectoryEntry {
   type: BrowsableType;
   label: string;
-  /** One line, player-facing. Half these types are unrecognisable by name. */
+  /** One player-facing line — several of these type names mean little alone. */
   blurb: string;
 }
 
@@ -29,12 +22,8 @@ export interface DirectoryGroup {
 }
 
 /**
- * Types with a browse view built.
- *
- * Everything else is listed but inert — the shape of the compendium is worth
- * showing even where a section is not ready, and a link that 404s is worse than
- * one that says it is not here yet. Add a type here when its slice lands; that
- * is the only change this page needs per slice.
+ * Types with a browse view built. Everything else is listed but rendered inert
+ * rather than as a link that 404s. Add a type here when its browse view lands.
  */
 export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "spell",

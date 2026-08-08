@@ -3,19 +3,14 @@
 import { useEffect } from "react";
 
 /**
- * Open whichever `<details>` the URL fragment points into.
+ * Opens whichever `<details>` the URL fragment points into.
  *
- * Browsers already do this for a **cold** arrival: navigating to
- * `…/dwarf#hill` expands the closed `<details>` containing `#hill` and scrolls
- * to it, no script involved. They do **not** do it for a **same-document** hash
- * change — measured, not assumed — which is exactly what clicking the outline
- * on this page is. Without this, the outline would jump to a collapsed section
- * and appear to do nothing.
+ * Browsers already do this on a cold arrival, but not on a same-document hash
+ * change, which is what clicking the outline is. Without this the outline would
+ * jump to a collapsed section and appear to do nothing.
  *
- * Progressive enhancement, so it stays honest if the script never runs: cold
- * deep links still work natively, and the summaries are still clickable. All
- * this adds is the same behaviour for in-page jumps and for browsers that have
- * not shipped the native version.
+ * Progressive enhancement: cold deep links and the summaries still work if the
+ * script never runs.
  */
 export function OpenTargetDetails() {
   useEffect(() => {
@@ -28,7 +23,7 @@ export function OpenTargetDetails() {
       if (!details || details.open) return;
 
       details.open = true;
-      // Expand first, then aim: scrolling at collapsed height lands short.
+      // Expand before scrolling, or it aims at the collapsed height.
       requestAnimationFrame(() => target?.scrollIntoView({ block: "start" }));
     };
 

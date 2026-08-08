@@ -11,21 +11,11 @@ import { db } from "../client";
 import { entities, entityLinks } from "../schema/entities";
 
 /**
- * Resolving inline cross-references to real URLs.
+ * Resolves inline cross-references to URLs.
  *
- * Every `{@spell fireball}` in rendered prose has to become a link, and there
- * are roughly 118,000 of them across the corpus. Two properties make that
- * affordable and correct:
- *
- * - **Lookup is by natural key, against a unique index.** Slugs are derived at
- *   ingest with transformations that cannot be reproduced from a tag's text, so
- *   guessing a URL would produce links that are silently dead.
- * - **One round trip per page, not per tag.** References are collected from the
- *   whole entity first, then resolved together.
- *
- * Checked against `entity_links`, which ingest populated by the same reasoning
- * from the same text: across all 525 spells the two agree exactly, with no link
- * found by one and missed by the other.
+ * Lookup is by natural key against a unique index, never by slugifying the tag
+ * text, and references are collected for the whole page and resolved in one
+ * round trip rather than one per tag.
  */
 
 interface Row {
@@ -51,16 +41,11 @@ async function fetchByKeys(keys: string[]): Promise<Row[]> {
 }
 
 /**
- * Resolve candidate natural keys to names and URLs.
+ * Resolve candidate natural keys to names and URLs. Keys that match nothing are
+ * absent from the result, which is normal: an `{@item}` contributes three
+ * candidates and only one exists.
  *
- * Keys that match nothing are simply absent from the result, and that is the
- * normal case rather than an error — a single `{@item}` contributes three
- * candidates precisely because only one of them will exist. The renderer takes
- * the first candidate present and falls back to the tag's own label when none
- * are, so the sentence still reads correctly either way.
- *
- * Costs at most two queries — the second only when a fragment is referenced,
- * to fetch the parent page the fragment is an anchor on.
+ * At most two queries; the second only when a fragment needs its parent.
  */
 export async function resolveReferences(
   keys: Iterable<string>,
@@ -110,17 +95,11 @@ export interface InboundReference {
 }
 
 /**
- * What refers to this entity.
+ * What refers to this entity, read from `entity_links`. Fireball has 224
+ * inbound references across ten entity types.
  *
- * Real content rather than a footnote: Fireball is referred to by 224 other
- * entries spanning ten entity types, and "what else touches this spell" is a
- * question a DM asks constantly. It reads off `entity_links`, which ingest
- * populated by resolving the same `{@tag}` markup this module resolves at
- * render time — so it costs one indexed lookup rather than a scan.
- *
- * Fragments are skipped rather than shown without a destination: they need
- * their parent to be addressable at all, and a "referenced by" list is exactly
- * the place where an unclickable row is worthless.
+ * Fragments are skipped: they need a parent to be addressable, and an
+ * unclickable row is no use in a "referenced by" list.
  */
 export async function inboundReferences(
   entityId: string,

@@ -3,28 +3,19 @@ import type { ReactNode } from "react";
 import { OpenTargetDetails } from "./open-target-details";
 
 /**
- * Subraces, collapsed.
+ * Collapsible subrace list. A PHB Tiefling has thirteen subraces, which would
+ * otherwise push the race's own traits off screen.
  *
- * A PHB Tiefling carries thirteen subraces and a PHB Elf nine, each a few
- * paragraphs. Expanded, the race's own traits are pushed so far up the page
- * that the thing you came for is off screen. Collapsed, the page reads the way
- * the book is laid out: here is the race, and here are its variants.
+ * Built on `<details>` rather than Chakra's Accordion, which does not respond
+ * to clicks anywhere in this app (verified down to a minimal isolated case).
+ * `<details>` also needs no JavaScript to open and is keyboard accessible.
  *
- * **Built on `<details>`, not on Chakra's Accordion.** Chakra's is driven by
- * Ark UI state machines and does not respond to clicks anywhere in this app —
- * verified down to a minimal isolated instance, where the trigger has an
- * `onClick` in its React props, hydration succeeds, no console error appears,
- * and `onValueChange` still never fires. `<details>` is the better fit anyway:
- * a server component, no JavaScript to open, keyboard accessible for free.
- *
- * The anchor sits **inside** the disclosure rather than on it. That is the
- * difference between a deep link working and not: browsers expand a closed
- * `<details>` when the fragment targets its *contents*, and do nothing at all
- * when it targets the element itself.
+ * The anchor sits inside the disclosure, not on it: browsers expand a closed
+ * `<details>` when the fragment targets its contents, but not the element.
  */
 
 export interface SubraceItem {
-  /** The subrace's slug — the anchor inbound links resolve to. */
+  /** The subrace's slug, which inbound links resolve to. */
   id: string;
   name: string;
   meta?: ReactNode;
@@ -52,8 +43,7 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
             py="2.5"
             cursor="pointer"
             css={{
-              // Suppress the default marker in every engine, or the custom one
-              // is shown twice.
+              // Suppress the default marker, or it shows alongside the custom one.
               listStyle: "none",
               "&::marker": { content: '""' },
               "&::-webkit-details-marker": { display: "none" },
@@ -87,7 +77,7 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
             ) : null}
           </Box>
 
-          {/* The anchor, and the reason it is here and not on the <details>. */}
+          {/* Anchor goes here, not on the <details>. See the note above. */}
           <Box id={item.id} scrollMarginTop="4rem" pl="6" pb="5">
             {item.body}
           </Box>
@@ -100,12 +90,8 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
 }
 
 /**
- * The disclosure arrow.
- *
- * Drawn, not typed. The obvious character for this — `▶` U+25B6 — is in an
- * emoji-presentation range, so most platforms render it as a blue emoji glyph
- * that ignores `color` entirely and looks pasted on. An inline SVG inherits
- * `currentColor`, scales with the type, and rotates cleanly.
+ * The disclosure arrow, as SVG rather than a character. U+25B6 renders as an
+ * emoji glyph on most platforms and ignores `color`.
  */
 function Chevron() {
   return (

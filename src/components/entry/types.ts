@@ -1,15 +1,9 @@
 /**
- * The shapes corpus prose actually arrives in.
+ * The entry shapes the renderer handles.
  *
- * The corpus defines roughly twenty entry types across all content. These are
- * the seven that spell text uses, measured across all 525 spells rather than
- * assumed: `entries` (317), `list` (33), `cell` (29), `table` (14), `item` (6),
- * `quote` (3), `inset` (1) — plus bare strings, which are the overwhelming
- * majority of the text.
- *
- * Building only these is deliberate. Phase 4 grows by measurement: an unhandled
- * type renders a visible fallback and reports itself, and that report decides
- * what gets built next rather than a guess at the long tail.
+ * The source data defines roughly twenty entry types; these are the seven used
+ * by spell and race text. Unhandled types render a visible fallback and report
+ * themselves to the coverage report, which drives what gets added next.
  */
 
 export type Entry = string | number | EntryObject;
@@ -33,17 +27,14 @@ export interface ItemEntry {
   entries?: Entry[];
 }
 
-/**
- * A table cell that carries a die roll rather than text — the left-hand column
- * of every random table. `exact` is a single result, `min`/`max` a span.
- */
+/** A table cell carrying a die roll. `exact` is one result, `min`/`max` a span. */
 export interface CellEntry {
   type: "cell";
   roll?: {
     exact?: number;
     min?: number;
     max?: number;
-    /** Pad to the table's width: 1 becomes "01" when the table runs to 100. */
+    /** Pad to the table's width, so 1 becomes "01" in a d100 table. */
     pad?: boolean;
   };
 }
@@ -52,7 +43,7 @@ export interface TableEntry {
   type: "table";
   caption?: string;
   colLabels?: string[];
-  /** Corpus layout hints — column widths and alignment, as class-name strings. */
+  /** Upstream layout hints: column widths and alignment, as class names. */
   colStyles?: string[];
   rows?: (Entry | CellEntry)[][];
 }
@@ -64,7 +55,7 @@ export interface QuoteEntry {
   from?: string;
 }
 
-/** A sidebar. `insetReadaloud` is the boxed text a DM reads to the table. */
+/** A sidebar. `insetReadaloud` is text meant to be read aloud. */
 export interface InsetEntry {
   type: "inset" | "insetReadaloud";
   name?: string;
@@ -85,7 +76,7 @@ export function isEntryObject(value: Entry): value is EntryObject {
   return typeof value === "object" && value !== null;
 }
 
-/** Cells are the one entry type that only ever appears inside a table row. */
+/** Cells only appear inside a table row. */
 export function isCell(value: unknown): value is CellEntry {
   return (
     typeof value === "object" &&

@@ -5,14 +5,9 @@ import { BELOW_TOPBAR, TOPBAR } from "./constants";
 /**
  * The long-form layout, for book and adventure chapters.
  *
- * No filter rail — a chapter has nothing to filter. What it has instead is an
- * outline, because chapters run long (18.8 KB median, 555 KB at the extreme)
- * and losing your place in one is the failure mode this layout exists to
- * prevent. The outline is sticky and sits on the trailing edge so it never
- * comes between the reader and the text.
- *
- * The column is measured in `ch`, so the line length tracks Literata rather
- * than a pixel guess.
+ * No filter rail; instead an optional sticky outline on the trailing edge,
+ * since chapters run long (555 KB at the extreme). The column width is measured
+ * in `ch` so line length tracks the body face rather than a pixel guess.
  */
 export function ReadingColumn({
   outline,
@@ -21,9 +16,8 @@ export function ReadingColumn({
 }: {
   outline?: ReactNode;
   /**
-   * The outline's accessible name. Defaults to something true everywhere —
-   * this layout serves races and classes as well as book chapters, and "In this
-   * chapter" is a lie on two of the three.
+   * The outline's accessible name. The default suits every caller — this layout
+   * serves races and classes as well as book chapters.
    */
   outlineLabel?: string;
   children: ReactNode;

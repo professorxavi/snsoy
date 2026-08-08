@@ -14,9 +14,9 @@ import { entities } from "./entities";
  * Books and adventures. The unit of entitlement — owning a source unlocks
  * every non-SRD entity that cites it.
  *
- * The primary key is the corpus abbreviation ("PHB", "XGE", "TftYP-ToH")
- * rather than a surrogate id: it is stable, human-readable, and is the value
- * embedded in every cross-reference tag in the corpus.
+ * The primary key is the book abbreviation ("PHB", "XGE", "TftYP-ToH") rather
+ * than a surrogate id: it is stable, readable, and is the value embedded in
+ * every cross-reference tag.
  */
 export const sources = pgTable(
   "sources",

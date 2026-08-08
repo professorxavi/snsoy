@@ -4,11 +4,7 @@ import { AppFrame } from "@/components/layout";
 import { Provider } from "@/components/ui/provider";
 import "./globals.css";
 
-/**
- * Three faces, each doing one job. See `src/theme` for why these and not
- * others. All latin-only — the corpus is English and the saving is worth it
- * against a variable face this large.
- */
+/** Latin-only subsets: the content is English, and these are large variable faces. */
 
 /** Body and headings. Variable, so dark mode can pull the weight back to 350. */
 const literata = Literata({
@@ -17,7 +13,7 @@ const literata = Literata({
   display: "swap",
 });
 
-/** Chrome: nav, tables, filters, labels. */
+/** UI: nav, tables, filters, labels. */
 const plexSans = IBM_Plex_Sans({
   variable: "--font-ui",
   subsets: ["latin"],

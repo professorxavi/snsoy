@@ -4,15 +4,13 @@ import { BrowseFrame } from "@/components/layout";
 /**
  * The spells section shell.
  *
- * `children` is either the list or a spell's canonical page; `aside` is the
- * parallel-route slot an intercepting route fills when a row is clicked. Both
- * live under this one layout so that clicking a row swaps the *slot* without
- * unmounting the list — scroll position and filter state survive, which is the
- * entire point of opening entities in place.
+ * `children` is the list or a spell's own page; `aside` is the parallel-route
+ * slot the intercepting route fills when a row is clicked. Sharing one layout
+ * means clicking a row swaps the slot without unmounting the list, so scroll
+ * position and filter state survive.
  *
- * The layout deliberately holds no filter UI. Facet counts depend on the
- * current filters, filters live in query params, and a layout never receives
- * query params — so the rail belongs to the page.
+ * No filter UI here: facet counts depend on query params, and a layout never
+ * receives them, so the rail belongs to the page.
  */
 export default function SpellsLayout({
   children,

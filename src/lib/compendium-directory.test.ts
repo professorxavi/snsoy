@@ -30,7 +30,7 @@ describe("the directory covers the route map", () => {
     }
   });
 
-  it("points every entry at its own canonical list", () => {
+  it("points every entry at its own list route", () => {
     for (const entry of entries) {
       expect(listHrefFor(entry.type)).toBe(`/compendium/${segmentFor(entry.type)}`);
     }
@@ -74,7 +74,7 @@ describe("IMPLEMENTED", () => {
     }
   });
 
-  it("currently contains the spells slice", () => {
+  it("currently includes spells", () => {
     expect(IMPLEMENTED.has("spell")).toBe(true);
   });
 });

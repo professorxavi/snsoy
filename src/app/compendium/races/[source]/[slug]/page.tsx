@@ -31,19 +31,12 @@ import {
 } from "@/server/db/queries/races";
 
 /**
- * One race, as a reading page.
+ * One race, as a reading page: a measured column with a section outline, like a
+ * book chapter. Clicking a race navigates here; there is no aside.
  *
- * A race is a small document, not a row: its traits are sections, and its
- * subraces are further sections built on top of them. So this uses the same
- * layout as a book chapter — a measured column with the outline on the trailing
- * edge — rather than anything from the browse pattern. Clicking a race
- * navigates here; there is no aside.
- *
- * Subrace sections are anchored on the subrace's own **slug**, because that is
- * what `hrefFor` produces for a fragment (`/compendium/races/phb/dwarf#hill`).
- * Every `{@race dwarf (hill)}` in the corpus resolves to that URL, so the id
- * here and the resolver there have to agree or ~93 inbound links land on the
- * right page at the wrong place.
+ * Subrace sections are anchored on the subrace's slug, which is what `hrefFor`
+ * produces for a fragment (`/compendium/races/phb/dwarf#hill`). The ids here
+ * and the resolver must agree or inbound links land in the wrong place.
  */
 
 interface RouteParams {
@@ -73,11 +66,8 @@ export default async function RacePage({ params }: RouteParams) {
   const data = race.data as { entries?: Entry[] };
   const { intro, sections } = splitSections(data.entries);
 
-  /**
-   * 111 of 134 races carry illustrations; the rest carry none, so every part of
-   * this has to be absent-safe rather than merely empty. Subraces are skipped
-   * deliberately — none have images, despite 68 of them claiming `hasFluffImages`.
-   */
+  // 111 of 134 races have illustrations, so this has to handle none. Subraces
+  // are skipped: none have images, despite 68 claiming `hasFluffImages`.
   const images = fluffImages(race.fluff);
   const [lead, ...rest] = images;
   const credits = imageCredits(images);
@@ -88,16 +78,8 @@ export default async function RacePage({ params }: RouteParams) {
     collectReferences([race.data, ...race.subraces.map((s) => s.data)]),
   );
 
-  /**
-   * One list, whichever book each subrace came from.
-   *
-   * Roughly half the corpus's subraces are printed in a different book than
-   * their parent race — MTF adds Duergar to the PHB dwarf, Eberron adds the
-   * dragonmarks — and they were briefly split into their own section. They are
-   * not split any more: a player asking "what dwarves can I play" wants the
-   * whole answer in one place, which is also what D&D Beyond shows. The book
-   * each one came from is named on its row instead.
-   */
+  // Subraces are listed together regardless of source. Roughly half come from
+  // a different book than their parent race, named on each row.
   const outline: OutlineItem[] = [
     ...sections.map((section) => ({ id: section.id, label: section.title })),
     ...(race.subraces.length > 0
@@ -115,20 +97,12 @@ export default async function RacePage({ params }: RouteParams) {
   return (
     <ReadingColumn outline={<OutlineNav items={outline} />}>
       {/*
-        A plain block, not a flex Stack.
-
-        The illustration is *floated* so the prose runs around it the way it does
-        on a printed page. A float has no effect inside a flex container — its
-        siblings sit beside it as flex items instead of wrapping — so the whole
-        column has to be normal flow, with spacing carried on the blocks
-        themselves.
+        Normal flow, not a flex Stack: the illustration is floated so prose wraps
+        around it, and a float has no effect inside a flex container. Spacing is
+        carried on the blocks instead of a Stack gap.
       */}
       <Box>
-        {/*
-          Only portrait and square art floats. Landscape art is composed wide and
-          becomes an unreadable stamp at 15rem, so it runs as a banner below the
-          header instead — see the note in `entity-image`.
-        */}
+        {/* Portrait and square art floats; landscape art gets a banner below. */}
         {lead && !isLandscape(lead) ? (
           <Box
             float={{ base: "none", sm: "right" }}
@@ -156,8 +130,7 @@ export default async function RacePage({ params }: RouteParams) {
               textTransform="uppercase"
               color="fg.subtle"
             >
-              {/* The book by name, not by abbreviation — "PHB" is jargon a
-                reader has to already know to get anything from. */}
+              {/* Book name rather than abbreviation. */}
               <Box asChild _hover={{ color: "brand" }}>
                 <NextLink href={`/sources/${race.sourceId.toLowerCase()}`}>
                   {race.sourceName}
@@ -178,13 +151,8 @@ export default async function RacePage({ params }: RouteParams) {
               {race.name}
             </Text>
 
-            {/*
-              Wide art sits between the name and the stat line, not after it.
-              Size and speed are the first thing you read *about* the race, so
-              they belong against its traits — dropping the art in between left
-              the stat line orphaned above an illustration it had nothing to do
-              with.
-            */}
+            {/* Wide art sits between the name and the stat line, so the stat
+                line stays next to the traits it describes. */}
             {lead && isLandscape(lead) ? (
               <Box mt="4">
                 <IllustrationBanner
@@ -201,7 +169,7 @@ export default async function RacePage({ params }: RouteParams) {
 
         {race.isNpcRace ? <NpcRaceNote /> : null}
 
-        {/* Prose before the first named trait — flavour, usually. */}
+        {/* Prose before the first named trait. */}
         {intro.length > 0 ? (
           <Box mb="6">
             <Entries
@@ -233,21 +201,15 @@ export default async function RacePage({ params }: RouteParams) {
           </Box>
         ))}
 
-        {/*
-          Everything below clears the float, so a tall illustration cannot push
-          into the subrace list or leave a lone image stranded beside it.
-        */}
+        {/* Clears the float so a tall illustration cannot push into the list. */}
         {rest.length > 0 ? (
           <Box clear="both" mb="6">
             <IllustrationRow images={rest} entityName={race.name} />
           </Box>
         ) : null}
 
-        {/*
-          The bodies are built here, on the server — they resolve
-          cross-references against the database, so they cannot be built in the
-          browser — and handed to the list as props.
-        */}
+        {/* Bodies are built here because they resolve cross-references against
+            the database, then passed to the list as props. */}
         {race.subraces.length > 0 ? (
           <Box
             as="section"
@@ -262,13 +224,8 @@ export default async function RacePage({ params }: RouteParams) {
           </Box>
         ) : null}
 
-        {/*
-          Attribution in one place at the foot of the page.
-
-          It used to be a caption inside the figure, which for a floated
-          illustration meant it surfaced wherever the float happened to end —
-          an artist's name stranded halfway through an unrelated trait.
-        */}
+        {/* Attribution collected here rather than captioned on each figure,
+            where a float would strand it mid-section. */}
         {credits.length > 0 ? (
           <Box
             as="section"
@@ -303,12 +260,8 @@ export default async function RacePage({ params }: RouteParams) {
 const SUBRACES_ID = "subraces";
 
 /**
- * A subrace as the disclosure list wants it.
- *
- * The book is named in full and on every row. Named, because "MTF" tells a
- * reader nothing about where Duergar came from; on every row, because in one
- * consolidated list the book is the only thing distinguishing a PHB option from
- * one a later supplement added.
+ * Maps a subrace to a disclosure list item. The book is named in full on every
+ * row, since it is the only thing distinguishing sources in one merged list.
  */
 function toItem(
   sub: SubraceDetail,
@@ -326,11 +279,9 @@ function toItem(
 }
 
 /**
- * Split the corpus's flat entry list into an intro and named sections.
- *
- * Only the top level is split. Anything deeper is left to the renderer, which
- * already handles nesting — the point here is just to produce something the
- * outline can address, and only top-level traits are worth a jump target.
+ * Splits the flat entry list into an intro and named sections. Only the top
+ * level, since only top-level traits are worth an outline entry; the renderer
+ * handles deeper nesting.
  */
 function splitSections(entries: Entry[] | undefined) {
   const intro: Entry[] = [];
@@ -362,11 +313,8 @@ function splitSections(entries: Entry[] | undefined) {
 }
 
 /**
- * A local, in-page anchor.
- *
- * Safe to derive here, unlike an entity slug — this addresses a heading within
- * one document rather than a row in the database, so nothing downstream depends
- * on it matching what ingest produced.
+ * An in-page anchor. Safe to derive, unlike an entity slug, because it only
+ * addresses a heading within this document.
  */
 function uniqueAnchor(text: string, used: Set<string>): string {
   const base =
@@ -383,12 +331,8 @@ function uniqueAnchor(text: string, used: Set<string>): string {
 }
 
 /**
- * Why this page is reachable but not listed.
- *
- * These races are excluded from the races index, so anyone standing here
- * arrived by URL, search or bookmark rather than by browsing. Saying nothing
- * would read as an oversight — the page looks like any other race — and hiding
- * it outright would 404 a race the books really do print.
+ * Shown on NPC races, which are excluded from the index. Anyone here arrived by
+ * URL, search or bookmark, so the page says why it is not listed.
  */
 function NpcRaceNote() {
   return (
@@ -436,7 +380,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The three values a player checks first, before reading anything. */
+/** Size, speed and ability bonuses. */
 function TraitSummary({
   race,
   borderTop = true,
@@ -486,10 +430,7 @@ function TraitSummary({
   );
 }
 
-/**
- * A subrace's contents, without any header of its own — the accordion's trigger
- * is the header, so repeating the name here would print it twice.
- */
+/** A subrace's contents. No header: the disclosure trigger is the header. */
 function SubraceBody({
   subrace,
   refs,

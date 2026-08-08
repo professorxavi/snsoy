@@ -1,16 +1,14 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 /**
- * Every content type we ingest from the corpus.
+ * Every content type we ingest.
  *
- * Names match the top-level array keys in the source JSON so the ingest
- * pipeline can map file -> type without a translation table. Types listed here
- * but without a dedicated detail table land in `generic_entities`.
+ * Names match the top-level array keys in the source JSON so ingest can map
+ * file -> type without a translation table. Types without a dedicated detail
+ * table land in `generic_entities`.
  *
- * Deliberately excluded: the corpus also ships generator inputs (name lists,
- * random-life tables, loot tables, homebrew-editor scaffolding) which are tool
- * data rather than browsable content. Those load into `support_data` when
- * needed.
+ * Excluded on purpose: generator inputs (name lists, random-life tables, loot
+ * tables, homebrew-editor scaffolding), which load into `support_data` instead.
  */
 export const entityTypeEnum = pgEnum("entity_type", [
   // Typed detail tables
@@ -30,10 +28,10 @@ export const entityTypeEnum = pgEnum("entity_type", [
   "subclassFeature",
   "optionalfeature",
   /**
-   * A top-level chapter of a book or adventure. Not a corpus array key like
-   * the rest — body text ships one file per source — but sections are entities
-   * for the same reasons everything else is: they are searched, linked to by
-   * `{@book}` and `{@adventure}`, and gated by the source that printed them.
+   * A top-level chapter of a book or adventure. Not an upstream array key like
+   * the rest — body text ships one file per source — but chapters are entities
+   * for the same reasons everything else is: searched, linked to by `{@book}`
+   * and `{@adventure}`, and gated by the source that printed them.
    */
   "bookSection",
   // generic_entities
@@ -78,8 +76,8 @@ export const syncStatusEnum = pgEnum("sync_status", [
 ]);
 
 /**
- * Lookup blobs the renderer needs but users never browse directly:
- * item property abbreviations, monster legendary groups, and the like.
+ * Lookup data the renderer needs but users never browse: item property
+ * abbreviations, monster legendary groups, and the like.
  */
 export const supportKindEnum = pgEnum("support_kind", [
   "itemProperty",

@@ -4,13 +4,9 @@ import type { ReactNode } from "react";
 import { withValue, type QueryParams } from "@/lib/query-params";
 
 /**
- * The bar above a list and the pager below it.
- *
- * Both are server-rendered and URL-driven. The search field is a plain GET
- * form: filter state already lives in the URL, so the browser's own form
- * submission produces exactly the right navigation. A controlled input with an
- * onChange handler would be more code doing less, and would not work before
- * hydration.
+ * The toolbar above a list and the pager below it. Both are server-rendered and
+ * driven entirely by the URL — the search field is a plain GET form, so it works
+ * before hydration and needs no client state.
  */
 
 /** Filter params carried through the search form so searching does not reset them. */
@@ -24,7 +20,7 @@ export function ListToolbar({
 }: {
   params: QueryParams;
   matched: number;
-  /** Whether any filter is applied. Governs whether a count is shown at all. */
+  /** Whether any filter is applied. A count is only shown once one is. */
   filtered: boolean;
   basePath: string;
 }) {
@@ -75,11 +71,8 @@ export function ListToolbar({
         </Box>
       </form>
 
-      {/*
-        A count only once the reader has narrowed something. "525 spells" is a
-        fact about our database; "18 spells" after filtering is the answer to
-        the question they just asked.
-      */}
+      {/* A count only once something has been narrowed — an unfiltered total
+          answers no question the reader asked. */}
       {filtered ? (
         <Text
           fontFamily="ui"
@@ -95,7 +88,7 @@ export function ListToolbar({
   );
 }
 
-/** Hidden entirely at one page: a pager that can never do anything is noise. */
+/** Hidden entirely when there is only one page. */
 export function Pager({
   params,
   page,

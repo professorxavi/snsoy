@@ -21,11 +21,10 @@ export const tsvector = customType<{ data: string; driverData: string }>({
 });
 
 /**
- * The universal entity registry — every ingested entity gets a row here, with
- * no exceptions, regardless of which detail table holds its typed columns.
- *
- * Having one registry is what lets cross-reference resolution, omnisearch, and
- * entitlement gating each be written once instead of once per content type.
+ * The universal entity registry: every ingested entity gets a row here,
+ * whichever detail table holds its typed columns. One registry means
+ * cross-reference resolution, search, and entitlement gating are each written
+ * once rather than once per content type.
  */
 export const entities = pgTable(
   "entities",
@@ -33,27 +32,23 @@ export const entities = pgTable(
     id: uuid().primaryKey().defaultRandom(),
 
     /**
-     * The corpus's own identity for this entity: `type|name|source`, lowercased
-     * — `spell|fireball|phb`.
+     * The upstream identity for this entity: `type|name|source`, lowercased —
+     * `spell|fireball|phb`. Unique and indexed because it is what
+     * cross-reference tags encode, and what re-seeding upserts on so ids
+     * survive data updates.
      *
-     * Not the primary key, but unique and indexed, because it is what
-     * cross-reference tags encode. Ingest resolves `{@spell fireball|phb}`
-     * through this column to reach the id, and re-seeding upserts on it so an
-     * entity keeps its id across corpus updates.
-     *
-     * Some types need more parts to be unique — a class feature is
-     * `classfeature|name|class|classSource|level|source`. Build these with
-     * `naturalKeyFor()` from `@/lib/content/identity` rather than by hand; the
-     * format has to match what tags encode or links will not resolve.
+     * Some types need more parts to be unique (a class feature is
+     * `classfeature|name|class|classSource|level|source`). Build these with
+     * `naturalKeyFor()` from `@/lib/content/identity` — the format must match
+     * what tags encode or links will not resolve.
      */
     naturalKey: text().notNull(),
 
     entityType: entityTypeEnum().notNull(),
     name: text().notNull(),
     /**
-     * When the corpus sets `srd` to a string rather than `true`, the SRD
-     * release publishes this entity under a different name (trademarked
-     * creatures, mostly). SRD-only builds must display this instead of `name`.
+     * Set when the SRD publishes this entity under a different name (mostly
+     * trademarked creatures). SRD-only builds display this instead of `name`.
      */
     srdName: text(),
     sourceId: varchar({ length: 32 })
@@ -67,7 +62,7 @@ export const entities = pgTable(
     /** Subset of SRD published in the free Basic Rules. */
     isBasicRules: boolean().notNull().default(false),
     /**
-     * Supplementary lore and artwork from the corpus `*Fluff` arrays, merged
+     * Supplementary lore and artwork from the upstream `*Fluff` arrays, merged
      * in at ingest so the renderer needs a single fetch.
      */
     fluff: jsonb().$type<unknown>(),
@@ -96,10 +91,8 @@ export const entitiesRelations = relations(entities, ({ one, many }) => ({
 /**
  * Cross-references extracted from `{@tag}` markup at ingest time.
  *
- * Resolving these up front rather than at render time means a page can
- * prefetch what it links to, "what references this spell?" is a plain query,
- * and broken references surface as an ingest statistic instead of a dead link
- * discovered by a user.
+ * Resolving these up front makes "what references this spell?" a plain query,
+ * and surfaces broken references at ingest instead of as dead links in the UI.
  */
 export const entityLinks = pgTable(
   "entity_links",
@@ -133,10 +126,9 @@ export const entityLinksRelations = relations(entityLinks, ({ one }) => ({
 }));
 
 /**
- * Denormalised omnisearch target. Rebuilt by the ingest pipeline.
- *
- * Type, source, and SRD flag are copied here rather than joined so a search
- * query can filter by entitlement without touching `entities` at all.
+ * Denormalised full-text search target, rebuilt by the ingest pipeline. Type,
+ * source and SRD flag are copied rather than joined so a search query can
+ * filter by entitlement without touching `entities`.
  */
 export const searchIndex = pgTable(
   "search_index",
@@ -154,9 +146,9 @@ export const searchIndex = pgTable(
      */
     body: text(),
     /**
-     * Generated rather than populated, so it can never drift from the columns
-     * it summarises. Name is weighted 'A' and body 'B', so an entity actually
-     * called "Fireball" outranks the dozens that merely mention it.
+     * Generated rather than populated, so it cannot drift from the columns it
+     * summarises. Name is weighted 'A' and body 'B', so an entity named
+     * "Fireball" outranks the ones that merely mention it.
      */
     tsv: tsvector().generatedAlwaysAs(
       sql`setweight(to_tsvector('english', coalesce(name, '')), 'A') || setweight(to_tsvector('english', coalesce(body, '')), 'B')`,

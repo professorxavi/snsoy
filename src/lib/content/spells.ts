@@ -1,17 +1,11 @@
 /**
- * Spell display.
+ * Formats spell values for display. A school is stored as a single letter, a
+ * range as a nested object, a duration as an array.
  *
- * The corpus stores spells for a rules engine, not for a reader: a school is a
- * single letter, a range is a nested object, a duration is an array. These turn
- * that back into the strings a player expects to see on a spell card.
- *
- * Everything here reads the **original `data` object** rather than the typed
- * columns beside it, and that is deliberate. The typed columns exist to filter
- * and sort — `level`, `school`, `range_feet` are indexed for exactly that — but
- * they are lossy by design. `range_feet` is null for every spell whose range is
- * not measured in feet, which is Touch, Self, Sight and Unlimited: 136 of the
- * Player's Handbook's 361 spells. A Range column built from it alone is blank
- * for more than a third of the book.
+ * These read the raw `data` object rather than the typed columns. The typed
+ * columns are for filtering and sorting and are lossy: `range_feet` is null
+ * whenever the range is not measured in feet (Touch, Self, Sight, Unlimited),
+ * which covers 136 of the PHB's 361 spells.
  */
 
 /* ------------------------------------------------------------------ *
@@ -91,20 +85,12 @@ export function levelLabel(level: number): string {
   return level === 0 ? "Cantrip" : `${ordinal(level)}-level`;
 }
 
-/**
- * Compact form for a table cell, where "Cantrip" is too wide.
- *
- * Cantrips are "C", not a dash: they are a real level a spell can be, and a
- * dash reads as missing data sitting next to nine rows of digits.
- */
+/** Compact form for a table cell. Cantrips are "C", not a dash. */
 export function levelShort(level: number): string {
   return level === 0 ? "C" : String(level);
 }
 
-/**
- * The line printed under a spell's name: "3rd-level evocation", or
- * "Evocation cantrip" — cantrips invert, which is why this is not a join.
- */
+/** "3rd-level evocation", or "Evocation cantrip". Cantrips invert the order. */
 export function spellSubtitle(level: number, school: string | null): string {
   const name = schoolName(school);
   return level === 0
@@ -127,12 +113,7 @@ const TIME_UNITS: Record<string, string> = {
 
 const plural = (n: number, word: string) => (n === 1 ? word : `${word}s`);
 
-/**
- * "1 action", "1 bonus action", "10 minutes".
- *
- * Only durations pluralise — "2 actions" never occurs as a casting time,
- * "10 minutes" does.
- */
+/** "1 action", "1 bonus action", "10 minutes". Only durations pluralise. */
 function oneCastingTime(time: SpellTime): string {
   const base = TIME_UNITS[time.unit] ?? time.unit;
   const n = time.number ?? 1;
@@ -143,12 +124,8 @@ function oneCastingTime(time: SpellTime): string {
 }
 
 /**
- * Casting time as printed.
- *
- * A reaction carries the trigger that provokes it, and dropping it makes the
- * spell unusable — "1 reaction" alone does not say when you may cast it. The
- * condition is returned separately so a table cell can show the short form
- * while a detail view shows the whole thing.
+ * Casting time as printed. Reactions carry a trigger condition, which the
+ * detail view includes and the table omits for width.
  */
 export function formatCastingTime(
   times: SpellTime[] | undefined,
@@ -193,9 +170,8 @@ const AREA_SHAPES = new Set([
 /**
  * Range as printed: "150 feet", "Touch", "Self (30-foot cone)".
  *
- * The area case is the one that cannot be reconstructed from the typed columns
- * at all — `range_feet` holds 30 for both "30 feet" and "Self (30-foot cone)",
- * which are different spells to be standing in front of.
+ * The area case cannot be rebuilt from the typed columns: `range_feet` holds 30
+ * for both "30 feet" and "Self (30-foot cone)".
  */
 export function formatRange(range: SpellRange | null | undefined): string {
   if (!range) return "—";
@@ -208,7 +184,7 @@ export function formatRange(range: SpellRange | null | undefined): string {
 
   const inMiles = distance.type === "miles";
 
-  // Attributive, so it stays singular: "a 30-foot cone", never "30-feet".
+  // Attributive, so singular: "30-foot cone", not "30-feet".
   if (AREA_SHAPES.has(range.type)) {
     return `Self (${distance.amount}-${inMiles ? "mile" : "foot"} ${range.type})`;
   }
@@ -217,11 +193,11 @@ export function formatRange(range: SpellRange | null | undefined): string {
 
   if (inMiles) return `${amount} ${plural(distance.amount, "mile")}`;
 
-  // "foot" is irregular, and a generic pluraliser silently yields "150 foots".
+  // "foot" is irregular; a generic pluraliser yields "150 foots".
   return `${amount} ${distance.amount === 1 ? "foot" : "feet"}`;
 }
 
-/** "1,000" — as the books print it. Fixed locale so it never varies by reader. */
+/** Fixed locale, so the separator does not vary by reader. */
 function groupDigits(value: number): string {
   return value.toLocaleString("en-US");
 }
@@ -300,8 +276,7 @@ function oneDuration(duration: SpellDuration): string {
       const unit = DURATION_UNITS[value.type] ?? value.type;
       const text = `${value.amount} ${plural(value.amount, unit)}`;
 
-      // Concentration subsumes "up to": the printed form is
-      // "Concentration, up to 1 minute", never both prefixes at once.
+      // Concentration subsumes "up to"; never both prefixes.
       if (duration.concentration) return `Concentration, up to ${text}`;
       return value.upTo ? `Up to ${text}` : text;
     }
@@ -311,7 +286,7 @@ function oneDuration(duration: SpellDuration): string {
   }
 }
 
-/** Duration as printed. A handful of spells offer two, joined with "or". */
+/** Duration as printed. A few spells offer two, joined with "or". */
 export function formatDuration(
   durations: SpellDuration[] | null | undefined,
 ): string {
@@ -323,7 +298,7 @@ export function formatDuration(
  * Classes
  * ------------------------------------------------------------------ */
 
-/** The corpus stores class names lowercased; they are proper nouns in print. */
+/** Title-cases the stored class names. */
 export function formatClassList(classes: string[] | null | undefined): string {
   if (!classes?.length) return "—";
   return classes

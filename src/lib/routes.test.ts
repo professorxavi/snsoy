@@ -55,7 +55,7 @@ describe("segmentFor", () => {
 });
 
 describe("hrefFor", () => {
-  it("builds the canonical compendium URL with a lowercased source", () => {
+  it("builds the compendium URL with a lowercased source", () => {
     expect(
       hrefFor({ entityType: "spell", sourceId: "PHB", slug: "fireball" }),
     ).toBe("/compendium/spells/phb/fireball");
@@ -102,7 +102,7 @@ describe("hrefFor", () => {
     ).toBeNull();
   });
 
-  it("declines types the corpus never yields as browsable entities", () => {
+  it("declines types that are never browsable entities", () => {
     expect(
       hrefFor({ entityType: "magicvariant", sourceId: "DMG", slug: "x" }),
     ).toBeNull();

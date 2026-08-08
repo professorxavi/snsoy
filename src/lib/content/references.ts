@@ -2,25 +2,15 @@ import type { EntityType } from "@/server/db/schema/enums";
 import { splitByTags, type TagSegment } from "./tags";
 
 /**
- * Turning inline `{@tag}` markup into things the renderer can act on.
+ * Classifies inline `{@tag}` markup and resolves the tags that point at other
+ * entities.
  *
- * Every tag falls into exactly one of four kinds, and the split is what the
- * design system's three ink treatments are built on:
+ * Tags fall into four kinds, which the renderer styles differently: `reference`
+ * (links to an entity), `roll` (dice, interactive but goes nowhere), `format`
+ * (bold, italic) and `plain` (recognised but not yet actionable). Unknown tags
+ * are reported to the coverage report rather than silently dropped.
  *
- * - **reference** — points at another entity. Rendered cyan and underlined.
- * - **roll** — interactive but goes nowhere (`{@damage 8d6}`, `{@hit +5}`).
- *   Ink-coloured with a dotted underline. Rendering these cyan would promise a
- *   destination that does not exist.
- * - **format** — bold, italic, notes. No colour of its own.
- * - **plain** — recognised but not yet actionable (`{@filter}`, `{@quickref}`).
- *   Renders as its label so prose stays readable, and is counted as covered.
- *
- * Anything not in these tables is unknown, and the renderer reports it rather
- * than swallowing it — that report is what decides which tags get built next.
- *
- * Kept free of React and of database access on purpose: reference collection
- * runs on the server before render, and the tokenizer it sits on is also used
- * at ingest time.
+ * No React and no database access here — ingest uses the same tokenizer.
  */
 
 /* ------------------------------------------------------------------ *
@@ -28,14 +18,8 @@ import { splitByTags, type TagSegment } from "./tags";
  * ------------------------------------------------------------------ */
 
 /**
- * Tag name to the entity type it addresses, plus the source assumed when the
- * tag omits one.
- *
- * The tag vocabulary is not the enum vocabulary — `{@creature}` addresses a
- * `monster` — so this is also the translation between them. Defaults are the
- * corpus's own: an unqualified creature is from the Monster Manual, an
- * unqualified item from the Dungeon Master's Guide, and everything else from
- * the Player's Handbook.
+ * Tag name to the entity type it addresses, and the source assumed when the tag
+ * omits one. Note the vocabularies differ: `{@creature}` addresses a `monster`.
  */
 const REFERENCE_TAGS = {
   spell: { type: "spell", defaultSource: "phb" },
@@ -111,12 +95,8 @@ export const FORMAT_TAGS = {
 export type FormatKind = (typeof FORMAT_TAGS)[keyof typeof FORMAT_TAGS];
 
 /**
- * Recognised but deliberately inert.
- *
- * `{@filter}` links into a pre-filtered browse view and `{@quickref}` into a
- * generated quick-reference index; both need machinery that does not exist yet.
- * Listing them here keeps them out of the unknown-tag report, so that report
- * stays a list of genuine gaps rather than known deferrals.
+ * Recognised but not yet actionable. Listed so they stay out of the unknown-tag
+ * report, which should only contain genuine gaps.
  */
 const PLAIN_TAGS = new Set(["filter", "quickref", "area", "5etools", "footnote"]);
 
@@ -146,27 +126,14 @@ export interface ResolvedReference {
 }
 
 /**
- * Natural key to target, for everything one page refers to.
- *
- * A plain object rather than a `Map` because this crosses the server/client
- * boundary — the browse view hands it to an interactive aside — and a plain
- * object needs no thought about what serializes.
- *
- * These types live here, in the pure module, rather than beside the query that
- * builds them: the renderer consumes them on every request and must not pull a
- * database client into the bundle to name its own props.
+ * Natural key to target, for everything one page refers to. A plain object
+ * rather than a Map so it serializes across the server/client boundary.
  */
 export type ReferenceIndex = Readonly<Record<string, ResolvedReference>>;
 
 export const EMPTY_REFERENCES: ReferenceIndex = Object.freeze({});
 
-/**
- * The first candidate key that actually resolved.
- *
- * `{@item club}` proposes `item|club|phb`, `baseitem|club|phb` and
- * `itemgroup|club|phb`; exactly one exists, and which one is not knowable from
- * the tag alone.
- */
+/** The first candidate key that resolved. */
 export function lookupReference(
   candidates: readonly string[],
   index: ReferenceIndex,
@@ -189,27 +156,19 @@ const part = (tag: TagSegment & { kind: "tag" }, index: number): string =>
 const sourceOr = (value: string, fallback: string): string =>
   (value || fallback).toLowerCase();
 
-/** `dwarf (hill)` — the corpus's way of naming a subrace inside a race tag. */
+/** `dwarf (hill)` — how a race tag names a subrace. */
 const QUALIFIED_NAME = /^(.+?)\s*\((.+)\)$/;
 
 /**
  * The natural keys a reference tag might point at, best candidate first.
  *
- * A list rather than a single key because **a tag name does not determine an
- * entity type**. Both cases were found by checking this resolver against the
- * links ingest had already resolved, and both are silent wrong-link bugs
- * otherwise:
+ * Returns several because a tag name does not determine an entity type:
+ * `{@item club}` may be an `item`, `baseitem` or `itemGroup`, and
+ * `{@race dwarf (hill)}` is the subrace `subrace|hill|dwarf|phb|phb`.
  *
- * - `{@item club|phb}` is a `baseitem`, not an `item`. Mundane gear and magic
- *   items share one tag.
- * - `{@race dwarf (hill)}` is the *subrace* `subrace|hill|dwarf|phb|phb`. The
- *   parenthesised form is how the corpus names a subrace from a race tag.
- *
- * Natural keys are also the only safe way to resolve a tag at all: the URL slug
- * is derived at ingest with transformations a caller cannot reproduce — `Melf's
- * Acid Arrow` becomes `melfs-acid-arrow`, `Antipathy/Sympathy` becomes
- * `antipathy-sympathy` — so slugifying a tag's name here would quietly produce
- * dead links. Keys are matched against a unique index instead.
+ * Resolve by natural key, never by slugifying the tag name. Slugs are derived
+ * at ingest ("Melf's Acid Arrow" becomes "melfs-acid-arrow") and guessing them
+ * produces dead links.
  */
 export function candidateKeysForTag(tag: TagSegment): string[] {
   if (tag.kind !== "tag") return [];
@@ -244,11 +203,8 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
   }
 
   switch (tag.name) {
-    /**
-     * `{@book display|SOURCE|chapter|header}` — and the chapter is an *index*,
-     * which is exactly why it stays inside the natural key and never reaches a
-     * URL. Sections are addressed publicly by slug.
-     */
+    // `{@book display|SOURCE|chapter|header}`. The chapter is an index, which
+    // is why it stays in the natural key and never reaches a URL.
     case "book":
     case "adventure": {
       const source = part(tag, 1).toLowerCase();
@@ -293,21 +249,14 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
 }
 
 /**
- * The natural key of the entity a fragment renders inside.
+ * The natural key of the entity a fragment renders inside. Derived from the
+ * fragment's own key, which already carries the parent's identity:
  *
- * Fragments — subraces and class/subclass features — have no page of their own;
- * they are anchors on their parent's. The parent is recoverable from the
- * fragment's own key because every fragment key already carries its parent's
- * identity, so this needs no extra lookup to work out *what* to fetch:
+ *   subrace|hill|dwarf|phb|phb                  -> race|dwarf|phb
+ *   classfeature|divine sense|paladin|phb|1|phb -> class|paladin|phb
  *
- *   subrace|hill|dwarf|phb|phb                   -> race|dwarf|phb
- *   classfeature|divine sense|paladin|phb|1|phb  -> class|paladin|phb
- *   subclassfeature|…|wizard|phb|bladesinging|tce|6|tce
- *                                                -> subclass|bladesinging|wizard|phb|tce
- *
- * Note the last case: a fragment's source and its parent's source differ
- * routinely — a PHB wizard has TCE subclasses — which is why the parent's
- * source is read from the key rather than assumed to match the fragment's.
+ * Read the parent's source from the key rather than reusing the fragment's;
+ * they differ routinely.
  */
 export function parentKeyFor(naturalKey: string): string | null {
   const parts = naturalKey.split("|");
@@ -351,11 +300,8 @@ const LABEL_PART: Record<string, number> = {
 };
 
 /**
- * The text a tag shows to a reader.
- *
- * Most tags carry an optional display override — `{@condition blinded||blind}`
- * exists so the sentence reads as English rather than as a lookup key — and
- * respecting it is what keeps rendered prose grammatical.
+ * The text a tag shows to a reader. Most tags carry an optional display
+ * override, as in `{@condition blinded||blind}`.
  */
 export function labelForTag(tag: TagSegment): string {
   if (tag.kind !== "tag") return "";
@@ -363,7 +309,7 @@ export function labelForTag(tag: TagSegment): string {
   const first = part(tag, 0);
 
   switch (tag.name) {
-    /** Display text comes first; the rest is addressing. */
+    // Display text comes first; the rest is addressing.
     case "book":
     case "adventure":
     case "filter":
@@ -373,12 +319,12 @@ export function labelForTag(tag: TagSegment): string {
     case "quickref":
       return part(tag, 4) || first;
 
-    /** The rendered value is the per-level step, not the base. */
+    // The rendered value is the per-level step, not the base.
     case "scaledamage":
     case "scaledice":
       return part(tag, 3) || part(tag, 2) || first;
 
-    /** A bare modifier reads as a modifier only if it is signed. */
+    // A bare modifier only reads as one if it is signed.
     case "hit":
     case "d20": {
       const override = part(tag, 1);
@@ -408,18 +354,11 @@ export function labelForTag(tag: TagSegment): string {
  * ------------------------------------------------------------------ */
 
 /**
- * Every natural key a JSON value might refer to, anywhere in its depth.
+ * Every natural key a JSON value might refer to, at any depth. Candidates, not
+ * confirmed targets.
  *
- * Candidates, not confirmed targets — an `{@item}` contributes three keys and
- * at most one of them exists. Resolution decides which; this only has to make
- * sure nothing is missed.
- *
- * The renderer needs this *before* it renders: resolving references one tag at
- * a time would mean a database round trip per link, and a spell's description
- * can hold dozens. Collecting first turns the whole page into a single lookup.
- *
- * Nested tags are walked too — `{@b {@spell fireball}}` is real markup, and the
- * tokenizer leaves the inner tag as raw text inside the outer one's parts.
+ * Collected up front so a page resolves all its links in one query instead of
+ * one per tag. Walks nested tags too, since `{@b {@spell fireball}}` is valid.
  */
 export function collectReferences(value: unknown): Set<string> {
   const found = new Set<string>();

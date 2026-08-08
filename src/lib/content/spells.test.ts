@@ -12,12 +12,7 @@ import {
   spellSubtitle,
 } from "./spells";
 
-/**
- * The inputs here are verbatim corpus shapes. Every formatter was also swept
- * over all 525 loaded spells and its distinct outputs read through — 33 ranges,
- * 28 durations, 10 casting times, 6 component combinations — which is how the
- * "150 foots" case below was found.
- */
+/** The inputs here are verbatim shapes from the source data. */
 
 describe("spellSubtitle", () => {
   it("inverts for cantrips, as the books print it", () => {
@@ -190,7 +185,7 @@ describe("formatComponents", () => {
 });
 
 describe("formatClassList", () => {
-  it("capitalises the corpus's lowercased class names and sorts them", () => {
+  it("capitalises the stored lowercase class names and sorts them", () => {
     expect(formatClassList(["wizard", "sorcerer", "artificer"])).toBe(
       "Artificer, Sorcerer, Wizard",
     );

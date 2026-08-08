@@ -7,9 +7,8 @@ import {
 } from "./races";
 
 /**
- * Shapes taken verbatim from the loaded corpus. The two that bite are speed
- * values of `true` and negative ability bonuses — both look like edge cases and
- * both are real races.
+ * Shapes taken verbatim from the source data. The two easy to get wrong are
+ * speed values of `true` and negative ability bonuses; both are real races.
  */
 
 describe("formatSize", () => {
@@ -18,7 +17,7 @@ describe("formatSize", () => {
     expect(formatSize(["S"])).toBe("Small");
   });
 
-  /** Some races let you choose, and the corpus stores both codes. */
+  /** Some races let you choose, and the data stores both codes. */
   it("joins a choice of sizes", () => {
     expect(formatSize(["S", "M"])).toBe("Small or Medium");
   });

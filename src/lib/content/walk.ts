@@ -1,7 +1,6 @@
 /**
- * Structural helpers for the deeply-nested plain-JSON objects the corpus is
- * made of. Kept separate so the copy resolver, variable resolver, and renderer
- * share one implementation of each.
+ * Structural helpers for the deeply-nested plain-JSON content objects. Shared
+ * by the copy resolver, the variable resolver, and the renderer.
  */
 
 /** Apply `transform` to every string anywhere in a JSON value. */

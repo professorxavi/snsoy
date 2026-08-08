@@ -5,16 +5,11 @@ import type { ReadableOptions } from "node:stream";
 import { env } from "@/env";
 
 /**
- * Serves corpus images off local disk, for development only.
+ * Serves images off local disk in development. In production
+ * `NEXT_PUBLIC_IMAGE_BASE_URL` points at object storage and this route never
+ * runs, so the several-gigabyte image set is never bundled or deployed.
  *
- * Production points `NEXT_PUBLIC_IMAGE_BASE_URL` at object storage and this
- * route never runs — which is the point. The image set is several gigabytes,
- * so it is not committed, not bundled, and not copied into a deployment; it is
- * a directory the developer clones wherever they like and names in `.env`.
- *
- * Disabled unless `CONTENT_IMAGE_DIR` is set, so an instance that forgets to
- * configure a CDN serves nothing rather than silently serving from the
- * filesystem it happens to be running on.
+ * Disabled unless `CONTENT_IMAGE_DIR` is set.
  */
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -37,15 +32,9 @@ export async function GET(
 
   const { path } = await params;
 
-  /*
-   * Containment check, not a sanitising pass.
-   *
-   * Next already decodes the catch-all segments, so `..` can arrive intact.
-   * Resolving first and then proving the result is still under the root is the
-   * only form of this check that cannot be tricked by encoding, symlinks or
-   * Windows path separators — pattern-matching the input cannot make that
-   * guarantee.
-   */
+  // Next decodes catch-all segments, so `..` can arrive intact. Resolve first,
+  // then check containment — pattern-matching the raw input can be defeated by
+  // encoding, symlinks or Windows separators.
   const rootDir = resolve(root);
   const target = resolve(join(rootDir, ...path));
   if (target !== rootDir && !target.startsWith(rootDir + sep)) {
@@ -84,7 +73,7 @@ export async function GET(
           CONTENT_TYPES[extname(target).toLowerCase()] ??
           "application/octet-stream",
         "Content-Length": String(size),
-        // Immutable in practice: the corpus images never change in place.
+        // Immutable in practice: images never change in place.
         "Cache-Control": "public, max-age=3600",
       },
     },

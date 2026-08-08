@@ -17,20 +17,13 @@ import {
 } from "./types";
 
 /**
- * Corpus prose, rendered as blocks.
- *
- * Entries nest arbitrarily — a spell's description holds sub-sections, which
- * hold lists, which hold items, which hold more entries — so this is one
- * mutually recursive family of components rather than a flat switch.
- *
- * Typography follows the reading case rather than the app case: Literata at a
- * generous line height, because the thing being rendered is prose someone reads
- * during a game, not UI copy they scan.
+ * Renders entry prose as blocks. Entries nest arbitrarily, so these components
+ * are mutually recursive rather than a flat switch.
  */
 
 interface RenderContext {
   refs?: ReferenceIndex;
-  /** The entity being rendered, so it never links to itself. */
+  /** The entity being rendered, so it does not link to itself. */
   selfKey?: string;
   /** Entity name, for the coverage report. */
   context?: string;
@@ -42,7 +35,7 @@ export interface EntriesProps extends RenderContext {
   entries?: Entry[];
 }
 
-/** A sequence of entries — the normal entry point. */
+/** A sequence of entries. The usual entry point. */
 export function Entries({ entries, ...ctx }: EntriesProps) {
   if (!entries?.length) return null;
 
@@ -56,7 +49,7 @@ export function Entries({ entries, ...ctx }: EntriesProps) {
 }
 
 function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
-  // Bare strings are the overwhelming majority of all corpus text.
+  // Bare strings are the bulk of all entry text.
   if (typeof entry === "string" || typeof entry === "number") {
     return <Paragraph>{inline(String(entry), ctx)}</Paragraph>;
   }
@@ -115,11 +108,8 @@ function Paragraph({ children }: { children: ReactNode }) {
 }
 
 /**
- * A named sub-section.
- *
- * The name is optional and frequently absent, in which case this is just a
- * grouping and must not introduce a heading — an empty `<h4>` would be a real
- * accessibility defect, not a cosmetic one.
+ * A named sub-section. The name is often absent, in which case this is only a
+ * grouping and must not emit an empty heading.
  */
 function SubSection({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) {
   const level = ctx.headingLevel ?? 3;
@@ -165,10 +155,7 @@ function ListBlock({ entry, ctx }: { entry: ListEntry; ctx: RenderContext }) {
   );
 }
 
-/**
- * A labelled item — "**Name.** description", the corpus's most common way of
- * writing a definition list, and the shape spell option lists take.
- */
+/** A labelled item: "Name. description" — the data's definition-list shape. */
 function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
   const body = entry.entries ?? (entry.entry != null ? [entry.entry] : []);
 
@@ -181,7 +168,7 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
       ) : null}
       {body.map((child, index) =>
         typeof child === "string" || typeof child === "number" ? (
-          // Inline with the label, so "Name. text" reads as one sentence.
+          // Inline with the label so it reads as one sentence.
           <Text
             as="span"
             key={index}
@@ -200,14 +187,11 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
 }
 
 /**
- * A random table.
+ * A random table. The first column is usually a die roll, which is what the
+ * `cell` entry type carries.
  *
- * The first column is nearly always a die roll, which is why `cell` exists as
- * an entry type at all — it carries a range (`min`/`max`) rather than text.
- * Tabular figures and right alignment keep those ranges scannable.
- *
- * Wrapped in its own scroll container: a wide table must never make the page
- * scroll sideways, and the aside it may be rendered into is only 400px.
+ * Scrolls inside its own container so a wide table never scrolls the page; the
+ * aside it may render into is only 400px.
  */
 function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   if (!entry.rows?.length) return null;
@@ -277,7 +261,7 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   );
 }
 
-/** "01–05" or "17". Padding is the corpus's own flag, not a guess at width. */
+/** "01-05" or "17". Padding comes from the cell's `pad` flag, not the width. */
 function rollLabel(cell: CellEntry): string {
   const roll = cell.roll;
   if (!roll) return "";
@@ -294,7 +278,7 @@ function rollLabel(cell: CellEntry): string {
   return "";
 }
 
-/** Flavour text. Set in italic with an attribution rule, never in the slab. */
+/** Flavour text, set in italic with its attribution below. */
 function QuoteBlock({ entry, ctx }: { entry: QuoteEntry; ctx: RenderContext }) {
   return (
     <Box
@@ -339,7 +323,7 @@ function QuoteBlock({ entry, ctx }: { entry: QuoteEntry; ctx: RenderContext }) {
   );
 }
 
-/** A sidebar. Reads as a boxed aside in print, so it gets a real box here. */
+/** A sidebar. Boxed, as it is in print. */
 function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
   return (
     <Box

@@ -17,13 +17,10 @@ export const metadata: Metadata = {
 /**
  * The races landing page.
  *
- * Not the spells table, and not the aside. A race is not a row of comparable
- * values — it is a small document with traits and, often, a shelf of subraces —
- * so clicking one navigates to a reading page rather than opening a panel.
- *
- * Grouped by source rather than sorted A–Z: "the Player's Handbook ones" is how
- * people actually reach for a race, and a flat list would bury the nine
- * everyone knows among 125 they do not.
+ * A race is a short document with traits and subraces rather than a row of
+ * comparable values, so this is a grouped list that navigates to a reading
+ * page, not a filterable table with an aside like spells. Grouping is by source
+ * because that is how people reach for a race.
  */
 export default async function RacesPage() {
   const groups = await listRacesBySource();

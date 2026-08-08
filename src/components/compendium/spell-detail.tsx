@@ -16,15 +16,10 @@ import type { InboundReference } from "@/server/db/queries/references";
 import type { SpellDetail as SpellDetailData } from "@/server/db/queries/spells";
 
 /**
- * A spell, rendered in full.
+ * A spell, rendered in full. Used by both the spell page and the browse aside,
+ * which share a URL and so must not drift.
  *
- * One component for both places a spell is read: its own page and the browse
- * aside. That is not just reuse — the two must not drift, because they are the
- * same URL. Opening a spell from the list intercepts the route rather than
- * replacing it, so a reader who lands cold on a pasted link has to see the same
- * spell the person who sent it was looking at.
- *
- * `density` changes measurements, never content. There is no short version.
+ * `density` changes measurements only, never content.
  */
 export function SpellDetail({
   spell,
@@ -35,7 +30,7 @@ export function SpellDetail({
   spell: SpellDetailData;
   refs: ReferenceIndex;
   inbound?: InboundReference[];
-  /** "aside" is the 400px column; "page" is the full canonical route. */
+  /** "aside" is the 400px column; "page" is the full-width route. */
   density?: "page" | "aside";
 }) {
   const isAside = density === "aside";
@@ -77,7 +72,7 @@ export function SpellDetail({
         </Text>
       </Box>
 
-      {/* The four lines every spell card leads with, in their printed order. */}
+      {/* The four lines every spell leads with, in their printed order. */}
       <Stack
         gap="1.5"
         borderTopWidth="1px"
@@ -124,12 +119,7 @@ export function SpellDetail({
   );
 }
 
-/**
- * Where the spell is printed.
- *
- * A page number is a number worth keeping: someone with the book open uses it.
- * It is about the content, not about the size of our database.
- */
+/** Book and page number, for readers following along in print. */
 function SourceLine({
   sourceId,
   sourceName,
@@ -159,11 +149,8 @@ function SourceLine({
 }
 
 /**
- * A label/value pair.
- *
- * The label is set in the UI face and the value in the body face — the label is
- * the app naming a field, the value is the book talking. Keeping the two in
- * different voices is what stops a spell card reading like a form.
+ * A label/value pair. Label in the UI face, value in the body face, so the
+ * app's own text and the book's text stay visually distinct.
  */
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -192,12 +179,8 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /**
- * What else mentions this spell.
- *
- * Deliberately a list and not a tally. The links are useful — the count is
- * corpus trivia, and this product is a game tool rather than a database
- * browser. Grouped by type because 224 undifferentiated names, which is what
- * Fireball actually has, is a wall rather than an index.
+ * What else mentions this spell. Grouped by entity type and shown as links
+ * rather than a count — Fireball alone has 224 inbound references.
  */
 function ReferencedBy({ items }: { items: InboundReference[] }) {
   const groups = new Map<string, InboundReference[]>();
@@ -234,11 +217,11 @@ function ReferencedBy({ items }: { items: InboundReference[] }) {
                   {item.href ? (
                     <Box
                       asChild
-                      color="corpus"
+                      color="reference"
                       textDecoration="underline"
-                      textDecorationColor="corpus.line"
+                      textDecorationColor="reference.line"
                       textUnderlineOffset="2px"
-                      _hover={{ textDecorationColor: "corpus" }}
+                      _hover={{ textDecorationColor: "reference" }}
                     >
                       <NextLink href={item.href}>{item.name}</NextLink>
                     </Box>

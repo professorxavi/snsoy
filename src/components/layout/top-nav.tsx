@@ -5,17 +5,7 @@ import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { ColorModeButton } from "@/components/ui/color-mode";
 
-/**
- * The top bar — the app's voice, so it is the one full-bleed purple surface in
- * the product. Everything cyan stays inline in content; nothing in here is.
- */
-
-/**
- * Search is deliberately absent here. The box on the right *is* the search
- * entry point — submitting it goes to `/search` — and a nav link beside it
- * would be a second door to the same room, competing with the control that
- * actually does the job.
- */
+/** No Search link: the search box on the right is the only entry point. */
 const LINKS = [
   { href: "/compendium", label: "Compendium" },
   { href: "/sources", label: "Sources" },
@@ -80,11 +70,8 @@ export function TopNav() {
         })}
       </Flex>
 
-      {/*
-        A plain GET form, so Enter submits and lands on `/search?q=…` with no
-        JavaScript involved. The result page is not built yet; wiring the box
-        now means the only thing left to add is the page it already points at.
-      */}
+      {/* A plain GET form, so Enter lands on `/search?q=…` with no JavaScript.
+          The results page is not built yet. */}
       <Box asChild ml="auto">
         <form action="/search" method="get">
           <Box

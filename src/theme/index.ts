@@ -1,58 +1,33 @@
 import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
 
 /**
- * The design system.
+ * The design system: colours, fonts, radii and layout geometry.
  *
- * Two ideas drive every token here, and both come from what this product
- * actually is rather than from taste:
- *
- * 1. **Two voices, two hues.** Purple is the *app* speaking — nav, active
- *    state, primary action, focus. Cyan is the *corpus* speaking — the inline
- *    cross-reference tags the renderer emits. Body text holds roughly 118,000
- *    of those tags, so a reader has to tell a compendium link from a UI control
- *    instantly. The hues are close at small sizes, so they are separated by
- *    treatment as well: purple fills and sits in chrome, cyan is inline-only
- *    and always underlined, never a filled button. That keeps the distinction
- *    alive without colour vision (WCAG 1.4.1).
- *
- * 2. **Long-form reading is the hard case.** 1,006 book chapters, the largest
- *    555 KB. Everything below favours sustained reading over first impression:
- *    no pure white or pure black ground, a body face built for screen, and a
- *    lighter body weight in dark mode.
+ * Two colour roles that must stay distinguishable: `brand` (purple) for the
+ * app's own UI, `reference` (cyan) for inline cross-reference links in body
+ * text. They are also separated by treatment — cyan is inline and always
+ * underlined, never a filled control — so the distinction survives without
+ * colour vision.
  */
 
 const config = defineConfig({
   theme: {
     tokens: {
       fonts: {
-        /**
-         * Literata for both. Built for Play Books — i.e. exactly our
-         * long-chapter case — with a low-contrast slabby build that survives
-         * dark mode where a Didone would thin out, and a real italic, which 5e
-         * prose leans on constantly.
-         */
+        /** Literata: designed for long-form screen reading, holds up in dark mode. */
         body: { value: "var(--font-body), Georgia, serif" },
         heading: { value: "var(--font-body), Georgia, serif" },
-        /**
-         * IBM Plex Sans for chrome. Chosen over Inter deliberately — Inter
-         * would make the UI read as generic SaaS. Strong at 11–13px, which is
-         * where filter rails and table headers live, and it has real tabular
-         * figures.
-         */
+        /** IBM Plex Sans for UI text. Legible at 11-13px, real tabular figures. */
         ui: { value: "var(--font-ui), system-ui, sans-serif" },
         /**
-         * Alfa Slab One. Fat Clarendon with poster energy, one weight, no
-         * italic, and a heavy lowercase — so it is only ever correct in small
-         * doses at large sizes: masthead, chapter numeral eyebrows, entity
-         * titles. On a chapter opener the slab carries the *numeral*
-         * ("CHAPTER 9") and Literata carries the *name*; long adventure chapter
-         * titles must never be set in it.
+         * Alfa Slab One. One weight, no italic, heavy lowercase, so use it only
+         * at large sizes in short runs: masthead, entity titles.
          */
         display: { value: "var(--font-display), Georgia, serif" },
       },
 
       colors: {
-        /** The app's voice. Deliberately lower chroma than the stock violet. */
+        /** The app's own UI. Lower chroma than the stock violet. */
         brand: {
           50: { value: "#F3F1FA" },
           100: { value: "#E6E1F4" },
@@ -66,8 +41,8 @@ const config = defineConfig({
           900: { value: "#2B1D5E" },
           950: { value: "#1C133C" },
         },
-        /** The corpus's voice. */
-        corpus: {
+        /** Inline cross-reference links. */
+        reference: {
           50: { value: "#E9F6F9" },
           100: { value: "#CFEBF1" },
           200: { value: "#A5DAE5" },
@@ -81,13 +56,8 @@ const config = defineConfig({
           950: { value: "#072229" },
         },
         /**
-         * One neutral ramp serving both modes. Light is a cool near-white with
-         * a faint cyan bias; dark is "Slate", a cool neutral charcoal.
-         *
-         * Dark is explicitly *not* a violet-tinted near-black. Near-black plus
-         * a bright lavender is the stock look every AI-generated dark theme
-         * lands on, and it was rejected on sight. The rule that replaced it:
-         * keep the ground off violet and the accent's chroma low.
+         * One neutral ramp for both modes. Light is a cool near-white, dark a
+         * cool charcoal. Deliberately not violet-tinted.
          */
         slate: {
           50: { value: "#F6F9FA" },
@@ -102,23 +72,19 @@ const config = defineConfig({
           900: { value: "#1B2126" },
           950: { value: "#14181B" },
         },
-        /** Ink extremes, kept off pure black and pure white on purpose. */
+        /** Ink extremes. Kept off pure black and pure white. */
         ink: {
           light: { value: "#12171A" },
           dark: { value: "#E3EAEE" },
         },
-        /** SRD / licensing badges. Not an accent — it never carries meaning alone. */
+        /** SRD and licensing badges. Never carries meaning on its own. */
         marque: {
           light: { value: "#8A6410" },
           dark: { value: "#D0A94F" },
         },
       },
 
-      /**
-       * Sharp corners throughout. The aesthetic is mid-century pulp print, not
-       * a rounded app shell — and at a 33px table row a 6px radius reads as
-       * mush rather than softness.
-       */
+      /** Sharp corners throughout; a large radius reads as mush at row height. */
       radii: {
         l1: { value: "2px" },
         l2: { value: "3px" },
@@ -126,9 +92,8 @@ const config = defineConfig({
       },
 
       /**
-       * Shell geometry. Here rather than in the components because the three
-       * widths are interdependent: opening the aside is what forces the rail
-       * to collapse, so they have to be reasoned about together.
+       * Layout geometry. Kept together because the widths are interdependent:
+       * opening the aside is what forces the rail to collapse.
        */
       sizes: {
         /** Top bar. Also the sticky offset for the rail, aside and table head. */
@@ -139,10 +104,7 @@ const config = defineConfig({
         railCollapsed: { value: "46px" },
         /** Entity detail aside. Below this the aside becomes a full-height sheet. */
         aside: { value: "400px" },
-        /**
-         * Reading measure for long-form chapters. Held in `ch` so it tracks
-         * the font rather than a pixel guess — the target is ~65–70 characters.
-         */
+        /** Reading measure, in `ch` so it tracks the font. Targets 65-70 characters. */
         measure: { value: "68ch" },
       },
     },
@@ -174,10 +136,10 @@ const config = defineConfig({
           emphasized: { value: { _light: "{colors.slate.400}", _dark: "#38454C" } },
         },
 
-        /* ---- the app's voice -------------------------------------------- */
+        /* ---- the app's own UI ------------------------------------------- */
         brand: {
           DEFAULT: { value: { _light: "{colors.brand.600}", _dark: "{colors.brand.400}" } },
-          /** Text/icon colour when sitting *on* a filled brand surface. */
+          /** Text and icons sitting on a filled brand surface. */
           contrast: { value: { _light: "#FFFFFF", _dark: "{colors.slate.950}" } },
           /** Tinted backgrounds: active filter pills, selected rows. */
           subtle: { value: { _light: "{colors.brand.50}", _dark: "#242536" } },
@@ -185,24 +147,17 @@ const config = defineConfig({
           line: { value: { _light: "{colors.brand.200}", _dark: "#44415C" } },
         },
 
-        /* ---- the corpus's voice ------------------------------------------
-         * Only ever inline text, always underlined. There is deliberately no
-         * `contrast` token here: cyan must never become a filled button, or it
-         * stops meaning "this goes somewhere". */
-        corpus: {
-          DEFAULT: { value: { _light: "{colors.corpus.600}", _dark: "{colors.corpus.300}" } },
-          subtle: { value: { _light: "{colors.corpus.50}", _dark: "#10282F" } },
-          line: { value: { _light: "{colors.corpus.200}", _dark: "#2A5761" } },
+        /* Inline cross-reference links. No `contrast` token on purpose: this
+         * colour should never become a filled control. */
+        reference: {
+          DEFAULT: { value: { _light: "{colors.reference.600}", _dark: "{colors.reference.300}" } },
+          subtle: { value: { _light: "{colors.reference.50}", _dark: "#10282F" } },
+          line: { value: { _light: "{colors.reference.200}", _dark: "#2A5761" } },
         },
 
         /**
-         * Rollable dice — `{@damage 8d6}`, `{@hit +4}`, `{@scaledamage}`.
-         *
-         * A third treatment, and a necessary one: these are interactive but
-         * they navigate nowhere, so rendering them in cyan would promise a
-         * destination that does not exist. They stay ink-coloured and take a
-         * dotted underline, which reads as "actionable" without competing with
-         * the cross-references beside them.
+         * Rollable dice. Interactive but they navigate nowhere, so they get a
+         * dotted underline rather than the cross-reference colour.
          */
         roll: {
           DEFAULT: { value: { _light: "{colors.ink.light}", _dark: "{colors.ink.dark}" } },
@@ -225,16 +180,11 @@ const config = defineConfig({
       color: "fg",
       fontFamily: "ui",
     },
-    /**
-     * Body weight drops in dark mode. Light text on a dark ground blooms
-     * optically and reads heavier than the same weight does on white, so
-     * Literata's variable axis is pulled back from 400 to 350 to match the
-     * apparent weight across the two modes.
-     */
+    /** Light text on a dark ground reads heavier, so pull the weight back. */
     ".dark .prose, .dark [data-prose]": {
       fontWeight: 350,
     },
-    /** Never remove a focus ring without replacing it. */
+    /** Focus ring. Do not remove without replacing. */
     "*:focus-visible": {
       outline: "2px solid",
       outlineColor: "brand",

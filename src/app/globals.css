@@ -1,15 +1,7 @@
 /**
- * Global CSS is deliberately almost empty.
- *
- * Chakra ships its own reset and every colour, font and spacing decision lives
- * in `src/theme` so there is exactly one place to change them. Anything added
- * here is, by definition, a token the theme should have owned — so add it
- * there first and only fall back to this file for things the theme genuinely
+ * Kept almost empty on purpose. Chakra ships its own reset, and colour, font
+ * and spacing all live in `src/theme`. Only add rules here that the theme
  * cannot express.
- *
- * (This file previously held the Next.js starter's hardcoded
- * `prefers-color-scheme` colours and `font-family: Arial`, which fought the
- * theme for control of the same properties.)
  */
 
 html,

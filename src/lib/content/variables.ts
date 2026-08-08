@@ -10,12 +10,11 @@ import {
 import { walkStrings } from "./walk";
 
 /**
- * Resolution of `<$variable$>` placeholders embedded in corpus text.
+ * Resolves `<$variable$>` placeholders embedded in entry text.
  *
- * Base stat blocks are written generically so derived creatures can inherit
- * them — the Monster Manual archmage says `<$short_name$>`, and a copy that
- * renames it to "Animated Statue" gets correct prose for free. The 2014 corpus
- * uses 784 of these across ~30 distinct forms.
+ * Base stat blocks are written generically so derived creatures inherit correct
+ * prose: the archmage says `<$short_name$>`, and a copy renamed to "Animated
+ * Statue" reads correctly without editing.
  *
  * Syntax is `<$mode$>` or `<$mode__detail$>`, e.g. `<$dc__con$>`,
  * `<$damage_avg__7+str$>`.
@@ -39,7 +38,7 @@ const RESOLVERS: Record<string, Resolver> = {
   dc: (ctx, detail) =>
     8 + abilityModifier(ctx[detail]) + crToProficiencyBonus(ctx.cr),
 
-  /** Spell save DC uses the same arithmetic; the distinction is display-only. */
+  /** Same arithmetic as `dc`; the two exist only to read differently in prose. */
   spell_dc: (ctx, detail) =>
     8 + abilityModifier(ctx[detail]) + crToProficiencyBonus(ctx.cr),
 
@@ -80,10 +79,9 @@ const RESOLVERS: Record<string, Resolver> = {
 /**
  * Substitute every `<$...$>` placeholder in a single string.
  *
- * Unknown modes are left verbatim rather than throwing. The corpus contains at
- * least one genuine typo (`<$dc_wis$>`, single underscore); upstream renders it
- * unchanged, and diverging would mean our text silently differs from the
- * reference implementation.
+ * Unknown modes are left verbatim rather than throwing, matching upstream. The
+ * data contains at least one typo (`<$dc_wis$>`, single underscore) that
+ * upstream renders unchanged.
  */
 export function resolveVariablesInString(
   input: string,

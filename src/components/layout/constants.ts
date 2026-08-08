@@ -1,12 +1,10 @@
 /**
  * The top bar's height, as a raw CSS variable reference.
  *
- * Needed because Chakra resolves positional props (`top`, `left`, `insetY`…)
- * against the **spacing** scale, not `sizes` — so `top="topbar"` silently emits
- * the literal string `top: topbar`, which is invalid CSS and leaves a sticky
- * element pinned to the viewport top, sliding under the bar. Referencing the
- * generated variable keeps one source of truth in `src/theme` while sidestepping
- * the scale mismatch.
+ * Chakra resolves positional props (`top`, `insetY`…) against the spacing scale
+ * rather than `sizes`, so `top="topbar"` emits invalid CSS and silently leaves
+ * sticky elements sliding under the bar. Referencing the generated variable
+ * keeps `src/theme` as the single source of truth.
  */
 export const TOPBAR = "var(--chakra-sizes-topbar)";
 
