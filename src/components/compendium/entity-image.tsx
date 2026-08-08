@@ -26,8 +26,19 @@ import { imageUrl, type ImageEntry } from "@/lib/content/media";
  * transparency, which is just the page.
  */
 
-/** At or above this width/height, art is composed wide enough to need a banner. */
-export const LANDSCAPE_RATIO = 1.2;
+/**
+ * At or above this width/height, art is composed wide enough to need a banner.
+ *
+ * Set to sit in a genuine gap in the data rather than on a round number. Lead
+ * image ratios cluster either side of it — the widest "square-ish" ones are
+ * Satyr at 1.121 and Triton at 1.114, the narrowest "landscape" is Minotaur
+ * (MOT) at 1.188 — so 1.15 separates them with room on both sides and cannot
+ * flip an image from one treatment to the other on a rounding difference.
+ *
+ * Moving it is the single knob for this: 1.12 would additionally banner Satyr,
+ * 1.10 would add Triton and Goblin, 1.00 would add both Centaurs and Locathah.
+ */
+export const LANDSCAPE_RATIO = 1.15;
 
 /** Unknown dimensions fall back to the float, the safer of the two. */
 export function isLandscape(image: ImageEntry): boolean {
