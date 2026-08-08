@@ -97,24 +97,18 @@ test("collapses the rail and sheds table columns when the aside opens", async ({
 
   const optional = page.locator(`thead ${OPTIONAL_COLUMN}`).first();
   const railWide = page.locator("[data-rail-full]");
+  const railMini = page.locator("[data-rail-mini]");
 
   await expect(optional).toBeVisible();
   await expect(railWide).toBeVisible();
+  await expect(railMini).toBeHidden();
 
   await page.locator(`${ROWS} a`).first().click();
   await expect(page.locator(ASIDE)).toBeVisible();
 
   await expect(optional).toBeHidden();
   await expect(railWide).toBeHidden();
-
-  /*
-   * The narrow rail face is deliberately not asserted here. It is meant to be
-   * hidden until the aside opens, and it is not: the rule that hides it is
-   * written as a bare `[data-rail-mini]` key, which Chakra's `css` prop drops
-   * because it does not begin with `&`. Only the `:has()` rule survives, so
-   * the collapsed face is permanently visible. Asserting the intent would
-   * leave a red test standing in for a one-line fix in `browse-layout.tsx`.
-   */
+  await expect(railMini).toBeVisible();
 });
 
 /**

@@ -45,8 +45,7 @@ export function BrowseFrame({
           },
         },
 
-        /* Both rail faces are rendered; CSS picks one. No JavaScript needed. */
-        "[data-rail-mini]": { display: "none" },
+        "& [data-rail-mini]": { display: "none" },
         [`&:has([${ASIDE_CONTENT_ATTR}]) [data-rail-full]`]: { display: "none" },
         [`&:has([${ASIDE_CONTENT_ATTR}]) [data-rail-mini]`]: { display: "block" },
 
