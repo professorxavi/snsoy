@@ -38,14 +38,16 @@ export function Illustration({
 
   return (
     <Box as="figure" m="0">
-      <Box
-        overflow="hidden"
-        borderWidth="1px"
-        borderColor="border"
-        rounded="l1"
-        bg="bg.muted"
-        lineHeight="0"
-      >
+      {/*
+        No fill and no frame behind the image.
+
+        Corpus illustrations are cut out with a real alpha channel — verified on
+        the files themselves, every one is a VP8X webp with the alpha flag set —
+        so any background colour here shows through as a grey slab behind the
+        artwork instead of letting it sit on the page. A border does the same
+        thing, boxing in art that was drawn without one.
+      */}
+      <Box lineHeight="0">
         <Image
           src={src}
           alt={image.title ?? entityName}
