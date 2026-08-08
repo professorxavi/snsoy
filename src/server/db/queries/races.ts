@@ -143,12 +143,18 @@ export async function getRace(sourceId: string, slug: string) {
       name: entities.name,
       slug: entities.slug,
       sourceId: entities.sourceId,
+      // Joined because the page prints books by name, not by abbreviation —
+      // "Mordenkainen's Tome of Foes", not "MTF". Roughly half of all subraces
+      // come from a different book than their parent race, so this is the
+      // column that tells you where an unfamiliar option came from.
+      sourceName: sources.name,
       page: entities.page,
       data: races.data,
       ...displayColumns,
     })
     .from(races)
     .innerJoin(entities, eq(entities.id, races.entityId))
+    .innerJoin(sources, eq(sources.id, entities.sourceId))
     .where(eq(races.parentRaceId, race.id))
     .orderBy(asc(entities.name));
 

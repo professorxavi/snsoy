@@ -69,37 +69,21 @@ export default async function RacePage({ params }: RouteParams) {
   );
 
   /**
-   * Subraces split by which book printed them.
+   * One list, whichever book each subrace came from.
    *
-   * 48 of the corpus's 93 subraces appear in a *different* book from their
-   * parent race — MTF adds Duergar to the PHB dwarf, Eberron adds the
-   * dragonmarks. They belong on this page, because they genuinely are subraces
-   * of this race, but presenting them unlabelled under a heading that says
-   * "Dwarf · PHB" is how you end up wondering where Mark of Warding came from.
-   * Separating them also gives Phase 6 an obvious seam: this second group is
-   * precisely what entitlement gating has to hide.
+   * Roughly half the corpus's subraces are printed in a different book than
+   * their parent race — MTF adds Duergar to the PHB dwarf, Eberron adds the
+   * dragonmarks — and they were briefly split into their own section. They are
+   * not split any more: a player asking "what dwarves can I play" wants the
+   * whole answer in one place, which is also what D&D Beyond shows. The book
+   * each one came from is named on its row instead.
    */
-  const native = race.subraces.filter((sub) => sub.sourceId === race.sourceId);
-  const fromOthers = race.subraces.filter(
-    (sub) => sub.sourceId !== race.sourceId,
-  );
-
   const outline: OutlineItem[] = [
     ...sections.map((section) => ({ id: section.id, label: section.title })),
-    ...(native.length > 0
+    ...(race.subraces.length > 0
       ? [
           { id: SUBRACES_ID, label: "Subraces" },
-          ...native.map((sub) => ({
-            id: sub.slug,
-            label: sub.name,
-            depth: 1 as const,
-          })),
-        ]
-      : []),
-    ...(fromOthers.length > 0
-      ? [
-          { id: OTHER_SUBRACES_ID, label: "From other books" },
-          ...fromOthers.map((sub) => ({
+          ...race.subraces.map((sub) => ({
             id: sub.slug,
             label: sub.name,
             depth: 1 as const,
@@ -120,12 +104,11 @@ export default async function RacePage({ params }: RouteParams) {
             textTransform="uppercase"
             color="fg.subtle"
           >
+            {/* The book by name, not by abbreviation — "PHB" is jargon a
+                reader has to already know to get anything from. */}
             <Box asChild _hover={{ color: "brand" }}>
-              <NextLink
-                href={`/sources/${race.sourceId.toLowerCase()}`}
-                title={race.sourceName}
-              >
-                {race.sourceId}
+              <NextLink href={`/sources/${race.sourceId.toLowerCase()}`}>
+                {race.sourceName}
               </NextLink>
             </Box>
             {race.page ? ` · p. ${race.page}` : null}
@@ -175,34 +158,11 @@ export default async function RacePage({ params }: RouteParams) {
           cross-references against the database, so they cannot be built in the
           browser — and handed to the list as props.
         */}
-        {native.length > 0 ? (
+        {race.subraces.length > 0 ? (
           <Box as="section" id={SUBRACES_ID} scrollMarginTop="4rem">
             <SectionHeading>Subraces</SectionHeading>
             <SubraceList
-              items={native.map((sub) =>
-                toItem(sub, refs, race.name, { showSource: false }),
-              )}
-            />
-          </Box>
-        ) : null}
-
-        {fromOthers.length > 0 ? (
-          <Box as="section" id={OTHER_SUBRACES_ID} scrollMarginTop="4rem">
-            <SectionHeading>From other books</SectionHeading>
-            <Text
-              className="prose"
-              fontFamily="body"
-              fontSize="sm"
-              lineHeight="1.6"
-              color="fg.muted"
-              mb="2"
-            >
-              Later books add these to the {race.name.toLowerCase()}.
-            </Text>
-            <SubraceList
-              items={fromOthers.map((sub) =>
-                toItem(sub, refs, race.name, { showSource: true }),
-              )}
+              items={race.subraces.map((sub) => toItem(sub, refs, race.name))}
             />
           </Box>
         ) : null}
@@ -212,26 +172,26 @@ export default async function RacePage({ params }: RouteParams) {
 }
 
 const SUBRACES_ID = "subraces";
-const OTHER_SUBRACES_ID = "other-subraces";
 
 /**
  * A subrace as the disclosure list wants it.
  *
- * The source abbreviation is only worth printing when it differs from the page
- * you are on — repeating "PHB" down a PHB page is noise, but "MTF" next to
- * Duergar is the whole point.
+ * The book is named in full and on every row. Named, because "MTF" tells a
+ * reader nothing about where Duergar came from; on every row, because in one
+ * consolidated list the book is the only thing distinguishing a PHB option from
+ * one a later supplement added.
  */
 function toItem(
   sub: SubraceDetail,
   refs: Awaited<ReturnType<typeof resolveReferences>>,
   parentName: string,
-  { showSource }: { showSource: boolean },
 ) {
-  const page = sub.page ? `p. ${sub.page}` : "";
   return {
     id: sub.slug,
     name: sub.name,
-    meta: [showSource ? sub.sourceId : "", page].filter(Boolean).join(" · "),
+    meta: [sub.sourceName, sub.page ? `p. ${sub.page}` : ""]
+      .filter(Boolean)
+      .join(" · "),
     body: <SubraceBody subrace={sub} refs={refs} parentName={parentName} />,
   };
 }
