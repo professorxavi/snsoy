@@ -8,6 +8,7 @@ import {
 } from "@/components/compendium/outline-nav";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
+import { chapterLabel } from "@/lib/content/chapters";
 import { splitSections } from "@/lib/content/outline";
 import { collectReferences } from "@/lib/content/references";
 import { chapterHref, sourceHref } from "@/lib/routes";
@@ -143,16 +144,6 @@ export default async function ChapterPage({ params }: RouteParams) {
       <ChapterNav chapter={found} />
     </ReadingColumn>
   );
-}
-
-/** "Chapter 4", "Appendix B". Front matter and credits carry no label. */
-function chapterLabel(chapter: {
-  ordinalType: string | null;
-  ordinalLabel: string | null;
-}): string | null {
-  if (!chapter.ordinalLabel) return null;
-  const kind = chapter.ordinalType ?? "chapter";
-  return `${kind.charAt(0).toUpperCase()}${kind.slice(1)} ${chapter.ordinalLabel}`;
 }
 
 /**

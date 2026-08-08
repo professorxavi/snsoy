@@ -1,4 +1,5 @@
 import { and, asc, eq, ilike, sql } from "drizzle-orm";
+import { neighbours } from "@/lib/content/chapters";
 import { db } from "../client";
 import { bookSections } from "../schema/books";
 import { entities } from "../schema/entities";
@@ -149,13 +150,7 @@ export async function getChapter(sourceId: string, slug: string) {
     .where(eq(entities.sourceId, chapter.sourceId))
     .orderBy(...CHAPTER_ORDER);
 
-  const index = siblings.findIndex((s) => s.slug === chapter.slug);
-
-  return {
-    ...chapter,
-    previous: index > 0 ? siblings[index - 1] : null,
-    next: index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null,
-  };
+  return { ...chapter, ...neighbours(siblings, chapter.slug) };
 }
 
 /** Every chapter URL, for `generateStaticParams` and sitemap work later. */

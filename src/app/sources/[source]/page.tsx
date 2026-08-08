@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
+import { groupByBook } from "@/lib/content/chapters";
 import { mediaUrl } from "@/lib/content/media";
 import { chapterHref } from "@/lib/routes";
 import {
@@ -155,25 +156,6 @@ export default async function SourcePage({ params }: RouteParams) {
         )}
       </Box>
     </Box>
-  );
-}
-
-/** Chapters split by the body they came from, in the order they arrived. */
-function groupByBook(chapters: ChapterListItem[], sourceId: string) {
-  const bodies: { bookId: string; chapters: ChapterListItem[] }[] = [];
-
-  for (const chapter of chapters) {
-    const last = bodies[bodies.length - 1];
-    if (last && last.bookId === chapter.bookId) {
-      last.chapters.push(chapter);
-      continue;
-    }
-    bodies.push({ bookId: chapter.bookId, chapters: [chapter] });
-  }
-
-  // The primary body first, whatever order the rows arrived in.
-  return bodies.sort((a, b) =>
-    a.bookId === sourceId ? -1 : b.bookId === sourceId ? 1 : 0,
   );
 }
 

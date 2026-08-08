@@ -49,6 +49,21 @@ the app runs fine and images 404.
 Run one test file with `pnpm vitest run path/to/file.test.ts`, or one case
 with `-t "substring"`.
 
+## Tests
+
+Unit tests sit next to the module they cover. Tests that need more than the
+repo read their address from the environment and skip themselves without it, so
+`pnpm test` passes on a bare checkout:
+
+| | needs | skips without |
+|---|---|---|
+| `*.test.ts` | nothing | — |
+| `*.smoke.test.ts` | the seeded database | `DATABASE_URL` |
+| `tests/smoke/` | a running instance | `SMOKE_BASE_URL` |
+
+`tests/smoke/` fetches routes over HTTP and asserts on the rendered HTML. Point
+`SMOKE_BASE_URL` at `pnpm dev` or a preview deployment.
+
 ## Layout
 
 ```

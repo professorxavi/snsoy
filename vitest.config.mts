@@ -4,10 +4,17 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    // `tests/smoke` holds the checks that need a running instance; everything
+    // else sits next to the module it covers.
+    include: [
+      "src/**/*.test.ts",
+      "scripts/**/*.test.ts",
+      "tests/**/*.test.ts",
+    ],
     // Corpus integration tests parse ~14 MB of bestiary JSON; 5s is tight.
     testTimeout: 30_000,
-    // Corpus tests read CONTENT_SOURCE_DIR and skip themselves without it.
+    // Tests that need more than the repo — the corpus, the database, a running
+    // server — read their address from the environment and skip without it.
     setupFiles: ["dotenv/config"],
   },
   resolve: {
