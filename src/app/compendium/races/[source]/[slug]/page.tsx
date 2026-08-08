@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import { OutlineNav, type OutlineItem } from "@/components/compendium/outline-nav";
+import { SubraceAccordion } from "@/components/compendium/subrace-accordion";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import {
@@ -146,16 +147,26 @@ export default async function RacePage({ params }: RouteParams) {
         {race.subraces.length > 0 ? (
           <Box as="section" id={SUBRACES_ID} scrollMarginTop="4rem">
             <SectionHeading>Subraces</SectionHeading>
-            <Stack gap="7">
-              {race.subraces.map((sub) => (
-                <Subrace
-                  key={sub.id}
-                  subrace={sub}
-                  refs={refs}
-                  parentName={race.name}
-                />
-              ))}
-            </Stack>
+            {/*
+              The bodies are built here, on the server, and handed to the
+              accordion as props — they resolve cross-references against the
+              database, so they cannot be built in the browser. Only the
+              open/closed machinery is client-side.
+            */}
+            <SubraceAccordion
+              items={race.subraces.map((sub) => ({
+                id: sub.slug,
+                name: sub.name,
+                meta: `${sub.sourceId}${sub.page ? ` · p. ${sub.page}` : ""}`,
+                body: (
+                  <SubraceBody
+                    subrace={sub}
+                    refs={refs}
+                    parentName={race.name}
+                  />
+                ),
+              }))}
+            />
           </Box>
         ) : null}
       </Stack>
@@ -241,7 +252,13 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 /** The three values a player checks first, before reading anything. */
-function TraitSummary({ race }: { race: RaceDetail | SubraceDetail }) {
+function TraitSummary({
+  race,
+  borderTop = true,
+}: {
+  race: RaceDetail | SubraceDetail;
+  borderTop?: boolean;
+}) {
   const parts = [
     { label: "Size", value: formatSize(race.size) },
     { label: "Speed", value: formatSpeed(race.speed) },
@@ -254,12 +271,11 @@ function TraitSummary({ race }: { race: RaceDetail | SubraceDetail }) {
     <Box
       display="flex"
       flexWrap="wrap"
-      gap="x-4"
       columnGap="5"
       rowGap="1"
-      mt="3"
-      pt="3"
-      borderTopWidth="1px"
+      mt={borderTop ? "3" : "0"}
+      pt={borderTop ? "3" : "0"}
+      borderTopWidth={borderTop ? "1px" : "0"}
       borderColor="border"
     >
       {parts.map((part) => (
@@ -285,7 +301,11 @@ function TraitSummary({ race }: { race: RaceDetail | SubraceDetail }) {
   );
 }
 
-function Subrace({
+/**
+ * A subrace's contents, without any header of its own — the accordion's trigger
+ * is the header, so repeating the name here would print it twice.
+ */
+function SubraceBody({
   subrace,
   refs,
   parentName,
@@ -297,33 +317,8 @@ function Subrace({
   const data = subrace.data as { entries?: Entry[] };
 
   return (
-    <Box id={subrace.slug} scrollMarginTop="4rem">
-      <Text
-        as="h3"
-        fontFamily="body"
-        fontWeight="semibold"
-        fontSize="md"
-        lineHeight="1.3"
-      >
-        {subrace.name}
-        {subrace.sourceId !== undefined ? (
-          <Text
-            as="span"
-            fontFamily="ui"
-            fontSize="2xs"
-            fontWeight="normal"
-            letterSpacing="wide"
-            color="fg.subtle"
-            ml="2"
-          >
-            {subrace.sourceId}
-            {subrace.page ? ` · p. ${subrace.page}` : null}
-          </Text>
-        ) : null}
-      </Text>
-
-      <TraitSummary race={subrace} />
-
+    <Box>
+      <TraitSummary race={subrace} borderTop={false} />
       <Box mt="3">
         <Entries
           entries={data.entries}
