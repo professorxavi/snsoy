@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
 import { OutlineNav, type OutlineItem } from "@/components/compendium/outline-nav";
-import { SubraceAccordion } from "@/components/compendium/subrace-accordion";
+import { SubraceList } from "@/components/compendium/subrace-accordion";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import {
@@ -68,12 +68,38 @@ export default async function RacePage({ params }: RouteParams) {
     collectReferences([race.data, ...race.subraces.map((s) => s.data)]),
   );
 
+  /**
+   * Subraces split by which book printed them.
+   *
+   * 48 of the corpus's 93 subraces appear in a *different* book from their
+   * parent race — MTF adds Duergar to the PHB dwarf, Eberron adds the
+   * dragonmarks. They belong on this page, because they genuinely are subraces
+   * of this race, but presenting them unlabelled under a heading that says
+   * "Dwarf · PHB" is how you end up wondering where Mark of Warding came from.
+   * Separating them also gives Phase 6 an obvious seam: this second group is
+   * precisely what entitlement gating has to hide.
+   */
+  const native = race.subraces.filter((sub) => sub.sourceId === race.sourceId);
+  const fromOthers = race.subraces.filter(
+    (sub) => sub.sourceId !== race.sourceId,
+  );
+
   const outline: OutlineItem[] = [
     ...sections.map((section) => ({ id: section.id, label: section.title })),
-    ...(race.subraces.length > 0
+    ...(native.length > 0
       ? [
           { id: SUBRACES_ID, label: "Subraces" },
-          ...race.subraces.map((sub) => ({
+          ...native.map((sub) => ({
+            id: sub.slug,
+            label: sub.name,
+            depth: 1 as const,
+          })),
+        ]
+      : []),
+    ...(fromOthers.length > 0
+      ? [
+          { id: OTHER_SUBRACES_ID, label: "From other books" },
+          ...fromOthers.map((sub) => ({
             id: sub.slug,
             label: sub.name,
             depth: 1 as const,
@@ -144,28 +170,39 @@ export default async function RacePage({ params }: RouteParams) {
           </Box>
         ))}
 
-        {race.subraces.length > 0 ? (
+        {/*
+          The bodies are built here, on the server — they resolve
+          cross-references against the database, so they cannot be built in the
+          browser — and handed to the list as props.
+        */}
+        {native.length > 0 ? (
           <Box as="section" id={SUBRACES_ID} scrollMarginTop="4rem">
             <SectionHeading>Subraces</SectionHeading>
-            {/*
-              The bodies are built here, on the server, and handed to the
-              accordion as props — they resolve cross-references against the
-              database, so they cannot be built in the browser. Only the
-              open/closed machinery is client-side.
-            */}
-            <SubraceAccordion
-              items={race.subraces.map((sub) => ({
-                id: sub.slug,
-                name: sub.name,
-                meta: `${sub.sourceId}${sub.page ? ` · p. ${sub.page}` : ""}`,
-                body: (
-                  <SubraceBody
-                    subrace={sub}
-                    refs={refs}
-                    parentName={race.name}
-                  />
-                ),
-              }))}
+            <SubraceList
+              items={native.map((sub) =>
+                toItem(sub, refs, race.name, { showSource: false }),
+              )}
+            />
+          </Box>
+        ) : null}
+
+        {fromOthers.length > 0 ? (
+          <Box as="section" id={OTHER_SUBRACES_ID} scrollMarginTop="4rem">
+            <SectionHeading>From other books</SectionHeading>
+            <Text
+              className="prose"
+              fontFamily="body"
+              fontSize="sm"
+              lineHeight="1.6"
+              color="fg.muted"
+              mb="2"
+            >
+              Later books add these to the {race.name.toLowerCase()}.
+            </Text>
+            <SubraceList
+              items={fromOthers.map((sub) =>
+                toItem(sub, refs, race.name, { showSource: true }),
+              )}
             />
           </Box>
         ) : null}
@@ -175,6 +212,29 @@ export default async function RacePage({ params }: RouteParams) {
 }
 
 const SUBRACES_ID = "subraces";
+const OTHER_SUBRACES_ID = "other-subraces";
+
+/**
+ * A subrace as the disclosure list wants it.
+ *
+ * The source abbreviation is only worth printing when it differs from the page
+ * you are on — repeating "PHB" down a PHB page is noise, but "MTF" next to
+ * Duergar is the whole point.
+ */
+function toItem(
+  sub: SubraceDetail,
+  refs: Awaited<ReturnType<typeof resolveReferences>>,
+  parentName: string,
+  { showSource }: { showSource: boolean },
+) {
+  const page = sub.page ? `p. ${sub.page}` : "";
+  return {
+    id: sub.slug,
+    name: sub.name,
+    meta: [showSource ? sub.sourceId : "", page].filter(Boolean).join(" · "),
+    body: <SubraceBody subrace={sub} refs={refs} parentName={parentName} />,
+  };
+}
 
 /**
  * Split the corpus's flat entry list into an intro and named sections.

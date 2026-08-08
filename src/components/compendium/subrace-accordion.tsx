@@ -11,22 +11,16 @@ import { OpenTargetDetails } from "./open-target-details";
  * the book is laid out: here is the race, and here are its variants.
  *
  * **Built on `<details>`, not on Chakra's Accordion.** Chakra's is driven by
- * Ark UI state machines and does not respond to clicks in this app at all —
- * verified down to a minimal isolated instance on a scratch route, where the
- * trigger has an `onClick` in its React props, hydration succeeds, no console
- * error appears, and `onValueChange` still never fires. That is worth chasing
- * separately, since Dialog, Tabs, Menu and Popover share the machinery; it is
- * not worth blocking a collapsible list on.
- *
- * `<details>` is also the better fit here regardless: it is a server component,
- * needs no JavaScript to open, is keyboard accessible for free, and browsers
- * already expand it when a deep link points inside — which matters because ~93
- * inbound `{@race dwarf (hill)}` links resolve to an anchor in here.
+ * Ark UI state machines and does not respond to clicks anywhere in this app —
+ * verified down to a minimal isolated instance, where the trigger has an
+ * `onClick` in its React props, hydration succeeds, no console error appears,
+ * and `onValueChange` still never fires. `<details>` is the better fit anyway:
+ * a server component, no JavaScript to open, keyboard accessible for free.
  *
  * The anchor sits **inside** the disclosure rather than on it. That is the
  * difference between a deep link working and not: browsers expand a closed
- * `<details>` when the fragment targets its *contents*, and do nothing when it
- * targets the element itself.
+ * `<details>` when the fragment targets its *contents*, and do nothing at all
+ * when it targets the element itself.
  */
 
 export interface SubraceItem {
@@ -37,7 +31,7 @@ export interface SubraceItem {
   body: ReactNode;
 }
 
-export function SubraceAccordion({ items }: { items: SubraceItem[] }) {
+export function SubraceList({ items }: { items: SubraceItem[] }) {
   if (items.length === 0) return null;
 
   return (
@@ -46,40 +40,27 @@ export function SubraceAccordion({ items }: { items: SubraceItem[] }) {
         <Box
           as="details"
           key={item.id}
-          borderTopWidth="1px"
+          borderBottomWidth="1px"
           borderColor="border"
-          css={{
-            // The disclosure triangle, rotated by the open state rather than
-            // by script.
-            "&[open] [data-chevron]": { transform: "rotate(90deg)" },
-          }}
+          css={{ "&[open] [data-chevron]": { transform: "rotate(90deg)" } }}
         >
           <Box
             as="summary"
             display="flex"
-            alignItems="baseline"
-            gap="3"
-            py="3"
+            alignItems="center"
+            gap="2.5"
+            py="2.5"
             cursor="pointer"
             css={{
-              // Suppress the default marker in every engine so the custom one
-              // is not shown twice.
+              // Suppress the default marker in every engine, or the custom one
+              // is shown twice.
               listStyle: "none",
               "&::marker": { content: '""' },
               "&::-webkit-details-marker": { display: "none" },
             }}
             _hover={{ color: "brand" }}
           >
-            <Box
-              data-chevron=""
-              aria-hidden="true"
-              fontSize="2xs"
-              color="fg.subtle"
-              transition="transform .15s ease"
-              lineHeight="1.6"
-            >
-              &#9654;
-            </Box>
+            <Chevron />
 
             <Text
               as="span"
@@ -115,5 +96,37 @@ export function SubraceAccordion({ items }: { items: SubraceItem[] }) {
 
       <OpenTargetDetails />
     </Stack>
+  );
+}
+
+/**
+ * The disclosure arrow.
+ *
+ * Drawn, not typed. The obvious character for this — `▶` U+25B6 — is in an
+ * emoji-presentation range, so most platforms render it as a blue emoji glyph
+ * that ignores `color` entirely and looks pasted on. An inline SVG inherits
+ * `currentColor`, scales with the type, and rotates cleanly.
+ */
+function Chevron() {
+  return (
+    <Box
+      asChild
+      data-chevron=""
+      w="2.5"
+      h="2.5"
+      flexShrink="0"
+      color="fg.subtle"
+      transition="transform .15s ease"
+    >
+      <svg viewBox="0 0 10 10" fill="none" aria-hidden="true">
+        <path
+          d="M3.5 1.5 L7 5 L3.5 8.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </Box>
   );
 }
