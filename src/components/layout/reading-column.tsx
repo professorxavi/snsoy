@@ -20,11 +20,19 @@ export function ReadingColumn({
    * serves races and classes as well as book chapters.
    */
   outlineLabel?: string;
+  /**
+   * Pass `undefined` for `outline` when there is nothing to list. A document
+   * with no named sections has no outline, and the trailing column collapses
+   * rather than printing a rule down an empty gutter.
+   */
   children: ReactNode;
 }) {
   return (
     <Grid
-      templateColumns={{ base: "1fr", lg: "minmax(0, 1fr) 13rem" }}
+      templateColumns={{
+        base: "1fr",
+        lg: outline ? "minmax(0, 1fr) 13rem" : "minmax(0, 1fr)",
+      }}
       justifyContent="center"
     >
       <Box as="main" id="main" minW="0" px={{ base: "5", md: "8" }} py="6" pb="20">

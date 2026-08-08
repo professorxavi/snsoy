@@ -97,7 +97,9 @@ export default async function RacePage({ params }: RouteParams) {
   ];
 
   return (
-    <ReadingColumn outline={<OutlineNav items={outline} />}>
+    <ReadingColumn
+      outline={outline.length > 0 ? <OutlineNav items={outline} /> : undefined}
+    >
       {/*
         Normal flow, not a flex Stack: the illustration is floated so prose wraps
         around it, and a float has no effect inside a flex container. Spacing is

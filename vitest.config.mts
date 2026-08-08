@@ -12,6 +12,13 @@ import { defineConfig } from "vitest/config";
  * The component project pays for jsdom, so only the tests that render React
  * live there. The split is by extension rather than by directory — a component
  * test sits next to the component it covers, same as every other test here.
+ *
+ * Every test is colocated; there is no test directory. `src/test/` holds the
+ * harness the component project renders through, not tests.
+ *
+ *   *.test.ts    unit, Node
+ *   *.test.tsx   component, jsdom
+ *   *.smoke.test.ts  needs the database or a running server; skips without it
  */
 
 const resolve = {
@@ -38,11 +45,7 @@ export default defineConfig({
           ...shared,
           name: "unit",
           environment: "node",
-          include: [
-            "src/**/*.test.ts",
-            "scripts/**/*.test.ts",
-            "tests/**/*.test.ts",
-          ],
+          include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
         },
       },
       {

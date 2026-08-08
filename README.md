@@ -51,18 +51,23 @@ with `-t "substring"`.
 
 ## Tests
 
-Unit tests sit next to the module they cover. Tests that need more than the
-repo read their address from the environment and skip themselves without it, so
-`pnpm test` passes on a bare checkout:
+Every test sits next to what it covers — there is no test directory. What a
+test needs to run is in its filename, and anything needing more than the repo
+skips itself without it, so `pnpm test` passes on a bare checkout.
 
-| | needs | skips without |
-|---|---|---|
-| `*.test.ts` | nothing | — |
-| `*.smoke.test.ts` | the seeded database | `DATABASE_URL` |
-| `tests/smoke/` | a running instance | `SMOKE_BASE_URL` |
+| | runs in | needs | skips without |
+|---|---|---|---|
+| `*.test.ts` | Node | nothing | — |
+| `*.test.tsx` | jsdom | nothing | — |
+| `*.smoke.test.ts` | Node | the database, or a running instance | `DATABASE_URL` / `SMOKE_BASE_URL` |
 
-`tests/smoke/` fetches routes over HTTP and asserts on the rendered HTML. Point
-`SMOKE_BASE_URL` at `pnpm dev` or a preview deployment.
+Smoke tests are deliberately shallow: they prove the stack is wired together,
+not what a page looks like. Point `SMOKE_BASE_URL` at `pnpm dev` or a preview
+deployment to run the HTTP ones, and `pnpm vitest run smoke.test` to run only
+those.
+
+`src/test/` is the harness, not tests — render components through its `render`,
+which supplies the Chakra system a bare Testing Library render lacks.
 
 ## Layout
 

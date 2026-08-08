@@ -63,7 +63,11 @@ export default async function ChapterPage({ params }: RouteParams) {
 
   return (
     <ReadingColumn
-      outline={<OutlineNav items={outline} label="In this chapter" />}
+      outline={
+        outline.length > 0 ? (
+          <OutlineNav items={outline} label="In this chapter" />
+        ) : undefined
+      }
       outlineLabel="In this chapter"
     >
       <Box as="header" mb="8">
