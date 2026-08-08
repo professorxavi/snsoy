@@ -2,7 +2,15 @@ import { Box, Stack, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
-import { OutlineNav, type OutlineItem } from "@/components/compendium/outline-nav";
+import {
+  fluffImages,
+  Illustration,
+  IllustrationRow,
+} from "@/components/compendium/entity-image";
+import {
+  OutlineNav,
+  type OutlineItem,
+} from "@/components/compendium/outline-nav";
 import { SubraceList } from "@/components/compendium/subrace-accordion";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
@@ -62,6 +70,13 @@ export default async function RacePage({ params }: RouteParams) {
   const data = race.data as { entries?: Entry[] };
   const { intro, sections } = splitSections(data.entries);
 
+  /**
+   * 111 of 134 races carry illustrations; the rest carry none, so every part of
+   * this has to be absent-safe rather than merely empty. Subraces are skipped
+   * deliberately — none have images, despite 68 of them claiming `hasFluffImages`.
+   */
+  const [lead, ...rest] = fluffImages(race.fluff);
+
   // One resolve for the whole page, parent and subraces together — otherwise
   // a Tiefling page would make fourteen round trips to build its links.
   const refs = await resolveReferences(
@@ -95,39 +110,70 @@ export default async function RacePage({ params }: RouteParams) {
   return (
     <ReadingColumn outline={<OutlineNav items={outline} />}>
       <Stack gap="6">
-        <Box as="header">
-          <Text
-            fontFamily="ui"
-            fontSize="2xs"
-            fontWeight="medium"
-            letterSpacing="widest"
-            textTransform="uppercase"
-            color="fg.subtle"
-          >
-            {/* The book by name, not by abbreviation — "PHB" is jargon a
+        {/*
+          Header and lead illustration as a grid, not a float. The page's outer
+          container is a flex Stack, and a float inside a flex container does
+          not wrap its siblings — text would simply sit beside a floated figure
+          with no relationship to it. A grid gets the same look and behaves.
+        */}
+        <Box
+          as="header"
+          display="grid"
+          gridTemplateColumns={{
+            base: "1fr",
+            sm: lead ? "minmax(0, 1fr) 13rem" : "1fr",
+          }}
+          gap={{ base: "4", sm: "6" }}
+          alignItems="start"
+        >
+          <Box>
+            <Text
+              fontFamily="ui"
+              fontSize="2xs"
+              fontWeight="medium"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              color="fg.subtle"
+            >
+              {/* The book by name, not by abbreviation — "PHB" is jargon a
                 reader has to already know to get anything from. */}
-            <Box asChild _hover={{ color: "brand" }}>
-              <NextLink href={`/sources/${race.sourceId.toLowerCase()}`}>
-                {race.sourceName}
-              </NextLink>
-            </Box>
-            {race.page ? ` · p. ${race.page}` : null}
-          </Text>
+              <Box asChild _hover={{ color: "brand" }}>
+                <NextLink href={`/sources/${race.sourceId.toLowerCase()}`}>
+                  {race.sourceName}
+                </NextLink>
+              </Box>
+              {race.page ? ` · p. ${race.page}` : null}
+            </Text>
 
-          <Text
-            as="h1"
-            fontFamily="display"
-            fontSize={{ base: "3xl", md: "4xl" }}
-            lineHeight="1.05"
-            letterSpacing="tight"
-            textWrap="balance"
-            mt="1"
-          >
-            {race.name}
-          </Text>
+            <Text
+              as="h1"
+              fontFamily="display"
+              fontSize={{ base: "3xl", md: "4xl" }}
+              lineHeight="1.05"
+              letterSpacing="tight"
+              textWrap="balance"
+              mt="1"
+            >
+              {race.name}
+            </Text>
 
-          <TraitSummary race={race} />
+            <TraitSummary race={race} />
+          </Box>
+
+          {lead ? (
+            <Illustration
+              image={lead}
+              entityName={race.name}
+              width={208}
+              priority
+            />
+          ) : null}
         </Box>
+
+        {/* The 24 races that carry more than one illustration. */}
+        {rest.length > 0 ? (
+          <IllustrationRow images={rest} entityName={race.name} />
+        ) : null}
 
         {/* Prose before the first named trait — flavour, usually. */}
         {intro.length > 0 ? (
@@ -140,7 +186,12 @@ export default async function RacePage({ params }: RouteParams) {
         ) : null}
 
         {sections.map((section) => (
-          <Box as="section" key={section.id} id={section.id} scrollMarginTop="4rem">
+          <Box
+            as="section"
+            key={section.id}
+            id={section.id}
+            scrollMarginTop="4rem"
+          >
             <SectionHeading>
               <Inline text={section.title} refs={refs} context={race.name} />
             </SectionHeading>
