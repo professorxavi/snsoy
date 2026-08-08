@@ -16,7 +16,8 @@
     "db:studio": "drizzle-kit studio",
     "db:dump": "tsx scripts/db/dump.ts",
     "db:seed": "tsx scripts/db/seed.ts",
-    "ingest": "tsx scripts/ingest/cli.ts"
+    "ingest": "tsx scripts/ingest/cli.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.34.0",
@@ -33,6 +34,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",

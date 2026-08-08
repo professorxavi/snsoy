@@ -29,6 +29,17 @@ function imageOrigins() {
 }
 
 const nextConfig: NextConfig = {
+  /**
+   * Build output directory, overridable by environment.
+   *
+   * The browser tests build and serve the app themselves, and a build writes
+   * over whatever `.next` holds — which, underneath a running `next dev`,
+   * leaves that server handing out a bundle that renders but never hydrates.
+   * Pointing the test build at its own directory means the two can run at once
+   * without either noticing the other.
+   */
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
   /* config options here */
   experimental: {
     optimizePackageImports: ["@chakra-ui/react"],

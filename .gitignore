@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
 
 # production
@@ -72,3 +73,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Playwright run artefacts. The report embeds page HTML, which for this app
+# means corpus text, so it must never be committed.
+/test-results/
+/playwright-report/
+/blob-report/
