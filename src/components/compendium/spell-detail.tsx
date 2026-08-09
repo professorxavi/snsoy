@@ -20,7 +20,9 @@ import type { SpellDetail as SpellDetailData } from "@/server/db/queries/spells"
  * A spell, rendered in full. Used by both the spell page and the browse aside,
  * which share a URL and so must not drift.
  *
- * `density` changes measurements only, never content.
+ * `density` changes measurements, and one thing beyond them: the aside prints
+ * the spell and stops, while the page also says what refers to it. Everything
+ * the book prints about a spell appears in both.
  */
 export function SpellDetail({
   spell,
@@ -115,7 +117,14 @@ export function SpellDetail({
         </Box>
       ) : null}
 
-      {inbound?.length ? <ReferencedBy items={inbound} /> : null}
+      {/*
+        Page only, and the rule is general: an aside carries the entity and
+        nothing about the entity's place in the corpus. Someone who opened a
+        spell mid-sentence wants the spell — a list of the two hundred things
+        that happen to mention it is a different question, asked on the page
+        that has room for the answer.
+      */}
+      {!isAside && inbound?.length ? <ReferencedBy items={inbound} /> : null}
     </Stack>
   );
 }

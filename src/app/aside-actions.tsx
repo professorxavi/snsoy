@@ -12,10 +12,7 @@ import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
 import { getRace } from "@/server/db/queries/races";
-import {
-  inboundReferences,
-  resolveReferences,
-} from "@/server/db/queries/references";
+import { resolveReferences } from "@/server/db/queries/references";
 import { getSkill } from "@/server/db/queries/skills";
 import { getSpell } from "@/server/db/queries/spells";
 
@@ -65,15 +62,13 @@ async function spellAside(source: string, slug: string): Promise<ReactNode> {
   // says so in place instead, and the page underneath is untouched.
   if (!spell) return <AsideMessage>No such spell.</AsideMessage>;
 
-  // Independent queries, so they overlap rather than queue.
-  const [refs, inbound] = await Promise.all([
-    resolveReferences(collectReferences(spell.data)),
-    inboundReferences(spell.id),
-  ]);
+  // The spell's own references only. What refers *to* it belongs on the page —
+  // see `SpellDetail` — so the aside does not pay for the second query either.
+  const refs = await resolveReferences(collectReferences(spell.data));
 
   return (
     <>
-      <SpellDetail spell={spell} refs={refs} inbound={inbound} density="aside" />
+      <SpellDetail spell={spell} refs={refs} density="aside" />
       <FullPageLink
         href={hrefFor({
           entityType: "spell",
