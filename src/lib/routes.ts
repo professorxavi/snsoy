@@ -136,6 +136,38 @@ export function hrefFor(
   return `/compendium/${segment}/${entity.sourceId.toLowerCase()}/${entity.slug}`;
 }
 
+/** What an entity URL points at. */
+export interface ParsedEntityHref {
+  type: BrowsableType;
+  sourceId: string;
+  slug: string;
+}
+
+/**
+ * Read an entity URL back apart — the inverse of `hrefFor`.
+ *
+ * Book text is rendered as ordinary anchors, so opening one of them in place
+ * means recovering the entity from its href. Kept next to `hrefFor` because the
+ * two have to agree about the shape of a URL, and that agreement is easier to
+ * keep when breaking it shows up in one file.
+ *
+ * Returns null for anything that is not a `/compendium/{segment}/{source}/{slug}`
+ * URL: a chapter link, an unknown segment, a list URL, an off-site link. A
+ * fragment is dropped rather than rejected — a subclass link addresses its
+ * class's page and it is the class that opens.
+ */
+export function parseEntityHref(href: string): ParsedEntityHref | null {
+  if (!href.startsWith("/compendium/")) return null;
+
+  const parts = href.split(/[?#]/)[0]!.split("/").filter(Boolean);
+  if (parts.length !== 4) return null;
+
+  const type = typeForSegment(parts[1]!);
+  if (!type) return null;
+
+  return { type, sourceId: parts[2]!, slug: parts[3]! };
+}
+
 /** The browse list for a type, e.g. `/compendium/spells`. */
 export function listHrefFor(type: BrowsableType): string {
   return `/compendium/${SEGMENTS[type]}`;

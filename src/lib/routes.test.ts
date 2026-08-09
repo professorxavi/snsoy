@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  BROWSABLE_TYPES,
   chapterHref,
   hrefFor,
   listHrefFor,
+  parseEntityHref,
   segmentFor,
   sourceHref,
   typeForSegment,
@@ -171,5 +173,61 @@ describe("sourceHref and chapterHref", () => {
         slug: "creating-a-multiverse",
       }),
     ).toBe(chapterHref("DMG", "creating-a-multiverse"));
+  });
+});
+
+/**
+ * Book text is rendered as ordinary anchors, so opening one in place means
+ * recovering the entity from its href. The pair has to agree in both
+ * directions, and anything that is not an entity URL has to be refused rather
+ * than guessed at — a wrong answer here opens the wrong thing.
+ */
+describe("parseEntityHref", () => {
+  it("reads back what hrefFor wrote", () => {
+    const entity = {
+      entityType: "spell" as const,
+      sourceId: "PHB",
+      slug: "fireball",
+    };
+
+    expect(parseEntityHref(hrefFor(entity)!)).toEqual({
+      type: "spell",
+      sourceId: "phb",
+      slug: "fireball",
+    });
+  });
+
+  it("round-trips every browsable type", () => {
+    for (const type of BROWSABLE_TYPES) {
+      const href = hrefFor({ entityType: type, sourceId: "XGE", slug: "x" })!;
+      expect(parseEntityHref(href)).toEqual({
+        type,
+        sourceId: "xge",
+        slug: "x",
+      });
+    }
+  });
+
+  /** A subclass link addresses its class's page; the class is what opens. */
+  it("drops a fragment rather than refusing the URL", () => {
+    expect(parseEntityHref("/compendium/classes/phb/wizard#evocation")).toEqual({
+      type: "class",
+      sourceId: "phb",
+      slug: "wizard",
+    });
+  });
+
+  it("refuses anything that is not one entity's URL", () => {
+    for (const href of [
+      "/sources/phb/classes", // a chapter, not an entity
+      "/compendium/spells", // the list
+      "/compendium/spells/phb", // no slug
+      "/compendium/spells/phb/fireball/extra", // too deep
+      "/compendium/nonsense/phb/x", // unknown segment
+      "/", // not the compendium at all
+      "https://example.com/compendium/spells/phb/fireball", // off site
+    ]) {
+      expect(parseEntityHref(href), href).toBeNull();
+    }
   });
 });

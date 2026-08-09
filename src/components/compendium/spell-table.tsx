@@ -2,6 +2,7 @@ import { Box, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { AsideLink } from "@/components/compendium/aside-link";
+import { asideKey } from "@/lib/aside";
 import {
   componentLetters,
   formatCastingTime,
@@ -102,7 +103,11 @@ function SpellRowView({
         >
           <AsideLink
             href={href ?? "#"}
-            entityKey={row.slug}
+            // Built the same way the reader's links build theirs, so a spell
+            // opened from a chapter and the same spell opened from this table
+            // are one entry in the cache and one selected row, not two.
+            entityKey={asideKey("spell", row.sourceId, row.slug)}
+            label={row.name}
             load={open.bind(null, row.sourceId, row.slug)}
           >
             {row.name}

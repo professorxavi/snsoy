@@ -2,6 +2,8 @@ import { Box, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
+import { openEntityAside } from "@/app/aside-actions";
+import { AsideLinks } from "@/components/compendium/aside-links";
 import { ChapterBar, ChapterNav } from "@/components/compendium/chapter-nav";
 import {
   OutlineNav,
@@ -110,6 +112,13 @@ export default async function ChapterPage({ params }: RouteParams) {
         </Text>
       </Box>
 
+      {/*
+        Everything below opens in the aside rather than navigating: a chapter is
+        dense with cross-references, and following one should not cost the page
+        you are reading. The renderer is untouched — these are the same anchors
+        it has always emitted, caught on the way up.
+      */}
+      <AsideLinks load={openEntityAside}>
       {intro.length > 0 ? (
         <Box mb="8">
           <Entries
@@ -153,6 +162,7 @@ export default async function ChapterPage({ params }: RouteParams) {
           />
         </Box>
       ))}
+      </AsideLinks>
 
       <ChapterNav
         sourceId={found.sourceId}

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AsideProvider } from "@/components/compendium/aside-context";
 import { render, screen, within } from "@/test/render";
 import type { ChapterDetail } from "@/server/db/queries/sources";
 import ChapterPage, { generateMetadata } from "./page";
@@ -40,8 +41,16 @@ const chapter = (over: Partial<ChapterDetail> = {}): ChapterDetail => ({
   ...over,
 }) as ChapterDetail;
 
+/**
+ * Wrapped in the aside's provider: the body's cross-references open in place
+ * rather than navigating, and the wrapper that does it reads from context.
+ */
 const renderPage = async (source = "phb", slug = "combat") =>
-  render(await ChapterPage({ params: Promise.resolve({ source, chapter: slug }) }));
+  render(
+    <AsideProvider>
+      {await ChapterPage({ params: Promise.resolve({ source, chapter: slug }) })}
+    </AsideProvider>,
+  );
 
 /**
  * The outline is a wide-viewport element, and jsdom never evaluates the media

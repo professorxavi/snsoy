@@ -95,6 +95,42 @@ export function BrowseAside({ children }: { children: ReactNode }) {
 }
 
 /**
+ * The aside as an overlay, for the reading layouts.
+ *
+ * A chapter is a measured column of prose with an outline beside it and no
+ * slack for a third column. Taking the width out of the text would rewrap the
+ * paragraph being read every time something is opened, which is exactly the
+ * interruption the aside exists to avoid — so here it floats over the page
+ * instead and the text does not move at all.
+ *
+ * Carries the same `data-aside-content` attribute as `BrowseAside`, so anything
+ * keyed on "something is open" needs to know only the one name.
+ */
+export function AsideDrawer({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      as="aside"
+      aria-label="Entity detail"
+      {...{ [ASIDE_CONTENT_ATTR]: "" }}
+      position="fixed"
+      top={{ base: "0", lg: TOPBAR }}
+      bottom="0"
+      right="0"
+      left={{ base: "0", lg: "auto" }}
+      w={{ base: "auto", lg: "aside" }}
+      zIndex="modal"
+      bg="bg.panel"
+      borderLeftWidth={{ base: "0", lg: "1px" }}
+      borderColor="border"
+      boxShadow={{ base: "none", lg: "lg" }}
+      overflowY="auto"
+    >
+      {children}
+    </Box>
+  );
+}
+
+/**
  * The filter rail. Owned by the page, not the layout, because facet counts
  * depend on the current filters and a layout never receives `searchParams`.
  */

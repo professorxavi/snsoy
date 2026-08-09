@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { expectHydrated } from "@/test/e2e-helpers";
+import { ASIDE, expectHydrated } from "@/test/e2e-helpers";
 
 /**
  * How a chapter's tables come out once a browser has laid them out.
@@ -69,4 +69,92 @@ test("lets a wide table past the reading measure without scrolling the page", as
         document.documentElement.clientWidth,
     ),
   ).toBe(0);
+});
+
+/**
+ * Opening an entity from the prose.
+ *
+ * A chapter is dense with cross-references — 36,000 across the corpus — and
+ * following one used to cost the page you were reading. Now it opens beside the
+ * text instead. None of this is visible to a markup assertion: whether the
+ * click was intercepted at all depends on the capture phase beating
+ * `next/link`'s own handler, and whether the prose held still is computed
+ * layout.
+ */
+test("opens a class from the chapter without leaving it", async ({ page }) => {
+  await page.goto(CLASSES);
+  await expectHydrated(page);
+
+  // Where the prose sits before anything opens. The drawer floats over the
+  // page precisely so this does not change.
+  const measure = () =>
+    page.evaluate(() => {
+      const box = document
+        .querySelector("p.prose")
+        ?.getBoundingClientRect();
+      return box ? { x: Math.round(box.x), w: Math.round(box.width) } : null;
+    });
+  const before = await measure();
+
+  await page.getByRole("link", { name: "Barbarian" }).first().click();
+
+  await expect(page.locator(`${ASIDE} h1`)).toHaveText("Barbarian");
+  await expect(page).toHaveURL(new RegExp(`${CLASSES}$`));
+  expect(await measure()).toEqual(before);
+});
+
+/** The summary, not the class page shrunk into a column. */
+test("shows a class summary rather than the whole class", async ({ page }) => {
+  await page.goto(CLASSES);
+  await expectHydrated(page);
+
+  await page.getByRole("link", { name: "Barbarian" }).first().click();
+  await expect(page.locator(`${ASIDE} h1`)).toHaveText("Barbarian");
+
+  const aside = page.locator(ASIDE);
+  await expect(aside.getByText("9 Primal Paths")).toBeVisible();
+  await expect(aside.locator("table")).toHaveCount(0);
+  await expect(aside.getByRole("link", { name: /full page/i })).toBeVisible();
+});
+
+test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
+  await page.goto(CLASSES);
+  await expectHydrated(page);
+
+  const depth = () => page.evaluate(() => history.length);
+  const before = await depth();
+
+  for (const name of ["Barbarian", "Bard", "Cleric"]) {
+    await page.getByRole("link", { name, exact: true }).first().click();
+    await expect(page.locator(`${ASIDE} h1`)).toHaveText(name);
+  }
+
+  // Reading three classes is three calls and no navigations.
+  expect(await depth()).toBe(before);
+
+  await page.keyboard.press("Escape");
+  await expect(page.locator(ASIDE)).toHaveCount(0);
+  await expect(page).toHaveURL(new RegExp(`${CLASSES}$`));
+});
+
+/**
+ * A type with no aside renderer must behave exactly as it did before the
+ * wrapper existed. Most of what book text links to is in this state — 15,887
+ * monster references alone — and quietly swallowing those clicks would be worse
+ * than the navigation they currently perform.
+ */
+test("leaves a link it cannot render to navigate as before", async ({
+  page,
+}) => {
+  await page.goto("/sources/phb/equipment");
+  await expectHydrated(page);
+
+  const item = page.locator('a[href^="/compendium/items/"]').first();
+  test.skip((await item.count()) === 0, "no item links in this chapter");
+
+  const href = await item.getAttribute("href");
+  await item.click();
+
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+  await expect(page.locator(ASIDE)).toHaveCount(0);
 });

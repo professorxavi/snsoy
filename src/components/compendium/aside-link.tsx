@@ -16,12 +16,15 @@ import { useAside } from "./aside-context";
  */
 export function AsideLink({
   entityKey,
+  label,
   load,
   children,
   ...rest
 }: {
   /** Identifies this entity to the aside, and marks the row selected. */
   entityKey: string;
+  /** Its name, for the back button of anything opened from inside it. */
+  label?: string;
   load: () => Promise<ReactNode>;
 } & ComponentPropsWithRef<"a">) {
   const { open, openKey } = useAside();
@@ -32,7 +35,9 @@ export function AsideLink({
     if (event.defaultPrevented || event.button !== 0 || modified) return;
 
     event.preventDefault();
-    open(entityKey, load);
+    // No `push`: a row is a sibling of every other row, so opening one replaces
+    // what was open rather than stacking on it.
+    open(entityKey, load, { label });
   };
 
   return (

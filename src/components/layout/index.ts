@@ -1,5 +1,6 @@
 export { AppFrame } from "./app-frame";
 export {
+  AsideDrawer,
   BrowseAside,
   BrowseColumns,
   BrowseFrame,

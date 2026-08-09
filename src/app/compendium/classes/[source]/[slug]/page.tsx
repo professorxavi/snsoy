@@ -14,6 +14,7 @@ import {
   OutlineNav,
   type OutlineItem,
 } from "@/components/compendium/outline-nav";
+import { ClassSummary } from "@/components/compendium/class-summary";
 import { SubraceList } from "@/components/compendium/subrace-accordion";
 import { Entries, Inline, OptionBody, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
@@ -25,7 +26,6 @@ import {
   featureOrder,
   indexFeatures,
   type FeatureIndex,
-  formatAbilities,
   ordinal,
   proficiencyLines,
   progressionColumns,
@@ -43,7 +43,6 @@ import { collectReferences } from "@/lib/content/references";
 import { sourceHref } from "@/lib/routes";
 import {
   getClass,
-  type ClassDetail,
   type ClassFeatureDetail,
 } from "@/server/db/queries/classes";
 import {
@@ -580,62 +579,6 @@ function featureRows(features: ClassFeatureDetail[]) {
   return [...byLevel].map(([level, names]) => ({ level, features: names }));
 }
 
-/** Hit die, saving throws, casting and what the class calls its subclasses. */
-function ClassSummary({ found }: { found: ClassDetail }) {
-  const parts = [
-    { label: "Hit Die", value: found.hitDie ? `d${found.hitDie}` : null },
-    { label: "Saves", value: formatAbilities(found.savingThrows) },
-    {
-      label: "Casting",
-      value: found.spellcastingAbility
-        ? `${casterLabel(found.casterProgression) ?? "Caster"}, ${formatAbilities([found.spellcastingAbility])}`
-        : casterLabel(found.casterProgression),
-    },
-    {
-      label: "Subclasses",
-      // Named the way the class names them: a Cleric has domains, not subclasses.
-      value:
-        found.subclasses.length > 0
-          ? `${found.subclasses.length} ${found.subclassTitle ? `${found.subclassTitle}s` : "subclasses"}`
-          : null,
-    },
-  ].filter((part) => part.value);
-
-  if (parts.length === 0) return null;
-
-  return (
-    <Box
-      display="flex"
-      flexWrap="wrap"
-      columnGap="5"
-      rowGap="1"
-      mt="3"
-      pt="3"
-      borderTopWidth="1px"
-      borderColor="border"
-    >
-      {parts.map((part) => (
-        <Box key={part.label}>
-          <Text
-            as="span"
-            fontFamily="ui"
-            fontSize="2xs"
-            fontWeight="semibold"
-            letterSpacing="wide"
-            textTransform="uppercase"
-            color="fg.subtle"
-            mr="1.5"
-          >
-            {part.label}
-          </Text>
-          <Text as="span" fontFamily="body" fontSize="sm">
-            {part.value}
-          </Text>
-        </Box>
-      ))}
-    </Box>
-  );
-}
 
 /**
  * Features in level order, each under its own heading. The level is printed
