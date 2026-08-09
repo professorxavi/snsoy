@@ -68,17 +68,6 @@ const FRAGMENT_TYPES = new Set<EntityType>([
   "subclassFeature",
 ]);
 
-/**
- * Types no entity ever has. Variants are expanded into `item` at ingest, and
- * every psionic in the corpus belonged to the Mystic — playtest material, which
- * this database does not carry.
- */
-const UNROUTED = new Set<EntityType>([
-  "magicvariant",
-  "raceFeature",
-  "psionic",
-]);
-
 export function isBrowsable(type: EntityType): type is BrowsableType {
   return type in SEGMENTS;
 }
@@ -124,8 +113,8 @@ export interface FragmentParent {
 /**
  * The canonical URL for an entity.
  *
- * Returns null when the entity cannot be addressed: an unrouted type, or a
- * fragment with no parent supplied. Callers render plain text in that case.
+ * Returns null when the entity cannot be addressed: a type with no segment, or
+ * a fragment with no parent supplied. Callers render plain text in that case.
  */
 export function hrefFor(
   entity: Addressable,
@@ -140,8 +129,6 @@ export function hrefFor(
     const parentHref = hrefFor(parent);
     return parentHref ? `${parentHref}#${entity.slug}` : null;
   }
-
-  if (UNROUTED.has(entity.entityType)) return null;
 
   const segment = segmentFor(entity.entityType);
   if (!segment) return null;
