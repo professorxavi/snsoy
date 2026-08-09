@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { RaceAside } from "@/components/compendium/race-aside";
+import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { collectReferences } from "@/lib/content/references";
@@ -15,6 +16,7 @@ import {
   inboundReferences,
   resolveReferences,
 } from "@/server/db/queries/references";
+import { getSkill } from "@/server/db/queries/skills";
 import { getSpell } from "@/server/db/queries/spells";
 
 /**
@@ -49,6 +51,8 @@ export async function openEntityAside(
       return classAside(source, slug);
     case "race":
       return raceAside(source, slug);
+    case "skill":
+      return skillAside(source, slug);
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -107,6 +111,23 @@ async function raceAside(source: string, slug: string): Promise<ReactNode> {
   );
 
   return <RaceAside race={race} refs={refs} />;
+}
+
+/**
+ * The one renderer with nothing behind it: a skill has no page of its own, so
+ * this is not a preview of somewhere else but the whole of what we show.
+ *
+ * No inbound references, unlike a spell. What mentions Perception is most of
+ * the game — 555 stat blocks and 311 chapters — and a list that long answers no
+ * question the reader arrived with.
+ */
+async function skillAside(source: string, slug: string): Promise<ReactNode> {
+  const skill = await getSkill(source, slug);
+  if (!skill) return <AsideMessage>No such skill.</AsideMessage>;
+
+  const refs = await resolveReferences(collectReferences(skill.data));
+
+  return <SkillAside skill={skill} refs={refs} />;
 }
 
 /**

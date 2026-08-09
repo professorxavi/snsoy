@@ -29,7 +29,12 @@ export function asideKey(
  * here is what makes them work, one renderer at a time, and it must stay in
  * step with the switch in `openEntityAside`.
  */
-export const ASIDE_TYPES = new Set<BrowsableType>(["spell", "class", "race"]);
+export const ASIDE_TYPES = new Set<BrowsableType>([
+  "spell",
+  "class",
+  "race",
+  "skill",
+]);
 
 /**
  * Marks a link that must navigate even inside the aside.
@@ -40,3 +45,17 @@ export const ASIDE_TYPES = new Set<BrowsableType>(["spell", "class", "race"]);
  * Put this on any link whose whole purpose is to leave.
  */
 export const ASIDE_IGNORE_ATTR = "data-aside-ignore";
+
+/**
+ * Marks a link that opens the aside in place rather than loading a page.
+ *
+ * Read by the navigation progress bar, which otherwise has no way to tell the
+ * two apart: `next/link` cancels the click on every navigation it handles, so a
+ * cancelled click means only "something took this", never what took it or
+ * whether a page is now on its way.
+ *
+ * Only needed on links the aside claims from a bubble handler. The ones
+ * `AsideLinks` claims stop propagating during capture and never reach the bar
+ * at all.
+ */
+export const ASIDE_OPEN_ATTR = "data-aside-open";
