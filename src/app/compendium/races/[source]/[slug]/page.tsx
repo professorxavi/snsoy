@@ -19,7 +19,7 @@ import { TraitSummary } from "@/components/compendium/trait-summary";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import { splitSections } from "@/lib/content/outline";
-import { formatSize, formatSpeed } from "@/lib/content/races";
+import { entriesOf, formatSize, formatSpeed } from "@/lib/content/races";
 import { collectReferences } from "@/lib/content/references";
 import { sourceHref } from "@/lib/routes";
 import { resolveReferences } from "@/server/db/queries/references";
@@ -61,6 +61,23 @@ export default async function RacePage({ params }: RouteParams) {
   const data = race.data as { entries?: Entry[] };
   const { intro, sections } = splitSections<Entry>(data.entries);
 
+  /*
+   * The book's flavour text, which the corpus keeps in fluff rather than in the
+   * race's own entries: of the 134 races, 98 carry prose only there, and their
+   * `data.entries` are nothing but named traits. Without this, most race pages
+   * open straight into "Flight" with nothing to say what an aarakocra is — and
+   * the aside, which does read fluff, ended up saying more about a race than
+   * its own page did.
+   *
+   * Added to the race's own opening rather than replacing it. Four races carry
+   * a line of their own as well, and it is a rules note rather than a second
+   * telling of the flavour.
+   */
+  const opening = [
+    ...splitSections<Entry>(entriesOf<Entry>(race.fluff)).intro,
+    ...intro,
+  ];
+
   // 111 of 134 races have illustrations, so this has to handle none. Subraces
   // are skipped: none have images, despite 68 claiming `hasFluffImages`.
   const images = fluffImages(race.fluff);
@@ -70,7 +87,13 @@ export default async function RacePage({ params }: RouteParams) {
   // One resolve for the whole page, parent and subraces together — otherwise
   // a Tiefling page would make fourteen round trips to build its links.
   const refs = await resolveReferences(
-    collectReferences([race.data, ...race.subraces.map((s) => s.data)]),
+    collectReferences([
+      race.data,
+      // The flavour text is rendered too, and its tags need resolving with the
+      // rest — a fluff paragraph cites spells and creatures like any other.
+      race.fluff,
+      ...race.subraces.map((s) => s.data),
+    ]),
   );
 
   // Subraces are listed together regardless of source. Roughly half come from
@@ -167,10 +190,10 @@ export default async function RacePage({ params }: RouteParams) {
         {race.isNpcRace ? <NpcRaceNote /> : null}
 
         {/* Prose before the first named trait. */}
-        {intro.length > 0 ? (
+        {opening.length > 0 ? (
           <Box mb="6">
             <Entries
-              entries={intro}
+              entries={opening}
               refs={refs}
               selfKey={race.naturalKey}
               context={race.name}

@@ -196,7 +196,8 @@ export function descriptionEntries<T>(fluff: unknown, data: unknown): T[] {
   return fromFluff.length > 0 ? fromFluff : entriesOf<T>(data);
 }
 
-function entriesOf<T>(value: unknown): T[] {
+/** The `entries` of a fluff or data blob, or nothing if it has none. */
+export function entriesOf<T>(value: unknown): T[] {
   const entries = (value as { entries?: unknown[] } | null)?.entries;
   return Array.isArray(entries) ? (entries as T[]) : [];
 }

@@ -122,6 +122,60 @@ describe("a race page", () => {
     ).rejects.toThrow();
   });
 
+  /**
+   * A race's flavour text lives in fluff, not in its own entries: 98 of the 134
+   * races carry prose only there, and their `data.entries` are nothing but
+   * named traits. Reading `data.entries` alone opened most race pages straight
+   * into "Flight", and left the aside — which does read fluff — saying more
+   * about a race than its own page did.
+   */
+  describe("the opening prose", () => {
+    it("prints the flavour text out of fluff", async () => {
+      await renderPage({
+        fluff: { entries: ["A winged people of the Elemental Plane of Air."] },
+      });
+
+      expect(
+        screen.getByText(/winged people of the Elemental Plane/),
+      ).toBeInTheDocument();
+    });
+
+    /**
+     * Added to the race's own opening, not swapped for it. Four races carry a
+     * line of their own as well, and it is a rules note rather than a second
+     * telling of the flavour.
+     */
+    it("keeps the race's own opening line alongside it", async () => {
+      await renderPage({
+        fluff: { entries: ["Flavour from the book."] },
+      });
+
+      expect(screen.getByText(/Flavour from the book/)).toBeInTheDocument();
+      expect(screen.getByText(/Bold and hardy/)).toBeInTheDocument();
+    });
+
+    it("manages without fluff at all", async () => {
+      await renderPage();
+
+      expect(screen.getByText(/Bold and hardy/)).toBeInTheDocument();
+    });
+
+    /** Fluff's own named sections are art and lore headings, not traits. */
+    it("takes only the prose, leaving fluff's named sections out", async () => {
+      await renderPage({
+        fluff: {
+          entries: [
+            "Flavour from the book.",
+            { type: "entries", name: "Aarakocra Names", entries: ["Krik."] },
+          ],
+        },
+      });
+
+      expect(screen.getByText(/Flavour from the book/)).toBeInTheDocument();
+      expect(screen.queryByText("Aarakocra Names")).not.toBeInTheDocument();
+    });
+  });
+
   describe("the outline", () => {
     it("lists each section of the race's own text", async () => {
       const { container } = await renderPage();
