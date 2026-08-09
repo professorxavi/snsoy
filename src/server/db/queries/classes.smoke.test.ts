@@ -235,7 +235,7 @@ describeDb("class queries against the seed", () => {
   /**
    * A feature composed out of other features resolves them against what the
    * page already holds, with no second query. That only works because every
-   * reference in the corpus points at a feature of the same class — 343 of
+   * reference in the corpus points at a feature of the same class — 334 of
    * them, all resolved from the three lists a class page loads. One that
    * pointed elsewhere would render as nothing, and the feature it names would
    * be gone from the page entirely: referenced features are dropped from the
@@ -265,7 +265,7 @@ describeDb("class queries against the seed", () => {
       references += referenced.size;
     }
 
-    expect(references).toBe(343);
+    expect(references).toBe(334);
   });
 
   /**

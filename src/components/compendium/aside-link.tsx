@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComponentPropsWithRef, MouseEvent, ReactNode } from "react";
+import { ASIDE_OPEN_ATTR } from "@/lib/aside";
 import { useAside } from "./aside-context";
 
 /**
@@ -45,6 +46,7 @@ export function AsideLink({
     // keys off the attribute's presence to tint the row.
     <a
       {...rest}
+      {...{ [ASIDE_OPEN_ATTR]: "" }}
       aria-current={openKey === entityKey ? "true" : undefined}
       onClick={onClick}
     >

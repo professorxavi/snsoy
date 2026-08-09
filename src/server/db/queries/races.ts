@@ -26,7 +26,7 @@ export type RaceListItem = RaceListGroup["races"][number];
 
 /**
  * Orders books by kind rather than publication date. `sources.sortOrder` is
- * chronological, which puts one-race Plane Shift PDFs ahead of the major
+ * chronological, which puts minor one-race releases ahead of the major
  * supplements. `sortOrder` still breaks ties within a rank.
  */
 const GROUP_RANK = sql<number>`

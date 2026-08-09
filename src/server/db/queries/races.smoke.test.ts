@@ -20,8 +20,8 @@ import type * as RaceQueries from "./races";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
-const PLAYABLE = 118;
-const ADDRESSABLE = 134;
+const PLAYABLE = 98;
+const ADDRESSABLE = 114;
 
 describeDb("race queries against the seed", () => {
   let queries: typeof RaceQueries;
@@ -41,7 +41,7 @@ describeDb("race queries against the seed", () => {
       const groups = await queries.listRacesBySource();
       const total = groups.reduce((n, group) => n + group.races.length, 0);
 
-      expect(groups).toHaveLength(28);
+      expect(groups).toHaveLength(22);
       expect(total).toBe(PLAYABLE);
     });
 

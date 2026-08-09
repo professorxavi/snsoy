@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { ROUTE_FALLBACK_ATTR } from "@/components/layout";
 
 /**
  * Shared helpers for the browser tier.
@@ -16,7 +17,7 @@ export const OUTLINE = 'nav[aria-label="On this page"]';
 export const ROWS = "tbody tr";
 
 /**
- * Has React attached to the document?
+ * Has React attached to the document, and is the real page the one attached to?
  *
  * The single most valuable assertion in this tier. Every page in this app is
  * server-rendered, so one that never hydrates looks completely correct — it
@@ -26,17 +27,26 @@ export const ROWS = "tbody tr";
  *
  * Detected by React's own marker on a DOM node rather than by clicking
  * something, so it reports the actual condition instead of a symptom.
+ *
+ * The second half is the route fallback, and it is not a formality. A route
+ * with a `loading.tsx` streams: the fallback is served first as real, hydrated
+ * markup, and the page arrives afterwards inside a hidden block that React
+ * swaps in. React's marker is on the fallback the moment it lands, so waiting
+ * for hydration alone returns while the page proper is still in that block —
+ * present in the DOM, queryable, and measuring zero in every dimension.
  */
 export async function expectHydrated(page: Page) {
   await expect
     .poll(
       () =>
-        page.evaluate(() => {
+        page.evaluate((fallback) => {
+          if (document.querySelector(`[${fallback}]`)) return false;
+
           const nodes = document.querySelectorAll("a[href], button, summary");
           return [...nodes].some((node) =>
             Object.keys(node).some((key) => key.startsWith("__reactProps$")),
           );
-        }),
+        }, ROUTE_FALLBACK_ATTR),
       { message: "page never hydrated", timeout: 20_000 },
     )
     .toBe(true);

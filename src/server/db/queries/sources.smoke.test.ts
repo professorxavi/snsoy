@@ -40,9 +40,9 @@ describeDb("source queries against the seed", () => {
     it("lists every source that has body text", async () => {
       const all = await queries.listSources();
 
-      expect(all).toHaveLength(130);
-      expect(all.filter((source) => !source.isAdventure)).toHaveLength(51);
-      expect(all.filter((source) => source.isAdventure)).toHaveLength(79);
+      expect(all).toHaveLength(117);
+      expect(all.filter((source) => !source.isAdventure)).toHaveLength(45);
+      expect(all.filter((source) => source.isAdventure)).toHaveLength(72);
     });
 
     /**
@@ -190,7 +190,7 @@ describeDb("source queries against the seed", () => {
 
   describe("allChapterParams", () => {
     it("covers every book section", async () => {
-      expect(await queries.allChapterParams()).toHaveLength(1006);
+      expect(await queries.allChapterParams()).toHaveLength(952);
     });
 
     /**

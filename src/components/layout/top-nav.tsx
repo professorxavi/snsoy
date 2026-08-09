@@ -4,6 +4,7 @@ import { Box, Flex } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { ColorModeButton } from "@/components/ui/color-mode";
+import { RouteProgress } from "./route-progress";
 
 /** No Search link: the search box on the right is the only entry point. */
 const LINKS = [
@@ -105,6 +106,10 @@ export function TopNav() {
         color="brand.contrast"
         _hover={{ bg: "whiteAlpha.300" }}
       />
+
+      {/* Rides the bottom edge of the bar. Sticky is a positioned element, so
+          this Flex is already the containing block it needs. */}
+      <RouteProgress />
     </Flex>
   );
 }
