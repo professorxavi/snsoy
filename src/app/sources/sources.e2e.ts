@@ -175,9 +175,13 @@ test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
 
 /**
  * A type with no aside renderer must behave exactly as it did before the
- * wrapper existed. Most of what book text links to is in this state — 15,887
- * monster references alone — and quietly swallowing those clicks would be worse
- * than the navigation they currently perform.
+ * wrapper existed. Much of what book text links to is still in this state —
+ * 4,780 item references alone — and quietly swallowing those clicks would be
+ * worse than the navigation they currently perform.
+ *
+ * This used to cite creatures as the example, which the stat block has since
+ * made openable. The link exercised here has to stay one of the types the aside
+ * genuinely cannot render, or the test passes without asserting anything.
  */
 test("leaves a link it cannot render to navigate as before", async ({
   page,

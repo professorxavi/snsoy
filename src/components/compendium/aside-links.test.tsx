@@ -71,13 +71,32 @@ describe("AsideLinks", () => {
   });
 
   /**
-   * Most of what book text links to has no renderer — 15,887 monster
+   * The largest class of link in the corpus by some way: 15,887 `{@creature}`
+   * tags, more than spells, items and conditions together. Every one of them
+   * navigated to a 404 until the stat block gave the aside something to show.
+   */
+  it("opens a creature in place rather than navigating to it", async () => {
+    const loader = load();
+    renderLinks(loader, <a href="/compendium/monsters/mm/goblin">Goblin</a>);
+
+    const event = await clickAndCapture(screen.getByRole("link"));
+
+    expect(loader).toHaveBeenCalledWith("monster", "mm", "goblin");
+    expect(event?.defaultPrevented).toBe(true);
+  });
+
+  /**
+   * Much of what book text links to still has no renderer — 4,780 item
    * references alone. Those links must behave exactly as they did before this
    * wrapper existed rather than opening an empty panel.
+   *
+   * The example used to be a creature, which was the largest gap of all until
+   * the stat block closed it. Whatever stands here has to be a type genuinely
+   * absent from `ASIDE_TYPES`, or the test passes for the wrong reason.
    */
   it("leaves a type it cannot render alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/monsters/mm/goblin">Goblin</a>);
+    renderLinks(loader, <a href="/compendium/items/dmg/bag-of-holding">Bag of Holding</a>);
 
     const event = await clickAndCapture(screen.getByRole("link"));
 

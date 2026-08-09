@@ -93,6 +93,9 @@ function Segment({
     case "roll":
       return <Roll>{label}</Roll>;
 
+    case "cue":
+      return <Cue>{label}</Cue>;
+
     case "format":
       return (
         <Emphasis kind={FORMAT_TAGS[segment.name as keyof typeof FORMAT_TAGS]}>
@@ -152,6 +155,22 @@ function Roll({ children }: { children: ReactNode }) {
       textDecorationColor="roll.line"
       textUnderlineOffset="2px"
     >
+      {children}
+    </Text>
+  );
+}
+
+/**
+ * "Melee Weapon Attack:", "Hit:" — the labels that structure an attack rather
+ * than form part of its sentence.
+ *
+ * Bold italic and no colour, exactly as the books set them. They are frequent
+ * enough in a stat block that anything louder would stripe the whole panel, and
+ * a reader scanning for the damage line finds it by these.
+ */
+function Cue({ children }: { children: ReactNode }) {
+  return (
+    <Text as="strong" fontStyle="italic" fontWeight="semibold">
       {children}
     </Text>
   );

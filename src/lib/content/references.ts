@@ -76,7 +76,23 @@ const ROLL_TAGS = new Set([
   "chance",
   "recharge",
   "coinflip",
+  "skillCheck",
+  // Not a number at all — it stands in for one the reader supplies. Styled as a
+  // roll because that is what it occupies the place of.
+  "hitYourSpellAttack",
 ]);
+
+/**
+ * Stage directions in an action's text, not part of the sentence: the attack
+ * line a stat block opens with and the "Hit:" that introduces its damage.
+ *
+ * Set apart as a kind of their own because print sets them apart too — bold
+ * italic, mid-paragraph — and because they are the single largest gap in the
+ * renderer: `{@atk}` and `{@h}` occur 11,496 times across the bestiary and
+ * nowhere else, so until now every monster attack rendered two unsupported-tag
+ * markers.
+ */
+const CUE_TAGS = new Set(["atk", "h", "hom"]);
 
 /** Tag name to the HTML emphasis it stands for. */
 export const FORMAT_TAGS = {
@@ -97,10 +113,30 @@ export type FormatKind = (typeof FORMAT_TAGS)[keyof typeof FORMAT_TAGS];
 /**
  * Recognised but not yet actionable. Listed so they stay out of the unknown-tag
  * report, which should only contain genuine gaps.
+ *
+ * `style` and `link` are here as the lesser of two losses rather than because
+ * they are finished. `{@style name|small-caps}` loses its small caps and
+ * `{@link text|url}` loses its URL, but both keep their words — and a sentence
+ * missing a typographic flourish reads better than one interrupted by a red
+ * unsupported-tag marker.
  */
-const PLAIN_TAGS = new Set(["filter", "quickref", "area", "5etools", "footnote"]);
+const PLAIN_TAGS = new Set([
+  "filter",
+  "quickref",
+  "area",
+  "5etools",
+  "footnote",
+  "style",
+  "link",
+]);
 
-export type TagKind = "reference" | "roll" | "format" | "plain" | "unknown";
+export type TagKind =
+  | "reference"
+  | "roll"
+  | "format"
+  | "cue"
+  | "plain"
+  | "unknown";
 
 export function kindOfTag(name: string): TagKind {
   if (name in REFERENCE_TAGS || STRUCTURAL_REFERENCE_TAGS.has(name)) {
@@ -108,6 +144,7 @@ export function kindOfTag(name: string): TagKind {
   }
   if (ROLL_TAGS.has(name)) return "roll";
   if (name in FORMAT_TAGS) return "format";
+  if (CUE_TAGS.has(name)) return "cue";
   if (PLAIN_TAGS.has(name)) return "plain";
   return "unknown";
 }
@@ -345,6 +382,39 @@ const LABEL_PART: Record<string, number> = {
 };
 
 /**
+ * The attack line a stat block's action opens with: `{@atk mw}` is "Melee
+ * Weapon Attack:", `{@atk ms,rs}` is "Melee or Ranged Spell Attack:".
+ *
+ * Built from the codes rather than looked up, because they combine: the first
+ * letter is the reach and the second the kind, and an attack usable both ways
+ * lists two codes that share a kind. Seven combinations occur in the bestiary
+ * and a table of them would be a table of one rule written out.
+ *
+ * A code may name only its reach (`{@atk m}`, four occurrences), in which case
+ * there is no kind to print and the line is just "Melee Attack:".
+ */
+function attackLabel(codes: string): string {
+  const REACH: Record<string, string> = { m: "Melee", r: "Ranged" };
+  const KIND: Record<string, string> = { w: "Weapon", s: "Spell" };
+
+  const parsed = codes
+    .split(",")
+    .map((code) => code.trim().toLowerCase())
+    .filter(Boolean)
+    .map((code) => ({ reach: REACH[code[0]!], kind: KIND[code[1]!] }))
+    .filter((part) => part.reach);
+
+  if (parsed.length === 0) return "Attack:";
+
+  // Deduplicated: "mw,rw" is one weapon attack made two ways, not two attacks.
+  const reaches = [...new Set(parsed.map((part) => part.reach!))];
+  const kinds = [...new Set(parsed.map((part) => part.kind).filter(Boolean))];
+
+  const words = [reaches.join(" or "), ...kinds, "Attack:"];
+  return words.join(" ");
+}
+
+/**
  * The text a tag shows to a reader. Most tags carry an optional display
  * override, as in `{@condition blinded||blind}`.
  */
@@ -384,8 +454,40 @@ export function labelForTag(tag: TagSegment): string {
     case "chance":
       return part(tag, 1) || `${first} percent`;
 
+    /*
+     * Parenthesised, because the corpus writes the tag where the parentheses
+     * go: an action named `Fire Breath {@recharge 5}` is printed "Fire Breath
+     * (Recharge 5–6)".
+     */
     case "recharge":
-      return first ? `Recharge ${first}–6` : "Recharge 6";
+      return first ? `(Recharge ${first}–6)` : "(Recharge 6)";
+
+    case "atk":
+      return attackLabel(first);
+
+    /*
+     * These two carry their trailing space. The corpus writes `{@h}19` with
+     * nothing between the tag and the damage, expecting the tag to supply the
+     * separator — without it the line reads "Hit:19".
+     */
+    case "h":
+      return "Hit: ";
+
+    /** A save that does something either way, so the text follows both. */
+    case "hom":
+      return "Hit or Miss: ";
+
+    // The reader's own number, not one the book can print.
+    case "hitYourSpellAttack":
+      return "your spell attack modifier";
+
+    /** `{@skillCheck animal_handling 5}` — the skill and its bonus, no more. */
+    case "skillCheck": {
+      const [skill = "", bonus = ""] = first.split(/\s+/);
+      const name = skill.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      if (!bonus) return name;
+      return `${name} ${/^[+-]/.test(bonus) ? bonus : `+${bonus}`}`;
+    }
 
     default: {
       const index = LABEL_PART[tag.name] ?? 2;

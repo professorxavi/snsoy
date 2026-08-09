@@ -127,6 +127,98 @@ describe("Inline", () => {
       expect(screen.queryByRole("link")).not.toBeInTheDocument();
       expect(screen.getByText("8d6")).toBeInTheDocument();
     });
+
+    /**
+     * The corpus writes the tag where the parentheses go — an action named
+     * "Fire Breath {@recharge 5}" is printed "Fire Breath (Recharge 5–6)" —
+     * so the tag supplies them.
+     */
+    it("parenthesises a recharge and completes its range", () => {
+      render(<Inline text="Fire Breath {@recharge 5}" />);
+
+      expect(screen.getByText("(Recharge 5–6)")).toBeInTheDocument();
+    });
+
+    it("defaults a bare recharge to a 6", () => {
+      render(<Inline text="Tail Spike {@recharge}" />);
+
+      expect(screen.getByText("(Recharge 6)")).toBeInTheDocument();
+    });
+
+    /** `{@skillCheck animal_handling 5}` packs both values into one part. */
+    it("reads a skill check as its skill and bonus", () => {
+      render(<Inline text="Make a {@skillCheck animal_handling 5} check." />);
+
+      expect(screen.getByText("Animal Handling +5")).toBeInTheDocument();
+    });
+
+    /** A number the book cannot print, because it is the reader's own. */
+    it("stands in for the reader's spell attack modifier", () => {
+      resetCoverage();
+      render(<Inline text="Add {@hitYourSpellAttack} to the roll." />);
+
+      expect(screen.getByText("your spell attack modifier")).toBeInTheDocument();
+      expect(coverageReport()).toEqual([]);
+    });
+  });
+
+  /**
+   * The labels a stat block's actions are built around. Together they are the
+   * most frequent markup in the bestiary — 11,496 occurrences — and every one
+   * of them rendered as an unsupported-tag marker until they were handled.
+   */
+  describe("attack cues", () => {
+    it("expands an attack code into the line print sets", () => {
+      render(<Inline text="{@atk mw} {@hit 14} to hit." />);
+
+      expect(screen.getByText("Melee Weapon Attack:")).toBeInTheDocument();
+    });
+
+    /**
+     * Two codes are one attack usable two ways, not two attacks — so the kind
+     * is said once. Read naively this comes out as "Melee Weapon or Ranged
+     * Weapon Attack".
+     */
+    it("combines two codes into one phrase", () => {
+      render(<Inline text="{@atk mw,rw} to hit." />);
+
+      expect(
+        screen.getByText("Melee or Ranged Weapon Attack:"),
+      ).toBeInTheDocument();
+    });
+
+    it("omits the kind from a code that names only its reach", () => {
+      render(<Inline text="{@atk m} to hit." />);
+
+      expect(screen.getByText("Melee Attack:")).toBeInTheDocument();
+    });
+
+    it("names the spell attacks", () => {
+      render(<Inline text="{@atk ms,rs} to hit." />);
+
+      expect(
+        screen.getByText("Melee or Ranged Spell Attack:"),
+      ).toBeInTheDocument();
+    });
+
+    /**
+     * The corpus writes `{@h}19` with nothing between the tag and the number,
+     * so the separator has to come from the tag or the line reads "Hit:19".
+     */
+    it("introduces the damage, separator included", () => {
+      resetCoverage();
+      const { container } = render(<Inline text="{@h}19 piercing damage." />);
+
+      expect(screen.getByText("Hit:")).toBeInTheDocument();
+      expect(container.textContent).toBe("Hit: 19 piercing damage.");
+      expect(coverageReport()).toEqual([]);
+    });
+
+    it("introduces damage that lands either way", () => {
+      render(<Inline text="{@hom}10 fire damage." />);
+
+      expect(screen.getByText("Hit or Miss:")).toBeInTheDocument();
+    });
   });
 
   describe("gaps", () => {

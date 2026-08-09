@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { ConditionAside } from "@/components/compendium/condition-aside";
+import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
@@ -13,6 +14,7 @@ import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
 import { getCondition } from "@/server/db/queries/conditions";
+import { getMonster } from "@/server/db/queries/monsters";
 import { getRace } from "@/server/db/queries/races";
 import { resolveReferences } from "@/server/db/queries/references";
 import { getSkill } from "@/server/db/queries/skills";
@@ -54,6 +56,8 @@ export async function openEntityAside(
       return skillAside(source, slug);
     case "condition":
       return conditionAside(source, slug);
+    case "monster":
+      return monsterAside(source, slug);
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -137,6 +141,29 @@ async function conditionAside(source: string, slug: string): Promise<ReactNode> 
   const refs = await resolveReferences(collectReferences(condition.data));
 
   return <ConditionAside condition={condition} refs={refs} />;
+}
+
+/**
+ * A creature, in full. Like a skill or a condition it has no page behind it, so
+ * this is not a preview of anywhere — it is the stat block itself.
+ *
+ * The largest thing the aside answers for, and the reason it was worth
+ * building: 15,887 `{@creature}` tags point into the reader, more than spells,
+ * items and conditions together, and every one of them was a dead link until
+ * this case existed.
+ */
+async function monsterAside(source: string, slug: string): Promise<ReactNode> {
+  const monster = await getMonster(source, slug);
+  if (!monster) return <AsideMessage>No such creature.</AsideMessage>;
+
+  /*
+   * `data` only. A creature's fluff is its lore and its artwork, neither of
+   * which the stat block prints — resolving it would mean a second blob and its
+   * references for text that never renders.
+   */
+  const refs = await resolveReferences(collectReferences(monster.data));
+
+  return <MonsterStatblock monster={monster} refs={refs} />;
 }
 
 /**

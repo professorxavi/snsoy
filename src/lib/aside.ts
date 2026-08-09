@@ -24,10 +24,13 @@ export function asideKey(
 /**
  * The types the aside can render. Everything else keeps navigating.
  *
- * Most of what book text links to has no page and no renderer yet — 15,887
- * monster references alone — and those links are already broken. Adding a type
- * here is what makes them work, one renderer at a time, and it must stay in
- * step with the switch in `openEntityAside`.
+ * Much of what book text links to still has no page and no renderer, and those
+ * links are broken today — 4,780 item references are the largest remaining
+ * block. Adding a type here is what makes them work, one renderer at a time,
+ * and it must stay in step with the switch in `openEntityAside`.
+ *
+ * Creatures were the big one at 15,887 references, more than spells, items and
+ * conditions together, and joined the list with the stat block renderer.
  */
 export const ASIDE_TYPES = new Set<BrowsableType>([
   "spell",
@@ -35,6 +38,7 @@ export const ASIDE_TYPES = new Set<BrowsableType>([
   "race",
   "skill",
   "condition",
+  "monster",
 ]);
 
 /**

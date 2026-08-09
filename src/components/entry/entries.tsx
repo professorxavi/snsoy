@@ -9,6 +9,7 @@ import {
 } from "@/lib/content/classes";
 import { abilityPhrase } from "@/lib/content/dnd";
 import type { ImageEntry } from "@/lib/content/media";
+import { spellFrequencyLabel, spellLevelLabel } from "@/lib/content/monsters";
 import {
   optionalFeatureKey,
   type OptionalFeatureBody,
@@ -41,6 +42,7 @@ import {
   type RefOptionalFeatureEntry,
   type RowEntry,
   type SectionEntry,
+  type SpellcastingEntry,
   type StatblockEntry,
   type TableEntry,
   type TableGroupEntry,
@@ -143,6 +145,18 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "inset":
     case "insetReadaloud":
       return <InsetBlock entry={entry as InsetEntry} ctx={ctx} />;
+
+    case "variant":
+      return <InsetBlock entry={entry as InsetEntry} ctx={ctx} />;
+
+    // Named subdivisions of a variant. Already inside its box, so they are
+    // headings rather than boxes of their own.
+    case "variantInner":
+    case "variantSub":
+      return <SubSection entry={entry as EntriesEntry} ctx={ctx} />;
+
+    case "spellcasting":
+      return <SpellcastingBlock entry={entry as SpellcastingEntry} ctx={ctx} />;
 
     case "image":
       return <ImageBlock entry={entry as ImageEntry} ctx={ctx} />;
@@ -826,6 +840,141 @@ function QuoteBlock({ entry, ctx }: { entry: QuoteEntry; ctx: RenderContext }) {
           &mdash; {inline(entry.by, ctx)}
           {entry.from ? `, ${entry.from}` : null}
         </Text>
+      ) : null}
+    </Box>
+  );
+}
+
+/**
+ * A creature's spellcasting, which the corpus stores as structure rather than
+ * as the sentence the book prints.
+ *
+ * Rendered as the trait it is: the name run in bold, the header sentence that
+ * states the ability and save DC, then a line per group of spells. The groups
+ * are not free text — "1/day each" is the key `"1e"` — so they are built here
+ * rather than being read out of the data.
+ *
+ * `hidden` is honoured. Fifty-seven blocks list a group there because something
+ * else already prints it, usually an action that spells out the same casting,
+ * and printing it in both places is how a creature ends up appearing to cast
+ * the spell twice.
+ */
+function SpellcastingBlock({
+  entry,
+  ctx,
+}: {
+  entry: SpellcastingEntry;
+  ctx: RenderContext;
+}) {
+  const hidden = new Set(entry.hidden ?? []);
+
+  /** The recovery each keyed group counts against, in printed order. */
+  const KEYED_GROUPS = [
+    ["rest", "rest"],
+    ["daily", "day"],
+    ["weekly", "week"],
+    ["yearly", "year"],
+    ["charges", "charges"],
+    ["recharge", "recharge"],
+  ] as const;
+
+  const lines: { label: string; spells: Entry[] }[] = [];
+
+  if (entry.will?.length && !hidden.has("will")) {
+    lines.push({ label: "At will", spells: entry.will });
+  }
+
+  for (const [group, period] of KEYED_GROUPS) {
+    const values = entry[group];
+    if (!values || hidden.has(group)) continue;
+
+    // Descending, so the rarest castings are read first, as in print.
+    for (const key of Object.keys(values).sort().reverse()) {
+      const spells = values[key];
+      if (spells?.length) {
+        lines.push({ label: spellFrequencyLabel(key, period), spells });
+      }
+    }
+  }
+
+  if (entry.ritual?.length && !hidden.has("ritual")) {
+    lines.push({ label: "Rituals", spells: entry.ritual });
+  }
+
+  if (entry.spells && !hidden.has("spells")) {
+    for (const level of Object.keys(entry.spells).sort()) {
+      const slot = entry.spells[level];
+      if (slot?.spells?.length) {
+        lines.push({
+          label: spellLevelLabel(level, slot.slots),
+          spells: slot.spells,
+        });
+      }
+    }
+  }
+
+  return (
+    <Box>
+      {entry.name ? (
+        <Text as="span" fontFamily="body" fontWeight="semibold">
+          {inline(entry.name, ctx)}{" "}
+        </Text>
+      ) : null}
+
+      {/* Inline with the name, so the trait opens as one sentence. */}
+      {entry.headerEntries?.length ? (
+        <Text
+          as="span"
+          className="prose"
+          fontFamily="body"
+          lineHeight="1.65"
+        >
+          {entry.headerEntries.map((child, index) =>
+            typeof child === "string" || typeof child === "number" ? (
+              <Box as="span" key={index}>
+                {inline(String(child), ctx)}
+              </Box>
+            ) : (
+              <EntryNode key={index} entry={child} {...ctx} />
+            ),
+          )}
+        </Text>
+      ) : null}
+
+      {lines.length ? (
+        <Stack gap="0.5" mt="1.5" pl="4">
+          {lines.map((line, index) => (
+            <Text
+              key={index}
+              className="prose"
+              fontFamily="body"
+              fontSize="sm"
+              lineHeight="1.6"
+              textIndent="-1rem"
+              pl="4"
+            >
+              <Text as="span" fontWeight="semibold">
+                {line.label}:
+              </Text>{" "}
+              {line.spells.map((spell, spellIndex) => (
+                <Box as="span" key={spellIndex}>
+                  {spellIndex > 0 ? ", " : null}
+                  {typeof spell === "string" || typeof spell === "number" ? (
+                    inline(String(spell), ctx)
+                  ) : (
+                    <EntryNode entry={spell} {...ctx} />
+                  )}
+                </Box>
+              ))}
+            </Text>
+          ))}
+        </Stack>
+      ) : null}
+
+      {entry.footerEntries?.length ? (
+        <Box mt="1.5">
+          <Entries entries={entry.footerEntries} {...ctx} />
+        </Box>
       ) : null}
     </Box>
   );

@@ -114,6 +114,54 @@ export interface InsetEntry {
 }
 
 /**
+ * An optional rule attached to a stat block — "Variant: Chain Devils Are
+ * Reborn", the dragon-customising insets. Boxed like a sidebar, because that is
+ * what it is: something the DM may adopt, not part of the creature as printed.
+ *
+ * `variantInner` and `variantSub` are its named subdivisions, three of each in
+ * the whole corpus.
+ */
+export interface VariantEntry {
+  type: "variant" | "variantInner" | "variantSub";
+  name?: string;
+  entries?: Entry[];
+}
+
+/**
+ * A creature's spellcasting, which the corpus stores as structure rather than
+ * prose: prepared spells by level with their slot counts, innate spells by how
+ * often they may be cast.
+ *
+ * The groups are keyed by frequency (`will`) or by a count with an optional
+ * `e` suffix — `daily: {"1e": [...]}` is "1/day each", `{"2": [...]}` is
+ * "2/day". `spells` is keyed by spell level instead, and level 0 is cantrips.
+ *
+ * `displayAs` decides where the block belongs: a stat block prints most
+ * spellcasting among its traits, but 473 of these say `"action"` and belong
+ * under Actions with the attacks.
+ */
+export interface SpellcastingEntry {
+  type: "spellcasting";
+  name?: string;
+  headerEntries?: Entry[];
+  footerEntries?: Entry[];
+  /** Spell name tags, e.g. `{@spell fireball}`. */
+  will?: Entry[];
+  daily?: Record<string, Entry[]>;
+  rest?: Record<string, Entry[]>;
+  weekly?: Record<string, Entry[]>;
+  yearly?: Record<string, Entry[]>;
+  charges?: Record<string, Entry[]>;
+  recharge?: Record<string, Entry[]>;
+  ritual?: Entry[];
+  spells?: Record<string, { slots?: number; spells?: Entry[]; lower?: number }>;
+  /** Group names the header already accounts for, so they are not printed twice. */
+  hidden?: string[];
+  ability?: string;
+  displayAs?: string;
+}
+
+/**
  * A headed division of a chapter — the structural level above `entries`. A
  * chapter's own body is one of these: 996 of 1,006 sections have `type:
  * "section"` at the root, and 620 divide into further sections inside it.
@@ -164,6 +212,8 @@ export type EntryObject =
   | RefOptionalFeatureEntry
   | QuoteEntry
   | InsetEntry
+  | VariantEntry
+  | SpellcastingEntry
   | SectionEntry
   | GalleryEntry
   | HrEntry

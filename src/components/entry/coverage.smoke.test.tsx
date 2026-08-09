@@ -37,8 +37,6 @@ const KNOWN_ENTRY_GAPS = [
   "abilityGeneric",
   "flowchart",
   "inlineBlock",
-  "spellcasting",
-  "variantInner",
 ] as const;
 
 /**
@@ -51,7 +49,6 @@ const KNOWN_TAG_GAPS = [
   "5etoolsAudio",
   "5etoolsImg",
   "ability",
-  "atk",
   "color",
   "comic",
   "comicH1",
@@ -60,13 +57,8 @@ const KNOWN_TAG_GAPS = [
   "comicH4",
   "comicNote",
   "crochet",
-  "h",
-  "hom",
   "itemProperty",
-  "link",
   "savingThrow",
-  "skillCheck",
-  "style",
   "vehupgrade",
 ] as const;
 
