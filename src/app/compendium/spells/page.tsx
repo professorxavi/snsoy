@@ -22,6 +22,7 @@ import {
   type SpellFilters as SpellFilterValues,
   type SpellSort,
 } from "@/server/db/queries/spells";
+import { openSpellAside } from "./actions";
 
 export const metadata: Metadata = {
   title: "Spells",
@@ -65,7 +66,7 @@ export default async function SpellsPage({
           filtered={hasFilters(params, FILTER_KEYS)}
           basePath={BASE}
         />
-        <SpellTable rows={list.rows} params={params} />
+        <SpellTable rows={list.rows} params={params} open={openSpellAside} />
         <Pager
           params={params}
           page={list.page}

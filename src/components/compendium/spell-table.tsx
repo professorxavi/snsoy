@@ -1,6 +1,7 @@
 import { Box, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
+import { AsideLink } from "@/components/compendium/aside-link";
 import {
   componentLetters,
   formatCastingTime,
@@ -18,17 +19,22 @@ import type { SpellRow, SpellSort } from "@/server/db/queries/spells";
  *
  * Columns marked `optional` drop out when the aside opens, which leaves the
  * table around 500px.
+ *
+ * Stays a server component. Only the name in each row is a client component,
+ * and `open` is bound to each row here rather than imported — a shared
+ * component has no business importing a route's action, and doing so would drag
+ * the database client into every test that renders a table.
  */
 
 export function SpellTable({
   rows,
   params,
-  selectedSlug,
+  open,
 }: {
   rows: SpellRow[];
   params: QueryParams;
-  /** Slug of the spell currently open, so its row reads as selected. */
-  selectedSlug?: string;
+  /** Renders one spell for the aside. The route supplies its server function. */
+  open: (source: string, slug: string) => Promise<ReactNode>;
 }) {
   if (rows.length === 0) return <EmptyState />;
 
@@ -55,11 +61,7 @@ export function SpellTable({
 
         <Table.Body>
           {rows.map((row) => (
-            <SpellRowView
-              key={row.id}
-              row={row}
-              selected={row.slug === selectedSlug}
-            />
+            <SpellRowView key={row.id} row={row} open={open} />
           ))}
         </Table.Body>
       </Table.Root>
@@ -67,7 +69,13 @@ export function SpellTable({
   );
 }
 
-function SpellRowView({ row, selected }: { row: SpellRow; selected: boolean }) {
+function SpellRowView({
+  row,
+  open,
+}: {
+  row: SpellRow;
+  open: (source: string, slug: string) => Promise<ReactNode>;
+}) {
   const href = hrefFor({
     entityType: "spell",
     sourceId: row.sourceId,
@@ -75,16 +83,16 @@ function SpellRowView({ row, selected }: { row: SpellRow; selected: boolean }) {
   });
 
   return (
-    <Table.Row
-      position="relative"
-      bg={selected ? "brand.subtle" : undefined}
-      aria-current={selected ? "true" : undefined}
-    >
+    <Table.Row position="relative">
       <Cell fontWeight="medium">
         {/*
           One anchor stretched over the whole row by a pseudo-element, rather
           than a link per cell — nine identical links per row is unusable with a
           keyboard or screen reader.
+
+          The row's tint follows the anchor's `aria-current` through a `:has()`
+          rule in `BrowseFrame`, so the selection needs no prop and this stays a
+          server component.
         */}
         <Box
           asChild
@@ -92,9 +100,13 @@ function SpellRowView({ row, selected }: { row: SpellRow; selected: boolean }) {
           _after={{ content: '""', position: "absolute", inset: 0 }}
           _hover={{ color: "brand" }}
         >
-          <NextLink href={href ?? "#"} scroll={false}>
+          <AsideLink
+            href={href ?? "#"}
+            entityKey={row.slug}
+            load={open.bind(null, row.sourceId, row.slug)}
+          >
             {row.name}
-          </NextLink>
+          </AsideLink>
         </Box>
         {row.isConcentration ? <Marker title="Concentration">C</Marker> : null}
         {row.isRitual ? <Marker title="Ritual">R</Marker> : null}

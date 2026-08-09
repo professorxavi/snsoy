@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@/test/render";
+import type { ReactElement } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, userEvent, within } from "@/test/render";
 import type { SpellRow } from "@/server/db/queries/spells";
+import { AsideProvider } from "./aside-context";
 import { SpellTable } from "./spell-table";
 
 /**
@@ -12,6 +14,18 @@ import { SpellTable } from "./spell-table";
  * covered where the formatters live — what is asserted below is that the table
  * reaches for the right one.
  */
+
+/**
+ * Stands in for `openSpellAside`. The real one is a server function whose
+ * module opens a database connection at import time, which has no place in a
+ * jsdom test — which is why the table takes it as a prop rather than importing
+ * it.
+ */
+const stubOpen = () => vi.fn(async () => null);
+
+/** A row can only reach the aside from inside its provider. */
+const renderTable = (ui: ReactElement) =>
+  render(<AsideProvider>{ui}</AsideProvider>);
 
 const row = (over: Partial<SpellRow> = {}): SpellRow =>
   ({
@@ -36,10 +50,11 @@ const bodyRows = () =>
 
 describe("the spell table", () => {
   it("renders a row per spell", () => {
-    render(
+    renderTable(
       <SpellTable
         rows={[row(), row({ id: "2", name: "Light", slug: "light" })]}
         params={{}}
+        open={stubOpen()}
       />,
     );
 
@@ -51,7 +66,7 @@ describe("the spell table", () => {
    * reader, so the whole row is one anchor stretched by a pseudo-element.
    */
   it("gives a row exactly one link, pointing at the spell", () => {
-    render(<SpellTable rows={[row()]} params={{}} />);
+    renderTable(<SpellTable rows={[row()]} params={{}} open={stubOpen()} />);
 
     const links = within(bodyRows()[0]!).getAllByRole("link");
 
@@ -65,13 +80,17 @@ describe("the spell table", () => {
 
   describe("the level column", () => {
     it("writes a cantrip as C rather than 0", () => {
-      render(<SpellTable rows={[row({ level: 0 })]} params={{}} />);
+      renderTable(
+        <SpellTable rows={[row({ level: 0 })]} params={{}} open={stubOpen()} />,
+      );
 
       expect(within(bodyRows()[0]!).getByText("C")).toBeInTheDocument();
     });
 
     it("writes every other level as its number", () => {
-      render(<SpellTable rows={[row({ level: 9 })]} params={{}} />);
+      renderTable(
+        <SpellTable rows={[row({ level: 9 })]} params={{}} open={stubOpen()} />,
+      );
 
       expect(within(bodyRows()[0]!).getByText("9")).toBeInTheDocument();
     });
@@ -79,10 +98,11 @@ describe("the spell table", () => {
 
   describe("markers beside the name", () => {
     it("flags concentration and ritual, spelled out for a reader", () => {
-      render(
+      renderTable(
         <SpellTable
           rows={[row({ isConcentration: true, isRitual: true })]}
           params={{}}
+          open={stubOpen()}
         />,
       );
 
@@ -92,7 +112,7 @@ describe("the spell table", () => {
     });
 
     it("leaves them off a spell that needs neither", () => {
-      render(<SpellTable rows={[row()]} params={{}} />);
+      renderTable(<SpellTable rows={[row()]} params={{}} open={stubOpen()} />);
 
       expect(screen.queryByTitle("Concentration")).not.toBeInTheDocument();
       expect(screen.queryByTitle("Ritual")).not.toBeInTheDocument();
@@ -103,10 +123,11 @@ describe("the spell table", () => {
      * reasons. Only the marker carries a title, which is what tells them apart.
      */
     it("does not confuse a cantrip's C with a concentration C", () => {
-      render(
+      renderTable(
         <SpellTable
           rows={[row({ level: 0, isConcentration: true })]}
           params={{}}
+          open={stubOpen()}
         />,
       );
 
@@ -118,7 +139,13 @@ describe("the spell table", () => {
 
   describe("sorting", () => {
     it("marks the sorted column and offers the other", () => {
-      render(<SpellTable rows={[row()]} params={{ sort: "level" }} />);
+      renderTable(
+        <SpellTable
+          rows={[row()]}
+          params={{ sort: "level" }}
+          open={stubOpen()}
+        />,
+      );
 
       const lvl = screen.getByRole("columnheader", { name: /Lvl/ });
       const name = screen.getByRole("columnheader", { name: /Name/ });
@@ -129,7 +156,7 @@ describe("the spell table", () => {
 
     /** No `sort` in the URL means name order, so Name is the marked column. */
     it("treats name as the default", () => {
-      render(<SpellTable rows={[row()]} params={{}} />);
+      renderTable(<SpellTable rows={[row()]} params={{}} open={stubOpen()} />);
 
       expect(
         screen.getByRole("columnheader", { name: /Name/ }),
@@ -137,7 +164,13 @@ describe("the spell table", () => {
     });
 
     it("links each sortable header to its own sort, keeping the filters", () => {
-      render(<SpellTable rows={[row()]} params={{ level: "3" }} />);
+      renderTable(
+        <SpellTable
+          rows={[row()]}
+          params={{ level: "3" }}
+          open={stubOpen()}
+        />,
+      );
 
       expect(
         within(screen.getByRole("columnheader", { name: /Lvl/ })).getByRole(
@@ -152,7 +185,7 @@ describe("the spell table", () => {
    * browser's problem; that the right columns are marked is this table's.
    */
   it("marks the columns that drop out when the aside opens", () => {
-    render(<SpellTable rows={[row()]} params={{}} />);
+    renderTable(<SpellTable rows={[row()]} params={{}} open={stubOpen()} />);
 
     const optional = [
       ...document.querySelectorAll("thead [data-col-optional]"),
@@ -161,23 +194,70 @@ describe("the spell table", () => {
     expect(optional).toEqual(["Components", "Duration", "Classes"]);
   });
 
-  it("marks the open spell's row as current", () => {
-    render(
-      <SpellTable
-        rows={[row(), row({ id: "2", name: "Light", slug: "light" })]}
-        params={{}}
-        selectedSlug="light"
-      />,
-    );
+  describe("opening a spell", () => {
+    /**
+     * The click must not navigate. The row's anchor still points at the spell's
+     * own page — that is what makes ⌘-click and "copy link address" work — so
+     * the only thing standing between a click and a full page load is the
+     * handler cancelling it.
+     */
+    it("loads the spell instead of following the link", async () => {
+      const open = stubOpen();
+      renderTable(<SpellTable rows={[row()]} params={{}} open={open} />);
 
-    expect(bodyRows()[0]).not.toHaveAttribute("aria-current");
-    expect(bodyRows()[1]).toHaveAttribute("aria-current", "true");
+      const link = within(bodyRows()[0]!).getByRole("link");
+      const event = await clickAndCapture(link);
+
+      expect(open).toHaveBeenCalledWith("PHB", "fireball");
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    /**
+     * The frame tints the open row through a `:has()` rule keyed on this
+     * attribute, so its absence on the others is half the assertion.
+     */
+    it("marks only the open spell's link as current", async () => {
+      renderTable(
+        <SpellTable
+          rows={[row(), row({ id: "2", name: "Light", slug: "light" })]}
+          params={{}}
+          open={stubOpen()}
+        />,
+      );
+
+      const links = screen.getAllByRole("link", { name: /Fireball|Light/ });
+      await userEvent.click(links[1]!);
+
+      expect(links[0]).not.toHaveAttribute("aria-current");
+      expect(links[1]).toHaveAttribute("aria-current", "true");
+    });
   });
 
   it("says so when nothing matched, rather than showing an empty table", () => {
-    render(<SpellTable rows={[]} params={{}} />);
+    renderTable(<SpellTable rows={[]} params={{}} open={stubOpen()} />);
 
     expect(screen.getByText(/No spells match/i)).toBeInTheDocument();
     expect(document.querySelector("table")).toBeNull();
   });
 });
+
+/**
+ * Clicks and hands back the event, so a test can ask whether the default was
+ * cancelled. Testing Library's click does not surface the event itself.
+ */
+async function clickAndCapture(element: HTMLElement): Promise<MouseEvent> {
+  let captured: MouseEvent | undefined;
+  const listen = (event: Event) => {
+    captured = event as MouseEvent;
+  };
+
+  document.addEventListener("click", listen);
+  try {
+    await userEvent.click(element);
+  } finally {
+    document.removeEventListener("click", listen);
+  }
+
+  if (!captured) throw new Error("no click event reached the document");
+  return captured;
+}

@@ -5,12 +5,11 @@ import { BELOW_TOPBAR, TOPBAR } from "./constants";
 /**
  * The compendium browse layout: filter rail, table, and the entity aside.
  *
- * The aside is a parallel-route slot filled by an intercepting route, not a
- * prop, so opening an entity changes the URL without unmounting the list.
- *
- * The frame and the rail live in different subtrees (the layout owns the slot,
- * the page owns the rail), so they coordinate through CSS `:has()` rather than
- * shared state. Nothing to keep in sync on a back navigation.
+ * The frame, the rail and the aside all live in different subtrees — the layout
+ * owns the aside, the page owns the rail, the table owns its rows — so they
+ * coordinate through CSS `:has()` rather than shared state. The frame reacts to
+ * the aside's presence, and the aside's own link marks the open row; neither
+ * needs a prop threaded through the tree to reach the other.
  */
 
 /** Lets `:has()` tell a filled aside from an empty one. */
@@ -20,7 +19,7 @@ export function BrowseFrame({
   aside,
   children,
 }: {
-  /** The `@aside` slot. Empty when no entity is open. */
+  /** The aside. Renders nothing when no entity is open. */
   aside: ReactNode;
   children: ReactNode;
 }) {
@@ -53,6 +52,12 @@ export function BrowseFrame({
         [`&:has([${ASIDE_CONTENT_ATTR}]) [data-col-optional]`]: {
           display: "none",
         },
+
+        /* The open row, marked by its own link rather than by a prop on the
+           table — which is what keeps the table a server component. */
+        '& tbody tr:has(a[aria-current="true"])': {
+          background: "var(--chakra-colors-brand-subtle)",
+        },
       }}
     >
       <Box minW="0">{children}</Box>
@@ -62,9 +67,8 @@ export function BrowseFrame({
 }
 
 /**
- * The aside's shell, rendered by the intercepting route. A sticky column on
- * desktop, scrolling independently of the list; a full-height sheet on mobile,
- * where 400px is most of the viewport.
+ * The aside's shell. A sticky column on desktop, scrolling independently of the
+ * list; a full-height sheet on mobile, where 400px is most of the viewport.
  */
 export function BrowseAside({ children }: { children: ReactNode }) {
   return (

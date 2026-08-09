@@ -9,19 +9,23 @@ import {
 } from "@/test/e2e-helpers";
 
 /**
- * The intercepting aside.
+ * The browse aside.
  *
  * This is the product's central interaction and the only part of it that no
- * cheaper tier can see. Clicking a row opens the spell over the list without
- * unmounting it — the URL changes, the list keeps its scroll position and its
- * filters, and back closes the aside rather than leaving the page. Whether the
- * list actually survived is a runtime fact about a parallel route; it is not in
- * the markup, and rendering the component in isolation cannot produce it.
+ * cheaper tier can see. Clicking a row calls a server function and drops the
+ * spell it renders into the panel beside the list — the list is never
+ * unmounted, so scroll position and filters survive, and the URL never moves,
+ * so the history stack is left alone.
  *
- * Deliberately four tests. Filtering, paging, sorting and the table's contents
+ * That last part is the reason this stopped being an intercepting route. Under
+ * the old design every open pushed an entry, so reading five spells took five
+ * back presses to escape and "close" re-opened the fourth. The history test
+ * below is the regression guard for exactly that.
+ *
+ * Deliberately few tests. Filtering, paging, sorting and the table's contents
  * are all asserted where they are cheap — the filter hrefs in the component
- * tests, the narrowing in the query smoke test — and repeating any of that
- * here would buy nothing but minutes.
+ * tests, the narrowing in the query smoke test — and repeating any of that here
+ * would buy nothing but minutes.
  */
 
 const SPELLS = "/compendium/spells";
@@ -43,17 +47,21 @@ test("opens a spell over the list without unmounting it", async ({ page }) => {
   await page.locator(`${ROWS} a`).first().click();
 
   await expect(page.locator(ASIDE)).toBeVisible();
-  await expect(page).toHaveURL(/\/compendium\/spells\/[^/]+\/[^/]+$/);
   await expect(page.locator("tbody[data-witness]")).toHaveCount(1);
   await expect(page.locator(ROWS)).toHaveCount(before);
+
+  // The spell arrives as rendered markup from the server, not as a client
+  // render of fetched JSON, so the panel carries its own heading.
+  await expect(page.locator(`${ASIDE} h1`)).toBeVisible();
 });
 
 /**
- * The route-map invariant at runtime: the URL the aside puts in the bar is the
- * spell's own, shareable and free of the list's state — while the list beneath
- * keeps that state.
+ * The URL is the list's, and stays the list's. The spell is reachable at its
+ * own address — that route still exists and every `{@spell}` tag resolves to
+ * it — but reading one in the aside is not a navigation and must not look like
+ * one to the browser.
  */
-test("gives the aside the spell's canonical URL, over the filtered list", async ({
+test("leaves the list's URL and filters alone while a spell is open", async ({
   page,
 }) => {
   await page.goto(NINTH_LEVEL);
@@ -63,11 +71,32 @@ test("gives the aside the spell's canonical URL, over the filtered list", async 
   await page.locator(`${ROWS} a`).first().click();
   await expect(page.locator(ASIDE)).toBeVisible();
 
-  expect(new URL(page.url()).search).toBe("");
+  await expect(page).toHaveURL(new RegExp(`${SPELLS}\\?level=9$`));
   await expect(page.locator(ROWS)).toHaveCount(filtered);
 });
 
-test("closes on back, with the filtered list intact", async ({ page }) => {
+/**
+ * The bug that caused the rewrite. Reading several spells used to push an entry
+ * each, burying the list under its own history.
+ */
+test("adds no history however many spells are read", async ({ page }) => {
+  await page.goto(SPELLS);
+  await expectHydrated(page);
+
+  const depth = () => page.evaluate(() => history.length);
+  const before = await depth();
+
+  for (const index of [0, 1, 2]) {
+    await page.locator(`${ROWS} a`).nth(index).click();
+    await expect(page.locator(`${ASIDE} h1`)).toBeVisible();
+  }
+
+  expect(await depth()).toBe(before);
+});
+
+test("closes on Escape and on the close button, list intact", async ({
+  page,
+}) => {
   await page.goto(NINTH_LEVEL);
   await expectHydrated(page);
   const filtered = await page.locator(ROWS).count();
@@ -75,11 +104,76 @@ test("closes on back, with the filtered list intact", async ({ page }) => {
   await page.locator(`${ROWS} a`).first().click();
   await expect(page.locator(ASIDE)).toBeVisible();
 
-  await page.goBack();
-
+  await page.keyboard.press("Escape");
   await expect(page.locator(ASIDE)).toHaveCount(0);
-  expect(new URL(page.url()).search).toBe("?level=9");
+
+  await page.locator(`${ROWS} a`).first().click();
+  await expect(page.locator(ASIDE)).toBeVisible();
+
+  await page.getByRole("button", { name: /close/i }).click();
+  await expect(page.locator(ASIDE)).toHaveCount(0);
+
+  await expect(page).toHaveURL(new RegExp(`${SPELLS}\\?level=9$`));
   await expect(page.locator(ROWS)).toHaveCount(filtered);
+});
+
+/**
+ * Browsing is a scrolling task, and an open that jumps the list back to the top
+ * loses the reader's place. Under the intercepting route this took a
+ * `scroll={false}` on every row link to hold; now that opening is not a
+ * navigation there is nothing to reset it, which is worth pinning down.
+ */
+test("holds the list's scroll position when a spell opens", async ({
+  page,
+}) => {
+  await page.goto(SPELLS);
+  await expectHydrated(page);
+
+  await page.evaluate(() => window.scrollTo(0, 600));
+  const before = await page.evaluate(() => window.scrollY);
+
+  // Clicked in the page: Playwright would scroll the row into view first and
+  // so measure its own scrolling rather than the product's.
+  await page.evaluate(() => {
+    const row = document.querySelectorAll<HTMLElement>(`tbody tr a`)[4];
+    row?.click();
+  });
+  await expect(page.locator(`${ASIDE} h1`)).toBeVisible();
+
+  expect(await page.evaluate(() => window.scrollY)).toBe(before);
+});
+
+/**
+ * The section's layout is shared with each spell's own page, so the provider
+ * holding the aside survives a navigation onto one. Without an explicit close
+ * the full page arrives with the same spell still stacked beside it — which is
+ * what the intercepting route's `default.tsx` used to prevent for free.
+ */
+test("closes when navigating out to the full page", async ({ page }) => {
+  await page.goto(SPELLS);
+  await expectHydrated(page);
+
+  await page.locator(`${ROWS} a`).first().click();
+  await expect(page.locator(`${ASIDE} h1`)).toBeVisible();
+
+  await page.getByRole("link", { name: /open full page/i }).click();
+
+  await expect(page).toHaveURL(/\/compendium\/spells\/[^/]+\/[^/]+$/);
+  await expect(page.locator(ASIDE)).toHaveCount(0);
+  await expect(page.locator("h1")).toBeVisible();
+});
+
+/** The open row is tinted through `:has()`, which only a browser resolves. */
+test("marks the open row as current", async ({ page }) => {
+  await page.goto(SPELLS);
+  await expectHydrated(page);
+
+  const second = page.locator(`${ROWS} a`).nth(1);
+  await second.click();
+  await expect(page.locator(ASIDE)).toBeVisible();
+
+  await expect(second).toHaveAttribute("aria-current", "true");
+  await expect(page.locator(`${ROWS} a[aria-current]`)).toHaveCount(1);
 });
 
 /**
