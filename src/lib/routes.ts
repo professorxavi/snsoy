@@ -35,7 +35,6 @@ const SEGMENTS = {
   hazard: "hazards",
   language: "languages",
   object: "objects",
-  psionic: "psionics",
   recipe: "recipes",
   reward: "rewards",
   sense: "senses",
@@ -69,8 +68,16 @@ const FRAGMENT_TYPES = new Set<EntityType>([
   "subclassFeature",
 ]);
 
-/** Types no entity ever has: variants are expanded into `item` at ingest. */
-const UNROUTED = new Set<EntityType>(["magicvariant", "raceFeature"]);
+/**
+ * Types no entity ever has. Variants are expanded into `item` at ingest, and
+ * every psionic in the corpus belonged to the Mystic — playtest material, which
+ * this database does not carry.
+ */
+const UNROUTED = new Set<EntityType>([
+  "magicvariant",
+  "raceFeature",
+  "psionic",
+]);
 
 export function isBrowsable(type: EntityType): type is BrowsableType {
   return type in SEGMENTS;

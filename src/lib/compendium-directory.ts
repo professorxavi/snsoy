@@ -187,11 +187,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         blurb: "Blessings, charms and supernatural favours.",
       },
       {
-        type: "psionic",
-        label: "Psionics",
-        blurb: "Disciplines and talents for the mind.",
-      },
-      {
         type: "recipe",
         label: "Recipes",
         blurb: "Food and drink, with what they do.",

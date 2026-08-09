@@ -254,7 +254,6 @@ const GROUP_LABELS: Record<string, string> = {
   optionalfeature: "Options",
   bookSection: "Chapters",
   deity: "Deities",
-  psionic: "Psionics",
   variantrule: "Rules",
   condition: "Conditions",
   reward: "Rewards",
