@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  ASIDE,
   OUTLINE,
   expectHydrated,
   isDisclosureOpen,
@@ -95,4 +96,66 @@ test("keeps the outline sticky on the trailing edge", async ({ page }) => {
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const after = await outline.boundingBox();
   expect(after!.y).toBeLessThan(900);
+});
+
+/**
+ * A race's traits cite spells — a Duergar alone names four — and following one
+ * used to leave the race you were reading. They open beside it instead.
+ *
+ * Driven through a subrace disclosure because that is where these links live,
+ * and it is also the case a bubble-phase handler would miss: the anchor is
+ * inside a `<details>` several levels below the wrapper.
+ */
+test("opens a spell cited by a trait without leaving the race", async ({
+  page,
+}) => {
+  await page.goto(DWARF);
+  await expectHydrated(page);
+
+  await page.evaluate(() => {
+    document.querySelectorAll("details").forEach((d) => (d.open = true));
+  });
+
+  const link = page.locator('a[href^="/compendium/spells/"]').first();
+  const name = (await link.textContent())?.trim();
+  await link.click();
+
+  await expect(page.locator(ASIDE).locator("h1")).toHaveText(name!);
+  await expect(page).toHaveURL(new RegExp(`${DWARF}$`));
+});
+
+/**
+ * The art stands in the margin rather than floating inside the column. It
+ * floated until the flavour text was printed and the pages grew long; a
+ * portrait in the measure then either strands a column of two-word lines beside
+ * it or, for plates that are mostly transparent padding, pushes the opening
+ * paragraphs down the page. Only a browser can see where it ended up.
+ */
+test("stands the illustration outside the reading measure", async ({ page }) => {
+  await page.goto(DWARF);
+  await expectHydrated(page);
+
+  const art = page.locator("main img").first();
+  await expect(art).toBeVisible();
+
+  const image = (await art.boundingBox())!;
+  const prose = (await page.locator("p.prose").first().boundingBox())!;
+
+  // It begins out in the margin. Not *entirely* clear of the column — the
+  // plate is deliberately wider than the margin and dissolves across the inner
+  // edge — but it starts outside the measure rather than inside it.
+  expect(image.x).toBeLessThan(prose.x);
+
+  // And the prose runs alongside rather than being pushed below it, which is
+  // what a float did once the pages grew long.
+  expect(prose.y).toBeLessThan(image.y + image.height);
+
+  // Reaching into the margin must not widen the document.
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
 });

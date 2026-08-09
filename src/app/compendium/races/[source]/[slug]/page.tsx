@@ -2,10 +2,12 @@ import { Box, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
+import { openEntityAside } from "@/app/aside-actions";
+import { AsideLinks } from "@/components/compendium/aside-links";
 import {
   fluffImages,
-  Illustration,
   IllustrationBanner,
+  IllustrationPlate,
   IllustrationRow,
   imageCredits,
   isLandscape,
@@ -18,6 +20,7 @@ import { SubraceList } from "@/components/compendium/subrace-accordion";
 import { TraitSummary } from "@/components/compendium/trait-summary";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
+import { subjectSide } from "@/lib/content/media";
 import { splitSections } from "@/lib/content/outline";
 import { entriesOf, formatSize, formatSpeed } from "@/lib/content/races";
 import { collectReferences } from "@/lib/content/references";
@@ -81,8 +84,30 @@ export default async function RacePage({ params }: RouteParams) {
   // 111 of 134 races have illustrations, so this has to handle none. Subraces
   // are skipped: none have images, despite 68 claiming `hasFluffImages`.
   const images = fluffImages(race.fluff);
-  const [lead, ...rest] = images;
+  const [art, ...rest] = images;
   const credits = imageCredits(images);
+
+  /*
+   * The same two treatments the class pages use, and for the same reason.
+   *
+   * A standing figure goes out into the top corner of the page, whole and at
+   * size, where it costs the prose nothing. Which corner is the picture's own
+   * business: art whose figure stands against the left of its frame takes the
+   * right corner and the rest take the left, so the figure faces across the
+   * page rather than off the edge of it.
+   *
+   * It floated inside the column before, which worked while a race page opened
+   * with a line or two. Now that the flavour text is printed the pages run
+   * long, and a floated portrait either strands a column of two-word lines
+   * beside it or — for the several plates that are mostly transparent padding —
+   * pushes the opening paragraphs down the page for no visible reason. Out in
+   * the margin the art can be any shape it likes.
+   *
+   * Wide art has no corner to stand in and still runs as a banner.
+   */
+  const banner = art && isLandscape(art) ? art : undefined;
+  const plate = art && !banner ? art : undefined;
+  const plateSide = subjectSide(plate) === "left" ? "right" : "left";
 
   // One resolve for the whole page, parent and subraces together — otherwise
   // a Tiefling page would make fourteen round trips to build its links.
@@ -115,31 +140,26 @@ export default async function RacePage({ params }: RouteParams) {
   return (
     <ReadingColumn
       outline={outline.length > 0 ? <OutlineNav items={outline} /> : undefined}
+      plate={
+        plate ? (
+          <IllustrationPlate
+            image={plate}
+            entityName={race.name}
+            side={plateSide}
+            priority
+          />
+        ) : undefined
+      }
+      plateSide={plateSide}
     >
       {/*
-        Normal flow, not a flex Stack: the illustration is floated so prose wraps
-        around it, and a float has no effect inside a flex container. Spacing is
-        carried on the blocks instead of a Stack gap.
-      */}
-      <Box>
-        {/* Portrait and square art floats; landscape art gets a banner below. */}
-        {lead && !isLandscape(lead) ? (
-          <Box
-            float={{ base: "none", sm: "right" }}
-            w={{ base: "100%", sm: "15rem" }}
-            maxW="100%"
-            ml={{ base: "0", sm: "6" }}
-            mb="4"
-          >
-            <Illustration
-              image={lead}
-              entityName={race.name}
-              maxHeight={400}
-              priority
-            />
-          </Box>
-        ) : null}
+        Wrapped so cross-references open beside the page instead of leaving it:
+        a race's traits are thick with them — a Duergar alone cites four spells
+        — and following one used to cost the race you were reading.
 
+        Spacing is carried on the blocks rather than a Stack gap.
+      */}
+      <AsideLinks load={openEntityAside}>
         <Box as="header" mb="6">
           <Box>
             <Text
@@ -173,12 +193,24 @@ export default async function RacePage({ params }: RouteParams) {
 
             {/* Wide art sits between the name and the stat line, so the stat
                 line stays next to the traits it describes. */}
-            {lead && isLandscape(lead) ? (
+            {banner ? (
               <Box mt="4">
                 <IllustrationBanner
-                  image={lead}
+                  image={banner}
                   entityName={race.name}
                   priority
+                />
+              </Box>
+            ) : null}
+
+            {/* The corner plate itself at the widths that have no margin to
+                stand it in, where showing it this way beats not showing it. */}
+            {plate ? (
+              <Box display={{ base: "block", lg: "none" }} mt="4">
+                <IllustrationBanner
+                  image={plate}
+                  entityName={race.name}
+                  maxHeight={300}
                 />
               </Box>
             ) : null}
@@ -221,9 +253,8 @@ export default async function RacePage({ params }: RouteParams) {
           </Box>
         ))}
 
-        {/* Clears the float so a tall illustration cannot push into the list. */}
         {rest.length > 0 ? (
-          <Box clear="both" mb="6">
+          <Box mb="6">
             <IllustrationRow images={rest} entityName={race.name} />
           </Box>
         ) : null}
@@ -244,12 +275,10 @@ export default async function RacePage({ params }: RouteParams) {
           </Box>
         ) : null}
 
-        {/* Attribution collected here rather than captioned on each figure,
-            where a float would strand it mid-section. */}
+        {/* Attribution collected here rather than captioned on each figure. */}
         {credits.length > 0 ? (
           <Box
             as="section"
-            clear="both"
             mt="10"
             pt="4"
             borderTopWidth="1px"
@@ -272,7 +301,7 @@ export default async function RacePage({ params }: RouteParams) {
             </Text>
           </Box>
         ) : null}
-      </Box>
+      </AsideLinks>
     </ReadingColumn>
   );
 }

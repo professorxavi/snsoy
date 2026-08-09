@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AsideProvider } from "@/components/compendium/aside-context";
 import { render, screen } from "@/test/render";
 import type { RaceDetail, SubraceDetail } from "@/server/db/queries/races";
 import RacePage from "./page";
@@ -57,10 +58,18 @@ const race = (over: Partial<RaceDetail> = {}): RaceDetail =>
     ...over,
   }) as RaceDetail;
 
+/**
+ * Wrapped in the aside's provider: a race's traits cite spells, and those open
+ * beside the page rather than leaving it, through a wrapper that reads context.
+ */
 const renderPage = async (over: Partial<RaceDetail> = {}) => {
   vi.mocked(getRace).mockResolvedValue(race(over));
   return render(
-    await RacePage({ params: Promise.resolve({ source: "phb", slug: "dwarf" }) }),
+    <AsideProvider>
+      {await RacePage({
+        params: Promise.resolve({ source: "phb", slug: "dwarf" }),
+      })}
+    </AsideProvider>,
   );
 };
 
