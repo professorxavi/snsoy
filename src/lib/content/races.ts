@@ -174,3 +174,29 @@ export const NPC_RACE_TAG = "NPC Race";
 export function isNpcRace(traitTags: string[] | null | undefined): boolean {
   return traitTags?.includes(NPC_RACE_TAG) ?? false;
 }
+
+/* ------------------------------------------------------------------ *
+ * Description
+ * ------------------------------------------------------------------ */
+
+/**
+ * A race's descriptive prose, wherever the corpus happens to keep it.
+ *
+ * Fluff first, because that is where nearly all of it is: of the 134 races,
+ * 98 carry prose only in fluff, 5 carry it in `data.entries`, and 31 have none
+ * at all. Reading `data.entries` alone — which is what a class does, since a
+ * class's own entries are the progression its table prints — would leave the
+ * great majority of races with nothing to say for themselves.
+ *
+ * Returns everything, named sections included; the caller splits off the
+ * opening prose it wants.
+ */
+export function descriptionEntries<T>(fluff: unknown, data: unknown): T[] {
+  const fromFluff = entriesOf<T>(fluff);
+  return fromFluff.length > 0 ? fromFluff : entriesOf<T>(data);
+}
+
+function entriesOf<T>(value: unknown): T[] {
+  const entries = (value as { entries?: unknown[] } | null)?.entries;
+  return Array.isArray(entries) ? (entries as T[]) : [];
+}

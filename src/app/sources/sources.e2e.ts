@@ -158,3 +158,29 @@ test("leaves a link it cannot render to navigate as before", async ({
   await expect(page).toHaveURL(new RegExp(`${href}$`));
   await expect(page.locator(ASIDE)).toHaveCount(0);
 });
+
+/**
+ * Races, the third type the aside can render.
+ *
+ * Written against whatever race the chapter links to first rather than a named
+ * one, so it survives the corpus shifting underneath it. What is being asserted
+ * is the wiring, not which race MPMM happens to list first.
+ */
+test("opens a race from the chapter, summarised", async ({ page }) => {
+  await page.goto("/sources/mpmm/fantastical-races");
+  await expectHydrated(page);
+
+  const link = page.locator('a[href^="/compendium/races/"]').first();
+  const name = (await link.textContent())?.trim();
+
+  await link.click();
+
+  await expect(page.locator(`${ASIDE} h1`)).toHaveText(name!);
+  await expect(page).toHaveURL(/\/sources\/mpmm\/fantastical-races$/);
+
+  // Summarised, not the race page in a column: the named traits and any
+  // subraces stay behind the link out.
+  const aside = page.locator(ASIDE);
+  await expect(aside.getByRole("link", { name: /full page/i })).toBeVisible();
+  await expect(aside.locator("details")).toHaveCount(0);
+});

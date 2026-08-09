@@ -4,11 +4,13 @@ import { Box, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
+import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
+import { getRace } from "@/server/db/queries/races";
 import {
   inboundReferences,
   resolveReferences,
@@ -45,6 +47,8 @@ export async function openEntityAside(
       return spellAside(source, slug);
     case "class":
       return classAside(source, slug);
+    case "race":
+      return raceAside(source, slug);
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -89,6 +93,20 @@ async function classAside(source: string, slug: string): Promise<ReactNode> {
   const refs = await resolveReferences(collectReferences(found.fluff));
 
   return <ClassAside found={found} refs={refs} />;
+}
+
+async function raceAside(source: string, slug: string): Promise<ReactNode> {
+  const race = await getRace(source, slug);
+  if (!race) return <AsideMessage>No such race.</AsideMessage>;
+
+  // Both blobs, because a race's prose is in fluff for 98 of the 134 and its
+  // trait names are in `data`. The parent's only: the aside prints no subraces,
+  // so resolving theirs would be up to thirteen more for text it omits.
+  const refs = await resolveReferences(
+    collectReferences([race.data, race.fluff]),
+  );
+
+  return <RaceAside race={race} refs={refs} />;
 }
 
 /**

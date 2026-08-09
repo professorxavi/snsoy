@@ -29,7 +29,7 @@ export function asideKey(
  * here is what makes them work, one renderer at a time, and it must stay in
  * step with the switch in `openEntityAside`.
  */
-export const ASIDE_TYPES = new Set<BrowsableType>(["spell", "class"]);
+export const ASIDE_TYPES = new Set<BrowsableType>(["spell", "class", "race"]);
 
 /**
  * Marks a link that must navigate even inside the aside.

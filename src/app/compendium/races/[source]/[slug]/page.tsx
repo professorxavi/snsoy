@@ -15,22 +15,15 @@ import {
   type OutlineItem,
 } from "@/components/compendium/outline-nav";
 import { SubraceList } from "@/components/compendium/subrace-accordion";
+import { TraitSummary } from "@/components/compendium/trait-summary";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import { splitSections } from "@/lib/content/outline";
-import {
-  formatAbilityBonuses,
-  formatSize,
-  formatSpeed,
-} from "@/lib/content/races";
+import { formatSize, formatSpeed } from "@/lib/content/races";
 import { collectReferences } from "@/lib/content/references";
 import { sourceHref } from "@/lib/routes";
 import { resolveReferences } from "@/server/db/queries/references";
-import {
-  getRace,
-  type RaceDetail,
-  type SubraceDetail,
-} from "@/server/db/queries/races";
+import { getRace, type SubraceDetail } from "@/server/db/queries/races";
 
 /**
  * One race, as a reading page: a measured column with a section outline, like a
@@ -332,55 +325,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Size, speed and ability bonuses. */
-function TraitSummary({
-  race,
-  borderTop = true,
-}: {
-  race: RaceDetail | SubraceDetail;
-  borderTop?: boolean;
-}) {
-  const parts = [
-    { label: "Size", value: formatSize(race.size) },
-    { label: "Speed", value: formatSpeed(race.speed) },
-    { label: "Ability Scores", value: formatAbilityBonuses(race.ability) },
-  ].filter((part) => part.value && part.value !== "—");
-
-  if (parts.length === 0) return null;
-
-  return (
-    <Box
-      display="flex"
-      flexWrap="wrap"
-      columnGap="5"
-      rowGap="1"
-      mt={borderTop ? "3" : "0"}
-      pt={borderTop ? "3" : "0"}
-      borderTopWidth={borderTop ? "1px" : "0"}
-      borderColor="border"
-    >
-      {parts.map((part) => (
-        <Box key={part.label}>
-          <Text
-            as="span"
-            fontFamily="ui"
-            fontSize="2xs"
-            fontWeight="semibold"
-            letterSpacing="wide"
-            textTransform="uppercase"
-            color="fg.subtle"
-            mr="1.5"
-          >
-            {part.label}
-          </Text>
-          <Text as="span" fontFamily="body" fontSize="sm">
-            {part.value}
-          </Text>
-        </Box>
-      ))}
-    </Box>
-  );
-}
 
 /** A subrace's contents. No header: the disclosure trigger is the header. */
 function SubraceBody({
