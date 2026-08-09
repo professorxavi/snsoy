@@ -10,14 +10,15 @@ import type { ConditionRow } from "@/server/db/queries/conditions";
  * The condition list. A row click opens the condition beside the list rather
  * than navigating away from it, as everywhere else in the compendium.
  *
- * Simpler than the skill table by one column and one decision: fifteen rows
- * from one book, and nothing about a condition to sort on but its name, so
- * there are no sortable headers and no `sort` in the URL.
+ * Simpler than the spell table by every decision it does not have to make:
+ * fifteen rows from one book, nothing about a condition to sort on but its
+ * name, and one book to name — so no sortable headers, no `sort` in the URL and
+ * no source column repeating "PHB" fifteen times.
  *
- * The effect line stays when the aside opens, wrapping instead of dropping out.
- * It is the only thing on the row worth reading, and a reader working through
- * the conditions one at a time should be able to see what the next one does
- * while the last one is still open.
+ * Nothing is marked `data-col-optional`, so nothing is shed when the aside
+ * opens. There are only two columns and both are the point: a reader working
+ * through the conditions one at a time should still see what the next one does
+ * while the last one is open. The effect line wraps instead.
  *
  * Stays a server component. Only the name in each row is a client component,
  * and `open` arrives as a prop rather than an import — a shared component has
@@ -41,7 +42,6 @@ export function ConditionTable({
           <Table.Row bg="bg.muted">
             <Header>Name</Header>
             <Header>Effect</Header>
-            <Header optional>Source</Header>
           </Table.Row>
         </Table.Header>
 
@@ -105,26 +105,13 @@ function ConditionRowView({
       </Cell>
 
       <Cell>{conditionEffect(row.slug)}</Cell>
-      <Cell optional muted nowrap>
-        {row.sourceId}
-      </Cell>
     </Table.Row>
   );
 }
 
-/** Columns the browse frame's CSS hides while the aside is open. */
-const OPTIONAL_ATTR = { "data-col-optional": "" };
-
-function Header({
-  children,
-  optional,
-}: {
-  children: ReactNode;
-  optional?: boolean;
-}) {
+function Header({ children }: { children: ReactNode }) {
   return (
     <Table.ColumnHeader
-      {...(optional ? OPTIONAL_ATTR : {})}
       fontFamily="ui"
       fontSize="2xs"
       fontWeight="semibold"
@@ -140,25 +127,20 @@ function Header({
 
 function Cell({
   children,
-  optional,
-  muted,
   nowrap,
   fontWeight,
 }: {
   children: ReactNode;
-  optional?: boolean;
-  muted?: boolean;
   /** Set on the columns that must not wrap. The effect line is free to. */
   nowrap?: boolean;
   fontWeight?: string;
 }) {
   return (
     <Table.Cell
-      {...(optional ? OPTIONAL_ATTR : {})}
       fontFamily="ui"
       fontSize="xs"
       fontWeight={fontWeight}
-      color={muted ? "fg.subtle" : "fg.muted"}
+      color="fg.muted"
       whiteSpace={nowrap ? "nowrap" : undefined}
     >
       {children}

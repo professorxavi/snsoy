@@ -70,19 +70,23 @@ describe("the condition table", () => {
   });
 
   /**
-   * The deliberate difference from the skill table. Only the source drops out
-   * when the aside opens: the effect line is the one thing on the row worth
+   * The browse frame sheds any column marked this way when the aside opens.
+   * This table marks none: the effect line is the one thing on the row worth
    * reading, and someone working through the conditions should still see what
    * the next one does while the last is open.
    */
-  it("keeps the effect column when the aside opens, and drops the source", () => {
+  it("sheds no columns when the aside opens", () => {
     renderTable(<ConditionTable rows={[row()]} open={stubOpen()} />);
 
-    const optional = [
-      ...document.querySelectorAll("thead [data-col-optional]"),
-    ].map((cell) => cell.textContent);
+    expect(document.querySelectorAll("[data-col-optional]")).toHaveLength(0);
+  });
 
-    expect(optional).toEqual(["Source"]);
+  /** One book prints all fifteen, so a source column would say "PHB" and again. */
+  it("names no source", () => {
+    renderTable(<ConditionTable rows={[row()]} open={stubOpen()} />);
+
+    expect(screen.queryByRole("columnheader", { name: /Source/ })).toBeNull();
+    expect(screen.queryByText("PHB")).not.toBeInTheDocument();
   });
 
   /**

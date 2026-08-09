@@ -13,9 +13,16 @@ import type { SkillRow, SkillSort } from "@/server/db/queries/skills";
  * takes, and for the same reason: a row click opens the skill beside the list
  * rather than navigating away from it.
  *
- * What differs is everything paging and filtering: there are eighteen skills
- * from one book, so there is no pager, no search field and no facet rail. The
- * two orders below are the only state the view has.
+ * What differs is everything paging and filtering: eighteen skills from one
+ * book, so no pager, no search field, no facet rail, and no source column
+ * repeating "PHB" eighteen times. The two orders below are the only state the
+ * view has.
+ *
+ * Nothing is marked `data-col-optional`, so nothing is shed when the aside
+ * opens. Three columns is already the whole row, and a table that shrank to a
+ * list of names would stop answering the question it exists for — which of
+ * these do I want — at exactly the moment one is being read. The summary line
+ * wraps instead.
  *
  * Stays a server component. Only the name in each row is a client component,
  * and `open` arrives as a prop rather than an import — a shared component has
@@ -48,8 +55,7 @@ export function SkillTable({
             <SortableHeader params={params} sort="ability">
               Ability
             </SortableHeader>
-            <Header optional>Covers</Header>
-            <Header optional>Source</Header>
+            <Header>Covers</Header>
           </Table.Row>
         </Table.Header>
 
@@ -78,7 +84,7 @@ function SkillRowView({
 
   return (
     <Table.Row position="relative">
-      <Cell fontWeight="medium">
+      <Cell fontWeight="medium" nowrap>
         {/*
           One anchor stretched over the whole row by a pseudo-element, rather
           than a link per cell — four identical links per row is noise with a
@@ -115,31 +121,22 @@ function SkillRowView({
         </Box>
       </Cell>
 
-      <Cell>{abilityLabel(row.ability)}</Cell>
-      <Cell optional>{skillCovers(row.slug)}</Cell>
-      <Cell optional muted>
-        {row.sourceId}
-      </Cell>
+      <Cell nowrap>{abilityLabel(row.ability)}</Cell>
+      <Cell>{skillCovers(row.slug)}</Cell>
     </Table.Row>
   );
 }
 
-/** Columns the browse frame's CSS hides while the aside is open. */
-const OPTIONAL_ATTR = { "data-col-optional": "" };
-
 function Header({
   children,
-  optional,
   sorted,
 }: {
   children: ReactNode;
-  optional?: boolean;
   /** Announced on the header cell itself, which is where `aria-sort` belongs. */
   sorted?: boolean;
 }) {
   return (
     <Table.ColumnHeader
-      {...(optional ? OPTIONAL_ATTR : {})}
       aria-sort={sorted ? "ascending" : undefined}
       fontFamily="ui"
       fontSize="2xs"
@@ -183,23 +180,21 @@ function SortableHeader({
 
 function Cell({
   children,
-  optional,
-  muted,
+  nowrap,
   fontWeight,
 }: {
   children: ReactNode;
-  optional?: boolean;
-  muted?: boolean;
+  /** Set on the columns that must not wrap. The summary line is free to. */
+  nowrap?: boolean;
   fontWeight?: string;
 }) {
   return (
     <Table.Cell
-      {...(optional ? OPTIONAL_ATTR : {})}
       fontFamily="ui"
       fontSize="xs"
       fontWeight={fontWeight}
-      color={muted ? "fg.subtle" : "fg.muted"}
-      whiteSpace="nowrap"
+      color="fg.muted"
+      whiteSpace={nowrap ? "nowrap" : undefined}
     >
       {children}
     </Table.Cell>

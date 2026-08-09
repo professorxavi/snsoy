@@ -120,17 +120,23 @@ describe("the skill table", () => {
   });
 
   /**
-   * The browse frame hides these with CSS when the aside opens. The CSS is a
-   * browser's problem; that the right columns are marked is this table's.
+   * The browse frame sheds any column marked this way when the aside opens.
+   * This table marks none: three columns is the whole row, and a table that
+   * shrank to a list of names would stop answering "which of these do I want"
+   * at exactly the moment one is being read.
    */
-  it("marks the columns that drop out when the aside opens", () => {
+  it("sheds no columns when the aside opens", () => {
     renderTable(<SkillTable rows={[row()]} params={{}} open={stubOpen()} />);
 
-    const optional = [
-      ...document.querySelectorAll("thead [data-col-optional]"),
-    ].map((cell) => cell.textContent);
+    expect(document.querySelectorAll("[data-col-optional]")).toHaveLength(0);
+  });
 
-    expect(optional).toEqual(["Covers", "Source"]);
+  /** One book prints all eighteen, so a source column would say "PHB" and again. */
+  it("names no source", () => {
+    renderTable(<SkillTable rows={[row()]} params={{}} open={stubOpen()} />);
+
+    expect(screen.queryByRole("columnheader", { name: /Source/ })).toBeNull();
+    expect(screen.queryByText("PHB")).not.toBeInTheDocument();
   });
 
   /**
