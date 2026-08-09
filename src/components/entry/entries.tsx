@@ -2,7 +2,17 @@ import { Box, Stack, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { Illustration, isLandscape } from "@/components/compendium/entity-image";
+import {
+  featureReferenceKey,
+  type FeatureIndex,
+} from "@/lib/content/classes";
+import { abilityPhrase } from "@/lib/content/dnd";
 import type { ImageEntry } from "@/lib/content/media";
+import {
+  optionalFeatureKey,
+  type OptionalFeatureBody,
+  type OptionalFeatureIndex,
+} from "@/lib/content/optional-features";
 import {
   candidateKeysForStatblock,
   lookupReference,
@@ -16,14 +26,18 @@ import {
   isCell,
   isEntryObject,
   isRow,
+  type AbilityFormulaEntry,
   type CellEntry,
   type Entry,
+  type EntryObject,
   type EntriesEntry,
   type GalleryEntry,
   type InsetEntry,
   type ItemEntry,
   type ListEntry,
+  type OptionsEntry,
   type QuoteEntry,
+  type RefOptionalFeatureEntry,
   type RowEntry,
   type SectionEntry,
   type StatblockEntry,
@@ -38,6 +52,13 @@ import {
 
 interface RenderContext {
   refs?: ReferenceIndex;
+  /**
+   * Bodies for the optional features a feature offers as a choice. Only class
+   * pages load these; nothing else in the corpus contains an option list.
+   */
+  options?: OptionalFeatureIndex;
+  /** Bodies for the features one feature builds another out of. Class pages only. */
+  features?: FeatureIndex;
   /** The entity being rendered, so it does not link to itself. */
   selfKey?: string;
   /** Entity name, for the coverage report. */
@@ -87,6 +108,27 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "itemSpell":
     case "itemSub":
       return <ItemBlock entry={entry as ItemEntry} ctx={ctx} />;
+
+    case "abilityDc":
+    case "abilityAttackMod":
+      return (
+        <AbilityFormula
+          entry={entry as AbilityFormulaEntry}
+          kind={entry.type}
+        />
+      );
+
+    case "refClassFeature":
+    case "refSubclassFeature":
+      return <FeatureReference entry={entry} ctx={ctx} />;
+
+    case "options":
+      return <OptionsBlock entry={entry as OptionsEntry} ctx={ctx} />;
+
+    case "refOptionalfeature":
+      return (
+        <OptionBlock entry={entry as RefOptionalFeatureEntry} ctx={ctx} />
+      );
 
     case "table":
       return <TableBlock entry={entry as TableEntry} ctx={ctx} />;
@@ -199,6 +241,184 @@ function ListBlock({ entry, ctx }: { entry: ListEntry; ctx: RenderContext }) {
         </Box>
       ))}
     </Stack>
+  );
+}
+
+/**
+ * A feature printed inside the feature that introduces it.
+ *
+ * This is how the corpus composes features: an Alchemist's opening feature
+ * references the three it grants, and Perfected Armor references the two armor
+ * models it chooses between. The pieces are stored as siblings at the same
+ * level, so a page that lists them flat prints "Guardian" and "Infiltrator" as
+ * features of their own, with nothing to say what they are models of.
+ *
+ * The body comes from the render context: the page has already loaded every
+ * feature of the class, and a reference never leaves it.
+ */
+function FeatureReference({
+  entry,
+  ctx,
+}: {
+  entry: EntryObject;
+  ctx: RenderContext;
+}) {
+  const key = featureReferenceKey(entry);
+  const feature = key ? ctx.features?.[key] : undefined;
+
+  if (!feature) {
+    reportGap("feature", String(key ?? entry.type), ctx.context);
+    return null;
+  }
+
+  return (
+    <Box>
+      <Text as="span" fontFamily="body" fontWeight="semibold">
+        {feature.name}
+      </Text>
+      <Entries entries={feature.entries as Entry[] | undefined} {...ctx} />
+    </Box>
+  );
+}
+
+/**
+ * The two derived numbers a spellcasting feature ends on:
+ *
+ *   Spell save DC = 8 + your proficiency bonus + your Charisma modifier
+ *   Spell attack modifier = your proficiency bonus + your Charisma modifier
+ *
+ * Stored as a type rather than as text because the ability differs by class,
+ * and in two cases is not fixed at all — a Sidekick's is whatever its
+ * spellcasting feature granted, which the corpus writes as `spellcasting`.
+ *
+ * Set apart from the prose above it: this is a formula to be read once and
+ * copied onto a character sheet, not a sentence.
+ */
+function AbilityFormula({
+  entry,
+  kind,
+}: {
+  entry: AbilityFormulaEntry;
+  kind: "abilityDc" | "abilityAttackMod";
+}) {
+  const ability = abilityPhrase(entry.attributes);
+  if (!ability) return null;
+
+  const dc = kind === "abilityDc";
+  const label = `${entry.name ?? "Spell"} ${dc ? "save DC" : "attack modifier"}`;
+
+  return (
+    <Text
+      fontFamily="body"
+      fontSize="sm"
+      lineHeight="1.6"
+      px="3"
+      py="2"
+      bg="bg.muted"
+      rounded="l1"
+    >
+      <Text as="span" fontWeight="semibold">
+        {label}
+      </Text>
+      {" = "}
+      {dc ? "8 + " : ""}your proficiency bonus + your {ability} modifier
+    </Text>
+  );
+}
+
+/**
+ * A choice between optional features. Set in from the prose that introduces it,
+ * so a page of features stays readable as a list of things you have and the
+ * choices inside them stay visibly subordinate.
+ *
+ * No "choose one" line is synthesised. The feature above an `options` block
+ * says so in its own words every time, and a second one underneath reads as a
+ * mistake.
+ */
+function OptionsBlock({
+  entry,
+  ctx,
+}: {
+  entry: OptionsEntry;
+  ctx: RenderContext;
+}) {
+  if (!entry.entries?.length) return null;
+
+  return (
+    <Stack
+      gap="2.5"
+      mt="2"
+      pl="4"
+      borderLeftWidth="1px"
+      borderColor="border"
+    >
+      {entry.entries.map((child, index) => (
+        <EntryNode key={index} entry={child} {...ctx} />
+      ))}
+    </Stack>
+  );
+}
+
+/**
+ * One optional feature, printed where it is offered rather than linked away to.
+ *
+ * The bodies arrive through the render context because a page loads all of them
+ * in one query — a Warlock's page resolves 54 invocations. Without them the
+ * option still prints its name, which is what the corpus itself gives: a page
+ * that silently drops the name would leave a feature saying "choose one of the
+ * following" above nothing at all.
+ */
+function OptionBlock({
+  entry,
+  ctx,
+}: {
+  entry: RefOptionalFeatureEntry;
+  ctx: RenderContext;
+}) {
+  const key = optionalFeatureKey(entry.optionalfeature);
+  const option = key ? ctx.options?.[key] : undefined;
+
+  if (!option) {
+    reportGap("option", entry.optionalfeature, ctx.context);
+    return (
+      <Text as="span" fontFamily="body" fontWeight="semibold">
+        {entry.optionalfeature.split("|")[0]}
+      </Text>
+    );
+  }
+
+  return <OptionBody option={option} {...ctx} />;
+}
+
+/**
+ * An option's name, what it requires, and what it does.
+ *
+ * Exported because a class page prints whole lists of these directly — the ones
+ * no feature names — and they have to look the same as the ones a feature does.
+ */
+export function OptionBody({
+  option,
+  ...ctx
+}: { option: OptionalFeatureBody } & RenderContext) {
+  return (
+    <Box>
+      <Text as="span" fontFamily="body" fontWeight="semibold">
+        {option.name}
+      </Text>
+      {option.prerequisite ? (
+        <Text
+          as="span"
+          fontFamily="body"
+          fontSize="sm"
+          fontStyle="italic"
+          color="fg.muted"
+          ml="2"
+        >
+          Prerequisite: {option.prerequisite}
+        </Text>
+      ) : null}
+      <Entries entries={option.entries as Entry[] | undefined} {...ctx} />
+    </Box>
   );
 }
 

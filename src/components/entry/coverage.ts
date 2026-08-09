@@ -6,11 +6,16 @@
  * never shown to a user.
  */
 
-export type GapKind = "entry" | "tag";
+/**
+ * `option` and `feature` are not unhandled types but unloaded ones: something
+ * a page referenced and never fetched the body of. Same failure to the reader —
+ * text that should be there is not — so they are counted the same way.
+ */
+export type GapKind = "entry" | "tag" | "option" | "feature";
 
 export interface CoverageGap {
   kind: GapKind;
-  /** The unhandled `type` value or tag name. */
+  /** The unhandled `type` value, tag name, or unresolved reference. */
   name: string;
   /** Times seen since the process started. */
   count: number;

@@ -69,6 +69,36 @@ export interface TableGroupEntry {
   tables?: TableEntry[];
 }
 
+/**
+ * A derived number a feature grants: a save DC or an attack modifier. The
+ * ability it keys off is data, not prose, because it differs by class.
+ */
+export interface AbilityFormulaEntry {
+  type: "abilityDc" | "abilityAttackMod";
+  /** "Spell", "Maneuver". */
+  name?: string;
+  /** Ability abbreviations, or the literal `spellcasting`. */
+  attributes?: string[];
+}
+
+/**
+ * A choice between optional features — fighting styles, metamagic, maneuvers.
+ * Its children are usually `refOptionalfeature`, but plain entries occur.
+ */
+export interface OptionsEntry {
+  type: "options";
+  /** How many may be taken. The prose above almost always says so too. */
+  count?: number;
+  entries?: Entry[];
+}
+
+/** One option, named rather than written out. */
+export interface RefOptionalFeatureEntry {
+  type: "refOptionalfeature";
+  /** `Name` or `Name|SOURCE`, addressing an `optionalfeature` entity. */
+  optionalfeature: string;
+}
+
 export interface QuoteEntry {
   type: "quote";
   entries?: Entry[];
@@ -129,6 +159,9 @@ export type EntryObject =
   | RowEntry
   | TableEntry
   | TableGroupEntry
+  | AbilityFormulaEntry
+  | OptionsEntry
+  | RefOptionalFeatureEntry
   | QuoteEntry
   | InsetEntry
   | SectionEntry

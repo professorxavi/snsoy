@@ -41,6 +41,42 @@ export function crToProficiencyBonus(cr: unknown): number {
   return Math.ceil(num / 4) + 1;
 }
 
+/**
+ * Ability names in full. The three-letter form is how the corpus stores them
+ * and how a stat block prints them; anything written as a sentence needs these.
+ */
+const ABILITY_NAMES: Record<string, string> = {
+  str: "Strength",
+  dex: "Dexterity",
+  con: "Constitution",
+  int: "Intelligence",
+  wis: "Wisdom",
+  cha: "Charisma",
+};
+
+export function abilityName(abbreviation: string): string {
+  return ABILITY_NAMES[abbreviation.toLowerCase()] ?? abbreviation.toUpperCase();
+}
+
+/**
+ * The ability a formula draws on, as it reads mid-sentence: "Charisma",
+ * "Strength or Dexterity", or "spellcasting ability" where the class's own
+ * feature decides which — a Sidekick's casting ability is whatever its
+ * spellcasting feature granted, so the corpus writes `spellcasting` rather
+ * than name one.
+ */
+export function abilityPhrase(attributes: unknown): string | null {
+  if (!Array.isArray(attributes) || attributes.length === 0) return null;
+
+  const names = attributes.map((attribute) =>
+    attribute === "spellcasting" ? "spellcasting ability" : abilityName(String(attribute)),
+  );
+
+  return names.length === 1
+    ? names[0]!
+    : `${names.slice(0, -1).join(", ")} or ${names.at(-1)}`;
+}
+
 /** Standard ability modifier: floor((score - 10) / 2). */
 export function abilityModifier(score: unknown): number {
   const num = Number(score);

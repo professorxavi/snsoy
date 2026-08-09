@@ -68,6 +68,80 @@ export function Illustration({
 }
 
 /**
+ * Art for the top corner of a page, whole and at size.
+ *
+ * Nothing is cropped. The figure is the picture — every one of these is a
+ * character standing on a wash of scenery — so it is scaled to fit and given
+ * the room to be seen, out in the margin where the reading measure is not.
+ *
+ * It runs down past the header and beside the opening paragraphs, so the foot
+ * of it is masked away to nothing rather than ending on a line. That, and the
+ * soft edges the art already has, are what let text sit in front of it.
+ *
+ * Hidden below `lg`, where there is no margin to stand it in. Callers show the
+ * art some other way at those widths.
+ */
+export function IllustrationPlate({
+  image,
+  entityName,
+  side = "right",
+  priority = false,
+}: {
+  image: ImageEntry;
+  entityName: string;
+  /** The corner it stands in. Decides which way it dissolves into the page. */
+  side?: "left" | "right";
+  priority?: boolean;
+}) {
+  const src = imageUrl(image.href);
+  if (!src) return null;
+
+  const ratio = image.width && image.height ? image.width / image.height : 0.85;
+
+  return (
+    /*
+     * Two masks, one per axis, on two elements — the same result as compositing
+     * them and no dependence on `mask-composite`.
+     *
+     * The plate is wider than the margin it stands in, so its inner edge runs
+     * over the column. That edge is dissolved rather than cropped: the art is
+     * whole, at size, and simply stops existing by the time it reaches a line
+     * of text. The foot goes the same way, since the picture is taller than the
+     * header it sits beside and would otherwise end on a hard line across the
+     * opening paragraphs.
+     */
+    <Box
+      w="100%"
+      lineHeight="0"
+      css={{
+        maskImage: "linear-gradient(to bottom, #000 55%, transparent 95%)",
+        WebkitMaskImage: "linear-gradient(to bottom, #000 55%, transparent 95%)",
+      }}
+    >
+      <Box
+        css={(() => {
+          // Away from the corner it stands in: a plate on the right keeps its
+          // right edge and dissolves leftward, into the column.
+          const inward = side === "right" ? "left" : "right";
+          const fade = `linear-gradient(to ${inward}, #000 55%, transparent 92%)`;
+          return { maskImage: fade, WebkitMaskImage: fade };
+        })()}
+      >
+        <Image
+          src={src}
+          alt={image.title ?? entityName}
+          width={image.width ?? 800}
+          height={image.height ?? Math.round(800 / ratio)}
+          priority={priority}
+          sizes="(max-width: 62em) 0px, (max-width: 96em) 24rem, 30rem"
+          style={{ width: "100%", height: "auto" }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+/**
  * Wide art, centred and height-capped rather than stretched to the column
  * width, where a 1.2-ratio image would stand 500px tall.
  */

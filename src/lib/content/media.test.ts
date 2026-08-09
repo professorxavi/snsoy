@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageUrl, mediaUrl, tokenPath } from "./media";
+import { imageUrl, mediaUrl, subjectSide, tokenPath } from "./media";
 
 /**
  * The base URL is read at module load, so these assert against the default
@@ -87,5 +87,38 @@ describe("imageUrl", () => {
   it("returns null when there is nothing to resolve", () => {
     expect(imageUrl(undefined)).toBeNull();
     expect(imageUrl({ type: "internal" })).toBeNull();
+  });
+});
+
+/**
+ * Art that is placed rather than flowed has to be cropped, and a crop that
+ * guesses wrong takes the subject's head off. The corpus records nothing about
+ * what is in a picture, so this is the one place that knowledge lives — and a
+ * path that stops matching fails silently back to a centre crop, which is why
+ * `classes.smoke.test.ts` checks these paths against the real images.
+ */
+describe("subjectSide", () => {
+  it("crops from the middle by default", () => {
+    expect(
+      subjectSide({ type: "image", href: { type: "internal", path: "classes/PHB/Barbarian.webp" } }),
+    ).toBe("center");
+  });
+
+  it("holds the left edge for art built the other way round", () => {
+    for (const name of ["Bard", "Ranger", "Sorcerer", "Warlock"]) {
+      expect(
+        subjectSide({
+          type: "image",
+          href: { type: "internal", path: `classes/PHB/${name}.webp` },
+        }),
+      ).toBe("left");
+    }
+  });
+
+  it("crops from the middle when there is no path to go on", () => {
+    expect(subjectSide(undefined)).toBe("center");
+    expect(
+      subjectSide({ type: "image", href: { type: "external", url: "https://x/a.png" } }),
+    ).toBe("center");
   });
 });

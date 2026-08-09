@@ -21,6 +21,44 @@ export function mediaUrl(path: string): string {
   return `${BASE.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Cropping
+ * ------------------------------------------------------------------ */
+
+/** Which part of the frame to keep when art has to be cropped to a shape. */
+export type SubjectSide = "left" | "center" | "right";
+
+/**
+ * Where the subject stands in the frame.
+ *
+ * Nothing upstream records this: the corpus knows an image's size and nothing
+ * about what is in it. It only matters for art that is cropped rather than
+ * scaled, and only for the horizontal axis — every figure in the class art
+ * stands with its head near the top edge, so the vertical crop is always the
+ * top.
+ *
+ * Most of the art centres its figure and lets the scenery fall away either
+ * side, which crops safely from either edge. Four stand the figure hard against
+ * the left and fill the right with scenery, and a crop that assumes the middle
+ * takes the head off all four.
+ *
+ * Keyed on the image path rather than on the entity, because it is a fact about
+ * the picture — the same plate crops the same way wherever it is used.
+ */
+const SUBJECT_SIDES: Record<string, SubjectSide> = {
+  "classes/PHB/Bard.webp": "left",
+  "classes/PHB/Ranger.webp": "left",
+  "classes/PHB/Sorcerer.webp": "left",
+  "classes/PHB/Warlock.webp": "left",
+};
+
+/** Centre unless the art is known to be built the other way round. */
+export function subjectSide(image: ImageEntry | undefined): SubjectSide {
+  const href = image?.href;
+  const path = href && href.type !== "external" ? href.path : undefined;
+  return (path ? SUBJECT_SIDES[path] : undefined) ?? "center";
+}
+
 /**
  * Mirrors the upstream filename rule for tokens: fold accents to ASCII, drop
  * double quotes, keep spaces literal.
