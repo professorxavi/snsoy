@@ -34,6 +34,7 @@ export const ASIDE_TYPES = new Set<BrowsableType>([
   "class",
   "race",
   "skill",
+  "condition",
 ]);
 
 /**

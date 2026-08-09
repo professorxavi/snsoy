@@ -4,6 +4,7 @@ import { Box, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
+import { ConditionAside } from "@/components/compendium/condition-aside";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
@@ -11,6 +12,7 @@ import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
+import { getCondition } from "@/server/db/queries/conditions";
 import { getRace } from "@/server/db/queries/races";
 import { resolveReferences } from "@/server/db/queries/references";
 import { getSkill } from "@/server/db/queries/skills";
@@ -50,6 +52,8 @@ export async function openEntityAside(
       return raceAside(source, slug);
     case "skill":
       return skillAside(source, slug);
+    case "condition":
+      return conditionAside(source, slug);
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -108,14 +112,12 @@ async function raceAside(source: string, slug: string): Promise<ReactNode> {
   return <RaceAside race={race} refs={refs} />;
 }
 
-/**
- * The one renderer with nothing behind it: a skill has no page of its own, so
- * this is not a preview of somewhere else but the whole of what we show.
- *
- * No inbound references, unlike a spell. What mentions Perception is most of
- * the game — 555 stat blocks and 311 chapters — and a list that long answers no
- * question the reader arrived with.
+/*
+ * Skills and conditions have no page behind them, so these two are not previews
+ * of somewhere else — they are the whole of what we show. Both are short enough
+ * to print entire, which is the reason they were given no page.
  */
+
 async function skillAside(source: string, slug: string): Promise<ReactNode> {
   const skill = await getSkill(source, slug);
   if (!skill) return <AsideMessage>No such skill.</AsideMessage>;
@@ -123,6 +125,18 @@ async function skillAside(source: string, slug: string): Promise<ReactNode> {
   const refs = await resolveReferences(collectReferences(skill.data));
 
   return <SkillAside skill={skill} refs={refs} />;
+}
+
+async function conditionAside(source: string, slug: string): Promise<ReactNode> {
+  const condition = await getCondition(source, slug);
+  if (!condition) return <AsideMessage>No such condition.</AsideMessage>;
+
+  // Worth resolving here where it is not for a skill: conditions cite each
+  // other by name — four of them open by saying the creature is incapacitated
+  // — and those tags are what let the aside stack one on the next.
+  const refs = await resolveReferences(collectReferences(condition.data));
+
+  return <ConditionAside condition={condition} refs={refs} />;
 }
 
 /**
