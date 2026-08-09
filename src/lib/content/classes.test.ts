@@ -338,6 +338,7 @@ describe("descriptionEntries", () => {
           ],
         },
         "Wizard",
+        "PHB",
       ),
     ).toEqual([
       "Prose.",
@@ -349,7 +350,24 @@ describe("descriptionEntries", () => {
   it("leaves a section named anything else alone", () => {
     const fluff = { entries: [{ name: "Scholars", entries: ["Prose."] }] };
 
-    expect(descriptionEntries(fluff, "Wizard")).toEqual(fluff.entries);
-    expect(descriptionEntries(null, "Wizard")).toEqual([]);
+    expect(descriptionEntries(fluff, "Wizard", "PHB")).toEqual(fluff.entries);
+    expect(descriptionEntries(null, "Wizard", "PHB")).toEqual([]);
+  });
+
+  /**
+   * Every class carries a supplement's take on it in the same fluff record —
+   * pages of Xanathar's roleplaying tables for the PHB twelve. A page about the
+   * PHB Warlock prints the PHB's Warlock.
+   */
+  it("drops sections printed by another book", () => {
+    const fluff = {
+      entries: [
+        { type: "section", name: "Wizard", source: "PHB", entries: ["Prose."] },
+        { type: "section", source: "XGE", entries: ["Your Wizard's life."] },
+      ],
+    };
+
+    expect(descriptionEntries(fluff, "Wizard", "PHB")).toEqual(["Prose."]);
+    expect(descriptionEntries(fluff, "Wizard", "phb")).toEqual(["Prose."]);
   });
 });

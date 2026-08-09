@@ -144,22 +144,44 @@ function cellText(cell: unknown): string {
 /**
  * A class's descriptive text, taken from its fluff.
  *
- * Every class wraps its description in a section named after the class, which
- * on a page already titled with that name renders as a heading that repeats the
- * one above it. Unwrapping it here rather than hiding it in the renderer keeps
- * the section's own children — "Creating a Wizard" and the rest — at the depth
- * the page expects.
+ * Only the book that printed the class gets a say. Every class's fluff carries
+ * a second top-level section from a later supplement — Xanathar's for the PHB
+ * twelve, Eberron's for the Artificer — running to pages of roleplaying tables
+ * that arrive before the class table and read as though the class were theirs.
+ * A page about the PHB Warlock is the PHB's Warlock.
+ *
+ * Every class then wraps its description in a section named after the class,
+ * which on a page already titled with that name renders as a heading that
+ * repeats the one above it. Unwrapping it here rather than hiding it in the
+ * renderer keeps the section's own children — "Creating a Wizard" and the rest
+ * — at the depth the page expects.
  */
-export function descriptionEntries<T>(fluff: unknown, className: string): T[] {
+export function descriptionEntries<T>(
+  fluff: unknown,
+  className: string,
+  sourceId: string,
+): T[] {
   const entries = (fluff as { entries?: unknown[] } | null)?.entries;
   if (!Array.isArray(entries)) return [];
 
   return entries.flatMap((entry) => {
-    const section = entry as { name?: string; entries?: unknown[] };
+    const section = entry as {
+      name?: string;
+      source?: string;
+      entries?: unknown[];
+    };
+
+    // An entry with no source of its own is the class's own text.
+    if (section?.source && !sameSource(section.source, sourceId)) return [];
+
     return section?.name === className && Array.isArray(section.entries)
       ? (section.entries as T[])
       : [entry as T];
   });
+}
+
+function sameSource(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
 }
 
 /* ------------------------------------------------------------------ *

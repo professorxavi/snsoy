@@ -110,7 +110,7 @@ export default async function ClassPage({ params }: RouteParams) {
   // ("Creating a Wizard") are sections of this page like any other, so they are
   // split out rather than left to render as headings under nothing.
   const { intro, sections } = splitSections<Entry>(
-    descriptionEntries<Entry>(found.fluff, found.name),
+    descriptionEntries<Entry>(found.fluff, found.name, found.sourceId),
   );
   const images = fluffImages(found.fluff);
   const credits = imageCredits(images);
@@ -131,8 +131,6 @@ export default async function ClassPage({ params }: RouteParams) {
   const banner = art && isLandscape(art) ? art : undefined;
   const plate = art && !banner ? art : undefined;
   const plateSide = subjectSide(plate) === "left" ? "right" : "left";
-  /** The header leans away from the plate, and stays put when there is none. */
-  const headerAlign = plate && plateSide === "left" ? "right" : "left";
 
   const everything = [
     found.data,
@@ -294,17 +292,7 @@ export default async function ClassPage({ params }: RouteParams) {
       plateSide={plateSide}
     >
       <Box>
-        {/*
-         * The header leans away from the art. Where the plate takes the left
-         * corner the title is set right, and the reader's eye lands on the
-         * figure first and the name second — which is the order a book plate
-         * puts them in anyway.
-         */}
-        <Box
-          as="header"
-          mb="6"
-          textAlign={headerAlign === "right" ? { lg: "right" } : undefined}
-        >
+        <Box as="header" mb="6">
           <Text
             fontFamily="ui"
             fontSize="2xs"
@@ -363,7 +351,7 @@ export default async function ClassPage({ params }: RouteParams) {
             </Box>
           ) : null}
 
-          <ClassSummary found={found} align={headerAlign} />
+          <ClassSummary found={found} />
         </Box>
 
         {intro.length > 0 ? (
@@ -593,14 +581,7 @@ function featureRows(features: ClassFeatureDetail[]) {
 }
 
 /** Hit die, saving throws, casting and what the class calls its subclasses. */
-function ClassSummary({
-  found,
-  align = "left",
-}: {
-  found: ClassDetail;
-  /** Which way the header is set. The summary follows it. */
-  align?: "left" | "right";
-}) {
+function ClassSummary({ found }: { found: ClassDetail }) {
   const parts = [
     { label: "Hit Die", value: found.hitDie ? `d${found.hitDie}` : null },
     { label: "Saves", value: formatAbilities(found.savingThrows) },
@@ -626,7 +607,6 @@ function ClassSummary({
     <Box
       display="flex"
       flexWrap="wrap"
-      justifyContent={align === "right" ? { lg: "flex-end" } : undefined}
       columnGap="5"
       rowGap="1"
       mt="3"
