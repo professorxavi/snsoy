@@ -30,11 +30,23 @@ export default async function SkillsPage({
   const rows = await listSkills(sort);
 
   return (
-    <Box as="main" id="main" pb="16">
+    /*
+     * Held to a column rather than the page's full width. Four narrow columns
+     * stretched across a wide screen put a foot of empty space between a skill's
+     * name and what it covers, and the eye has to travel it on every row. The
+     * table takes the heading's own measure and left edge, and the space it does
+     * not use is where the aside opens.
+     */
+    <Box
+      as="main"
+      id="main"
+      maxW="4xl"
+      px={{ base: "5", md: "8" }}
+      pb="16"
+    >
       <Stack
         gap="3"
         maxW="measure"
-        px={{ base: "5", md: "8" }}
         pt={{ base: "8", md: "10" }}
         pb={{ base: "6", md: "8" }}
       >

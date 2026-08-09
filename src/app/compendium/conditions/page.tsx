@@ -22,11 +22,21 @@ export default async function ConditionsPage() {
   const rows = await listConditions();
 
   return (
-    <Box as="main" id="main" pb="16">
+    /*
+     * Held to a column rather than the page's full width — see the skills page,
+     * which sets the same measure for the same reason. The space the table does
+     * not use is where the aside opens.
+     */
+    <Box
+      as="main"
+      id="main"
+      maxW="4xl"
+      px={{ base: "5", md: "8" }}
+      pb="16"
+    >
       <Stack
         gap="3"
         maxW="measure"
-        px={{ base: "5", md: "8" }}
         pt={{ base: "8", md: "10" }}
         pb={{ base: "6", md: "8" }}
       >
