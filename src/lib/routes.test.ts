@@ -93,14 +93,38 @@ describe("hrefFor", () => {
     ).toBe("/compendium/races/phb/dwarf#hill");
   });
 
-  /** A PHB wizard has TCE subclasses, so the two sources need not match. */
+  /** A PHB dwarf has an MTF subrace, so the two sources need not match. */
   it("uses the parent's source for the path and the fragment's for the anchor", () => {
+    expect(
+      hrefFor(
+        { entityType: "subrace", sourceId: "MTF", slug: "duergar" },
+        { entityType: "race", sourceId: "PHB", slug: "dwarf" },
+      ),
+    ).toBe("/compendium/races/phb/dwarf#duergar");
+  });
+
+  /** A subclass is printed on its class's page, and addressed there. */
+  it("addresses a subclass on the page of the class that owns it", () => {
+    expect(
+      hrefFor(
+        { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
+        { entityType: "class", sourceId: "PHB", slug: "wizard" },
+      ),
+    ).toBe("/compendium/classes/phb/wizard#bladesinging");
+  });
+
+  /**
+   * A subclass feature's parent is a subclass, which is itself a fragment and
+   * has no page to anchor against. Unaddressable is the honest answer — it was
+   * previously a link to a route that does not exist.
+   */
+  it("declines to address a fragment whose parent is one too", () => {
     expect(
       hrefFor(
         { entityType: "subclassFeature", sourceId: "TCE", slug: "song-of-defense" },
         { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
       ),
-    ).toBe("/compendium/subclasses/tce/bladesinging#song-of-defense");
+    ).toBeNull();
   });
 
   it("declines to address a fragment with no parent, rather than guessing", () => {

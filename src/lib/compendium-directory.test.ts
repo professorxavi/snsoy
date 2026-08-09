@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DIRECTORY, IMPLEMENTED } from "./compendium-directory";
+import { DIRECTORY, entryHref, IMPLEMENTED } from "./compendium-directory";
 import { BROWSABLE_TYPES, listHrefFor, segmentFor } from "./routes";
 
 /**
@@ -12,28 +12,49 @@ import { BROWSABLE_TYPES, listHrefFor, segmentFor } from "./routes";
 
 const entries = DIRECTORY.flatMap((group) => group.entries);
 
+/** Cards that browse a whole type, as opposed to a slice of one. */
+const typed = entries.flatMap((entry) => (entry.type ? [entry] : []));
+
 describe("the directory covers the route map", () => {
   it("lists every browsable type exactly once", () => {
-    const listed = entries.map((entry) => entry.type).sort();
+    const listed = typed.map((entry) => entry.type).sort();
     expect(listed).toEqual([...BROWSABLE_TYPES].sort());
   });
 
   it("has no duplicates across groups", () => {
-    const listed = entries.map((entry) => entry.type);
+    const listed = typed.map((entry) => entry.type);
     expect(new Set(listed).size).toBe(listed.length);
   });
 
   /** Fragments render on a parent page, so they must never appear here. */
   it("omits types with no browse route of their own", () => {
-    for (const entry of entries) {
-      expect(segmentFor(entry.type)).not.toBeNull();
+    for (const entry of typed) {
+      expect(segmentFor(entry.type!)).not.toBeNull();
     }
   });
 
-  it("points every entry at its own list route", () => {
-    for (const entry of entries) {
-      expect(listHrefFor(entry.type)).toBe(`/compendium/${segmentFor(entry.type)}`);
+  it("points every typed entry at its own list route", () => {
+    for (const entry of typed) {
+      expect(entryHref(entry)).toBe(`/compendium/${segmentFor(entry.type!)}`);
+      expect(entryHref(entry)).toBe(listHrefFor(entry.type!));
     }
+  });
+
+  /**
+   * A card with no type browses a slice of one — sidekicks are `class` rows —
+   * so it cannot take its route from the route map and has to carry its own.
+   * Nothing else can say whether that route exists, either.
+   */
+  it("gives a slice card a route of its own, under the compendium", () => {
+    for (const entry of entries.filter((candidate) => !candidate.type)) {
+      expect(entry.route).toMatch(/^\/compendium\/[a-z-]+$/);
+      expect(typeof entry.ready).toBe("boolean");
+    }
+  });
+
+  it("sends no two cards to the same place", () => {
+    const routes = entries.map(entryHref);
+    expect(new Set(routes).size).toBe(routes.length);
   });
 });
 

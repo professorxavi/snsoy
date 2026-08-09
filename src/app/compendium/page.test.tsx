@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DIRECTORY, isImplemented } from "@/lib/compendium-directory";
-import { listHrefFor } from "@/lib/routes";
+import {
+  DIRECTORY,
+  entryHref,
+  entryReady,
+} from "@/lib/compendium-directory";
 import { render, screen } from "@/test/render";
 import CompendiumPage from "./page";
 
@@ -18,8 +21,8 @@ import CompendiumPage from "./page";
  */
 
 const entries = DIRECTORY.flatMap((group) => group.entries);
-const built = entries.filter((entry) => isImplemented(entry.type));
-const unbuilt = entries.filter((entry) => !isImplemented(entry.type));
+const built = entries.filter(entryReady);
+const unbuilt = entries.filter((entry) => !entryReady(entry));
 
 /** The card for a type, found by the label the directory gives it. */
 const cardFor = (label: string) =>
@@ -46,15 +49,12 @@ describe("the compendium index", () => {
   });
 
   describe("types with a browse view", () => {
-    it.each(built.map((entry) => [entry.label, entry.type] as const))(
+    it.each(built.map((entry) => [entry.label, entryHref(entry)] as const))(
       "links %s to its list route",
-      (label, type) => {
+      (label, href) => {
         render(<CompendiumPage />);
 
-        expect(cardFor(label).closest("a")).toHaveAttribute(
-          "href",
-          listHrefFor(type),
-        );
+        expect(cardFor(label).closest("a")).toHaveAttribute("href", href);
       },
     );
   });
@@ -74,7 +74,7 @@ describe("the compendium index", () => {
 
       for (const entry of unbuilt) {
         expect(cardFor(entry.label).closest("a")).toBeNull();
-        expect(destinations).not.toContain(listHrefFor(entry.type));
+        expect(destinations).not.toContain(entryHref(entry));
       }
     });
 
@@ -95,7 +95,7 @@ describe("the compendium index", () => {
         .filter((href) => href?.startsWith("/compendium/"));
 
       expect(new Set(listRoutes)).toEqual(
-        new Set(built.map((entry) => listHrefFor(entry.type))),
+        new Set(built.map(entryHref)),
       );
     });
   });
@@ -109,7 +109,7 @@ describe("the compendium index", () => {
     render(<CompendiumPage />);
 
     for (const entry of entries) {
-      const expected = isImplemented(entry.type)
+      const expected = entryReady(entry)
         ? `${entry.label}${entry.blurb}`
         : `${entry.label}${entry.blurb}Not yet built`;
 

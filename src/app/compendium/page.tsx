@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import NextLink from "next/link";
 import {
   DIRECTORY,
-  isImplemented,
+  entryHref,
+  entryReady,
   type DirectoryEntry,
 } from "@/lib/compendium-directory";
-import { listHrefFor } from "@/lib/routes";
 
 export const metadata: Metadata = {
   title: "Compendium",
@@ -85,7 +85,7 @@ export default function CompendiumPage() {
 }
 
 function TypeCard({ entry }: { entry: DirectoryEntry }) {
-  const ready = isImplemented(entry.type);
+  const ready = entryReady(entry);
 
   const body = (
     <>
@@ -152,7 +152,7 @@ function TypeCard({ entry }: { entry: DirectoryEntry }) {
       transition="border-color .12s, background .12s"
       _hover={{ bg: "bg.muted", borderColor: "border.emphasized", borderTopColor: "brand" }}
     >
-      <NextLink href={listHrefFor(entry.type)}>{body}</NextLink>
+      <NextLink href={entryHref(entry)}>{body}</NextLink>
     </Box>
   );
 }

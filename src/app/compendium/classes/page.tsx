@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 /**
  * The classes landing page.
  *
- * Sixteen rows, so no filtering and no table: a class is chosen by name, and
+ * Thirteen rows, so no filtering and no table: a class is chosen by name, and
  * the line under each one carries the three things anyone compares classes on
  * before opening them — hit die, saving throws, and whether it casts.
  */

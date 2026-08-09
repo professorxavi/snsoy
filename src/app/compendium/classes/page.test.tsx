@@ -6,7 +6,7 @@ import ClassesPage from "./page";
 /**
  * What the classes index puts on screen.
  *
- * Sixteen rows over two books, so there is no rail and no table — the whole
+ * Thirteen rows over two books, so there is no rail and no table — the whole
  * page is the choice between them, and the line under each name is what that
  * choice is made on.
  */

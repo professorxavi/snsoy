@@ -1,18 +1,29 @@
-import type { BrowsableType } from "./routes";
+import { listHrefFor, type BrowsableType } from "./routes";
 
 /**
- * Which content types the compendium index lists, and how they group.
+ * Which content the compendium index lists, and how it groups.
  *
  * Grouping affects navigation only, not URLs: every type keeps its own
  * top-level segment (`/compendium/spells`, `/compendium/traps`), because the
  * URL scheme requires one segment to name exactly one entity type.
+ *
+ * Most cards browse a whole type and take their route from it. One does not:
+ * sidekicks are `class` rows that happen to carry `isSidekick`, and they get a
+ * card because a player looking for one is not looking for a class. A card like
+ * that names its own route and no type, which is the same rule the route map
+ * follows — blend types in the list, never in the segment.
  */
 
 export interface DirectoryEntry {
-  type: BrowsableType;
+  /** The type this card browses, when it browses a whole one. */
+  type?: BrowsableType;
   label: string;
   /** One player-facing line — several of these type names mean little alone. */
   blurb: string;
+  /** Where the card goes. Defaults to the list route for `type`. */
+  route?: string;
+  /** Set on a card with no type, since nothing else can say. */
+  ready?: boolean;
 }
 
 export interface DirectoryGroup {
@@ -52,9 +63,10 @@ export const DIRECTORY: DirectoryGroup[] = [
         blurb: "Progression, features and subclasses.",
       },
       {
-        type: "subclass",
-        label: "Subclasses",
-        blurb: "Every archetype, listed on its own.",
+        label: "Sidekicks",
+        blurb: "The three companion classes, for a party of one.",
+        route: "/compendium/sidekicks",
+        ready: true,
       },
       {
         type: "background",
@@ -236,4 +248,14 @@ export const DIRECTORY: DirectoryGroup[] = [
 
 export function isImplemented(type: BrowsableType): boolean {
   return IMPLEMENTED.has(type);
+}
+
+/** Where a card goes. A typeless card carries its own route. */
+export function entryHref(entry: DirectoryEntry): string {
+  return entry.route ?? listHrefFor(entry.type!);
+}
+
+/** Whether that route exists yet. */
+export function entryReady(entry: DirectoryEntry): boolean {
+  return entry.type ? isImplemented(entry.type) : (entry.ready ?? false);
 }

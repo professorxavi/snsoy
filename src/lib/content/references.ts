@@ -307,6 +307,10 @@ export function parentKeyFor(naturalKey: string): string | null {
     case "subrace":
       return parts.length >= 4 ? `race|${parts[2]}|${parts[3]}` : null;
 
+    /** subclass|shortName|class|classSource|source */
+    case "subclass":
+      return parts.length >= 4 ? `class|${parts[2]}|${parts[3]}` : null;
+
     /** classfeature|name|class|classSource|level|source */
     case "classfeature":
       return parts.length >= 4 ? `class|${parts[2]}|${parts[3]}` : null;

@@ -34,7 +34,11 @@ import {
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
+/** Every `class` row in the corpus, sidekicks included. */
 const CLASSES = 16;
+/** What the class list shows: the twelve, plus the Artificer. */
+const LISTED = 13;
+const SIDEKICKS = 3;
 
 describeDb("class queries against the seed", () => {
   let queries: typeof ClassQueries;
@@ -54,9 +58,32 @@ describeDb("class queries against the seed", () => {
       const groups = await queries.listClassesBySource();
       const total = groups.reduce((n, group) => n + group.classes.length, 0);
 
-      expect(total).toBe(CLASSES);
+      expect(total).toBe(LISTED);
       expect(groups[0]!.sourceId).toBe("PHB");
       expect(groups[0]!.classes).toHaveLength(12);
+    });
+
+    /**
+     * Sidekicks are `class` rows too, and the only thing keeping them off this
+     * list is a flag inside the blob. Lose the filter and three companions
+     * appear among the twelve a player chooses between.
+     */
+    it("leaves the sidekicks to their own list", async () => {
+      const groups = await queries.listClassesBySource();
+      const listed = groups.flatMap((group) => group.classes.map((c) => c.slug));
+      const sidekicks = await queries.listSidekicks();
+
+      expect(sidekicks).toHaveLength(SIDEKICKS);
+      expect(sidekicks.map((s) => s.slug)).toEqual([
+        "expert-sidekick",
+        "spellcaster-sidekick",
+        "warrior-sidekick",
+      ]);
+      for (const sidekick of sidekicks) {
+        expect(listed).not.toContain(sidekick.slug);
+      }
+      // Between them, the two lists are every class there is.
+      expect(listed.length + sidekicks.length).toBe(CLASSES);
     });
 
     it("counts a class's subclasses across every book that added one", async () => {
@@ -258,8 +285,8 @@ describeDb("class queries against the seed", () => {
       if (art) sides.set(found.name, subjectSide(art));
     }
 
-    // Every class carries art, so every class page places one.
-    expect(sides.size).toBe(CLASSES);
+    // Every listed class carries art, so every class page places one.
+    expect(sides.size).toBe(LISTED);
     expect(
       [...sides].filter(([, side]) => side === "left").map(([name]) => name).sort(),
     ).toEqual(["Bard", "Ranger", "Sorcerer", "Warlock"]);

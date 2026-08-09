@@ -22,7 +22,6 @@ const SEGMENTS = {
   background: "backgrounds",
   feat: "feats",
   class: "classes",
-  subclass: "subclasses",
   optionalfeature: "optional-features",
   action: "actions",
   boon: "boons",
@@ -57,9 +56,15 @@ export const BROWSABLE_TYPES = Object.keys(SEGMENTS) as BrowsableType[];
 /**
  * Types with no page of their own. They render as an anchored section of their
  * parent's page instead.
+ *
+ * A subclass is one of these rather than a browsable type. Every one of them is
+ * printed on its class's page — there is no such thing as reading a Battle
+ * Master without the Fighter around it — and a route of its own would be a
+ * second place to find the same text, reachable from an index nobody wants.
  */
 const FRAGMENT_TYPES = new Set<EntityType>([
   "subrace",
+  "subclass",
   "classFeature",
   "subclassFeature",
 ]);

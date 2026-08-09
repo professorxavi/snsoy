@@ -27,35 +27,52 @@ const GROUP_RANK = sql<number>`
   END
 `;
 
+/**
+ * Sidekicks are `class` rows, and the corpus says so itself. They are kept out
+ * of the class list and given one of their own: a sidekick is a companion a
+ * small party adopts, not something a player rolls up, and three of them among
+ * the twelve is a category error on the page that matters most.
+ *
+ * Read from the blob rather than a column of its own. Adding one would mean an
+ * ingest run, and this is three rows out of sixteen.
+ */
+const IS_SIDEKICK = sql<boolean>`
+  coalesce((${classes.data}->>'isSidekick')::boolean, false)
+`;
+
 export type ClassListGroup = Awaited<ReturnType<typeof listClassesBySource>>[number];
 export type ClassListItem = ClassListGroup["classes"][number];
 
+/** The columns a list row needs, whether it is a class or a sidekick. */
+const listColumns = {
+  id: entities.id,
+  name: entities.name,
+  slug: entities.slug,
+  sourceId: entities.sourceId,
+  sourceName: sources.name,
+  page: entities.page,
+  hitDie: classes.hitDie,
+  casterProgression: classes.casterProgression,
+  spellcastingAbility: classes.spellcastingAbility,
+  savingThrows: classes.savingThrowProficiencies,
+  subclassTitle: classes.subclassTitle,
+  subclassCount: sql<number>`(
+    SELECT count(*)::int FROM ${subclasses}
+    WHERE ${subclasses.classId} = ${classes.entityId}
+  )`,
+};
+
 /**
- * Every class, grouped by the book that printed it. Twelve are the PHB's; the
- * rest are one supplement's sidekicks.
+ * Every class, grouped by the book that printed it. Twelve are the PHB's and
+ * one is a supplement's. Sidekicks are excluded — they have a list of their own.
  */
 export async function listClassesBySource() {
   const rows = await db
-    .select({
-      id: entities.id,
-      name: entities.name,
-      slug: entities.slug,
-      sourceId: entities.sourceId,
-      sourceName: sources.name,
-      page: entities.page,
-      hitDie: classes.hitDie,
-      casterProgression: classes.casterProgression,
-      spellcastingAbility: classes.spellcastingAbility,
-      savingThrows: classes.savingThrowProficiencies,
-      subclassTitle: classes.subclassTitle,
-      subclassCount: sql<number>`(
-        SELECT count(*)::int FROM ${subclasses}
-        WHERE ${subclasses.classId} = ${classes.entityId}
-      )`,
-    })
+    .select(listColumns)
     .from(classes)
     .innerJoin(entities, eq(entities.id, classes.entityId))
     .innerJoin(sources, eq(sources.id, entities.sourceId))
+    .where(sql`NOT ${IS_SIDEKICK}`)
     .orderBy(GROUP_RANK, asc(sources.sortOrder), asc(entities.name));
 
   const groups: {
@@ -78,6 +95,22 @@ export async function listClassesBySource() {
   }
 
   return groups;
+}
+
+export type SidekickListItem = Awaited<ReturnType<typeof listSidekicks>>[number];
+
+/**
+ * The sidekicks, flat. All three come from one book, so there is nothing to
+ * group them by, and a list of three does not need paging or a filter.
+ */
+export async function listSidekicks() {
+  return db
+    .select(listColumns)
+    .from(classes)
+    .innerJoin(entities, eq(entities.id, classes.entityId))
+    .innerJoin(sources, eq(sources.id, entities.sourceId))
+    .where(IS_SIDEKICK)
+    .orderBy(asc(entities.name));
 }
 
 export type ClassDetail = NonNullable<Awaited<ReturnType<typeof getClass>>>;
