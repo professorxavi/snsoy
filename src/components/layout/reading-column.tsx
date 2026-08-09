@@ -87,15 +87,6 @@ export function ReadingColumn({
         <Box
           maxW="measure"
           mx={{ base: "0", lg: "auto" }}
-          /*
-           * How far a figure may reach into the margins either side of the
-           * measure. A table set for a printed page is wider than a line of
-           * prose, and the room is there at these widths — the values are what
-           * fits beside the outline once the measure and the gutters are paid
-           * for. Only this layout grants it: the aside renders the same tables
-           * at 400px, sets nothing, and they stay inside their column.
-           */
-          css={{ "--figure-bleed": { base: "0px", lg: "3rem", xl: "8rem" } }}
           // Above the plate, so text is never printed under artwork.
           position="relative"
           zIndex="1"

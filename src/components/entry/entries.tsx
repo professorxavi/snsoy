@@ -2,6 +2,7 @@ import { Box, Stack, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { Illustration, isLandscape } from "@/components/compendium/entity-image";
+import { SIDEWAYS_SCROLLBAR } from "@/components/layout/constants";
 import {
   featureReferenceKey,
   type FeatureIndex,
@@ -457,12 +458,11 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
  * A random table. The first column is usually a die roll, which is what the
  * `cell` entry type carries.
  *
- * Two things keep a table readable in a column set for prose. It may use the
- * margins either side of the reading measure, which `--figure-bleed` grants it
- * where there is room — a six-column table is a figure, not a paragraph, and
- * shrinking one to 68 characters sets every cell one word to the line. Beyond
- * that it scrolls inside its own container, so a wide table never scrolls the
- * page; the aside it may also render into is only 400px and grants no bleed.
+ * A wide table stays inside the measure and scrolls in its own container, so
+ * nothing is ever cut off and the column keeps one edge all the way down the
+ * page. It used to reach out into the margins instead, which stopped the
+ * cut-off but left a table half again the width of the prose around it —
+ * conspicuous in a layout whose whole point is a single measured column.
  */
 function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   if (!entry.rows?.length) return null;
@@ -475,7 +475,7 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   const sized = styles.some((style) => style.width);
 
   return (
-    <Box my="1" mx="calc(-1 * var(--figure-bleed, 0px))">
+    <Box my="1">
       {entry.caption ? (
         <Text
           fontFamily="ui"
@@ -490,8 +490,34 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
         </Text>
       ) : null}
 
-      <Box overflowX="auto" borderWidth="1px" borderColor="border" rounded="l1">
-        <Table.Root size="sm" variant="line" width="100%">
+      <Box
+        overflowX="auto"
+        css={SIDEWAYS_SCROLLBAR}
+        borderWidth="1px"
+        borderColor="border"
+        rounded="l1"
+      >
+        <Table.Root
+          size="sm"
+          variant="line"
+          width="100%"
+          /*
+           * A floor, so the printed shares mean something.
+           *
+           * The shares are percentages under `table-layout: auto`, which means
+           * a column whose content cannot shrink further takes its room first
+           * and the flexible ones divide what is left. Squeezed into the
+           * reading measure that turns a four-twelfths column of sentences into
+           * 129px beside a one-word column of 83 — the collapse the shares
+           * exist to prevent. Given a floor the proportions come back, and what
+           * does not fit is reached by scrolling the table rather than by
+           * pushing it out past the column.
+           *
+           * Only where widths are declared: a table without them is sized by
+           * its content and has nothing to be squeezed out of.
+           */
+          minW={sized ? `min(${(columns * 7.5).toFixed(1)}rem, 60rem)` : undefined}
+        >
           {/*
            * Declared widths, not `table-layout: fixed`. The layout stays auto so
            * a column whose content cannot fit its printed share still takes the

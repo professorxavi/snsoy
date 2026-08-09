@@ -72,8 +72,11 @@ export default function CompendiumPage() {
               </Text>
 
               <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} gap="3">
+                {/* Keyed on the label, not the type: a card need not have a
+                    type — sidekicks name their own route instead — and an
+                    undefined key is no key at all. */}
                 {group.entries.map((entry) => (
-                  <TypeCard key={entry.type} entry={entry} />
+                  <TypeCard key={entry.label} entry={entry} />
                 ))}
               </SimpleGrid>
             </Box>

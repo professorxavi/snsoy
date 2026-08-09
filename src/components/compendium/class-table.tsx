@@ -1,5 +1,6 @@
 import { Box, Table, Text } from "@chakra-ui/react";
 import { Inline } from "@/components/entry";
+import { SIDEWAYS_SCROLLBAR } from "@/components/layout/constants";
 import {
   CLASS_LEVELS,
   ordinal,
@@ -53,19 +54,16 @@ export function ClassTable({
   const byLevel = new Map(rows.map((row) => [row.level, row]));
 
   return (
-    <Box
-      /*
-       * A larger allowance than `--figure-bleed` grants elsewhere. A book table
-       * is a figure inside an argument; this one is the argument, and the page
-       * is built around it. Still a clamp, not a width: below `lg` there are no
-       * margins to take and the table scrolls in its own box instead.
-       */
-      css={{ "--figure-bleed": { base: "0px", lg: "3rem", xl: "10rem", "2xl": "16rem" } }}
-      mx="calc(-1 * var(--figure-bleed, 0px))"
-    >
+    <Box>
       {heading}
 
-      <Box overflowX="auto" borderWidth="1px" borderColor="border" rounded="l1">
+      <Box
+        overflowX="auto"
+        css={SIDEWAYS_SCROLLBAR}
+        borderWidth="1px"
+        borderColor="border"
+        rounded="l1"
+      >
         <Table.Root size="sm" variant="line" width="100%">
           <Table.Header>
             {hasGroups ? (
@@ -183,10 +181,17 @@ function HeadCell({
   return (
     <Table.ColumnHeader
       fontFamily="ui"
-      fontSize="xs"
+      /*
+       * Not uppercased, unlike every other table head in the app. These are
+       * `nowrap` and several are long — "Invocations Known" — so they set the
+       * table's width outright, and uppercasing costs more width than the
+       * smaller size saves.
+       */
+      fontSize="2xs"
       fontWeight="semibold"
       textAlign={align}
       whiteSpace="nowrap"
+      px="2"
       {...(sticky ? { ...stickyCell, bg: "bg.muted" } : {})}
     >
       {children}
@@ -208,8 +213,19 @@ function BodyCell({
   return (
     <Table.Cell
       fontFamily="body"
-      fontSize="sm"
-      lineHeight="1.5"
+      /*
+       * A step below the prose, and tighter than a default cell.
+       *
+       * This is the widest thing in the app — a Warlock's progression is eight
+       * columns — and it now lives inside the reading measure rather than
+       * reaching out past it. Set at the body size it overflowed by about a
+       * column; at the size the browse table already uses for data it fits,
+       * which is the difference between reading a level's row across and
+       * scrolling to finish it.
+       */
+      fontSize="xs"
+      lineHeight="1.45"
+      px="2"
       verticalAlign="top"
       textAlign={align}
       whiteSpace={nowrap ? "nowrap" : undefined}

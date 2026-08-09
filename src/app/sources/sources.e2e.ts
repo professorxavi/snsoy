@@ -42,25 +42,34 @@ test("sets a table's columns to the shares it was printed with", async ({
 });
 
 /**
- * A six-column table does not fit a column set for prose, and squeezing it into
- * one is what broke it. It may use the margins instead — but only as far as the
- * page allows, and never far enough to scroll the document sideways.
+ * A wide table keeps to the reading measure and scrolls in its own box.
+ *
+ * It used to reach out into the margins instead. That stopped the columns being
+ * cut off, but left the table half again the width of the prose around it,
+ * which is conspicuous in a layout whose whole point is one measured column.
+ * Nothing is lost by keeping it in: what does not fit is reachable by scrolling
+ * the table, and the page itself never scrolls sideways.
  */
-test("lets a wide table past the reading measure without scrolling the page", async ({
-  page,
-}) => {
+test("keeps a wide table inside the reading measure", async ({ page }) => {
   await page.goto(CLASSES);
   await expectHydrated(page);
 
   // A paragraph on the same page is the measure, measured rather than assumed.
-  const paragraph = await page.locator("p.prose").first().boundingBox();
-  const table = await page.locator("table").first().boundingBox();
+  const paragraph = (await page.locator("p.prose").first().boundingBox())!;
 
-  expect(table!.width).toBeGreaterThan(paragraph!.width);
+  // The scroll container, not the table: the table may be wider than the
+  // measure and scroll inside it, which is the point. What must line up with
+  // the prose is the box it scrolls in.
+  const container = await page
+    .locator("table")
+    .first()
+    .evaluate((el) => {
+      const { x, width } = el.closest("div")!.getBoundingClientRect();
+      return { x, width };
+    });
 
-  // Centred on the same column, not shunted to one side.
-  const centre = (box: { x: number; width: number }) => box.x + box.width / 2;
-  expect(Math.abs(centre(table!) - centre(paragraph!))).toBeLessThan(4);
+  expect(Math.abs(container.x - paragraph.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(container.width - paragraph.width)).toBeLessThanOrEqual(1);
 
   expect(
     await page.evaluate(
@@ -69,6 +78,33 @@ test("lets a wide table past the reading measure without scrolling the page", as
         document.documentElement.clientWidth,
     ),
   ).toBe(0);
+});
+
+/**
+ * Whatever does not fit is still reachable. The container scrolls rather than
+ * clipping, which is what makes keeping the table inside the measure honest
+ * rather than a way of hiding columns.
+ */
+test("leaves an over-wide table scrollable rather than clipped", async ({
+  page,
+}) => {
+  await page.goto("/compendium/classes/phb/sorcerer");
+  await expectHydrated(page);
+
+  const box = await page.evaluate(() => {
+    const table = document.querySelector("main table");
+    const wrap = table?.closest("div");
+    if (!wrap) return null;
+    return {
+      overflows: wrap.scrollWidth > wrap.clientWidth,
+      canScroll: getComputedStyle(wrap).overflowX,
+    };
+  });
+
+  // A Sorcerer carries nine spell-slot columns and does not fit; that is the
+  // case worth pinning, since it is the one a reader has to scroll.
+  expect(box?.overflows).toBe(true);
+  expect(box?.canScroll).toBe("auto");
 });
 
 /**
