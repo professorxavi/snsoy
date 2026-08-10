@@ -1,6 +1,7 @@
 import { Box, Grid } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { BELOW_TOPBAR, TOPBAR } from "./constants";
+import { FragmentTarget } from "./fragment-target";
 
 /**
  * The long-form layout, for book and adventure chapters.
@@ -8,6 +9,11 @@ import { BELOW_TOPBAR, TOPBAR } from "./constants";
  * No filter rail; instead an optional sticky outline on the trailing edge,
  * since chapters run long (555 KB at the extreme). The column width is measured
  * in `ch` so line length tracks the body face rather than a pixel guess.
+ *
+ * Every route using this streams a fallback and every one of them is deep-linked
+ * — subraces, subclasses, chapter sections — so `FragmentTarget` belongs here
+ * rather than on any one page. It is rendered inside the streamed body on
+ * purpose: that is what makes its effect run after the real content lands.
  */
 export function ReadingColumn({
   outline,
@@ -93,6 +99,8 @@ export function ReadingColumn({
         >
           {children}
         </Box>
+
+        <FragmentTarget />
       </Box>
 
       {outline ? (

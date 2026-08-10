@@ -84,6 +84,24 @@ export async function isInView(page: Page, id: string) {
   }, id);
 }
 
+/**
+ * The same, waited for rather than sampled once.
+ *
+ * A fragment scroll is not synchronous with hydration: the browser expands the
+ * `<details>` the anchor is nested in and then scrolls, and on a warm server the
+ * assertion can arrive between the two. Sampled once it passed for as long as
+ * the page happened to be slow, and began failing the moment another file ran
+ * before it — which is a property of the test, not of the page.
+ */
+export async function expectInView(page: Page, id: string) {
+  await expect
+    .poll(() => isInView(page, id), {
+      message: `#${id} never scrolled into view`,
+      timeout: 10_000,
+    })
+    .toBe(true);
+}
+
 /** Is the `<details>` wrapping this anchor open? */
 export async function isDisclosureOpen(page: Page, id: string) {
   return page.evaluate((elementId) => {

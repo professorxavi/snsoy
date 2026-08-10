@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { ASIDE, expectHydrated } from "@/test/e2e-helpers";
+import { ASIDE, expectHydrated, expectInView } from "@/test/e2e-helpers";
 
 /**
  * How a chapter's tables come out once a browser has laid them out.
@@ -223,4 +223,22 @@ test("opens a race from the chapter, summarised", async ({ page }) => {
   const aside = page.locator(ASIDE);
   await expect(aside.getByRole("link", { name: /full page/i })).toBeVisible();
   await expect(aside.locator("details")).toHaveCount(0);
+});
+
+/**
+ * A deep link into a chapter section — the other half of what `FragmentTarget`
+ * fixes, and the larger half.
+ *
+ * The subrace case in `races.e2e.ts` covers a target inside a `<details>`,
+ * where a disclosure has to be opened before there is anywhere to scroll. This
+ * is the plain one: a section in a 21,576px chapter, where nothing was standing
+ * in for the browser at all. Measured 2026-08-10 before the fix, this landed at
+ * the top of the page with the target 9,573px below it — the chapter routes
+ * stream a fallback and the browser had scrolled against that.
+ */
+test("a deep link into a chapter section scrolls to it", async ({ page }) => {
+  await page.goto("/sources/phb/combat#making-an-attack");
+  await expectHydrated(page);
+
+  await expectInView(page, "making-an-attack");
 });

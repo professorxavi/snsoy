@@ -1,6 +1,5 @@
 import { Box, Stack, Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
-import { OpenTargetDetails } from "./open-target-details";
 
 /**
  * Collapsible subrace list. A PHB Tiefling has thirteen subraces, which would
@@ -12,6 +11,11 @@ import { OpenTargetDetails } from "./open-target-details";
  *
  * The anchor sits inside the disclosure, not on it: browsers expand a closed
  * `<details>` when the fragment targets its contents, but not the element.
+ *
+ * Opening the one a deep link points into is `FragmentTarget`'s job, in
+ * `ReadingColumn` — this list used to carry its own copy, which only ever
+ * covered subraces and left the identical problem on classes and chapters
+ * unaddressed.
  */
 
 export interface SubraceItem {
@@ -83,8 +87,6 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
           </Box>
         </Box>
       ))}
-
-      <OpenTargetDetails />
     </Stack>
   );
 }

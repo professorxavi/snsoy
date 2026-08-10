@@ -3,8 +3,8 @@ import {
   ASIDE,
   OUTLINE,
   expectHydrated,
+  expectInView,
   isDisclosureOpen,
-  isInView,
 } from "@/test/e2e-helpers";
 
 /**
@@ -29,13 +29,26 @@ import {
 const DWARF = "/compendium/races/phb/dwarf";
 const TIEFLING = "/compendium/races/phb/tiefling";
 
-/** A cold load with a fragment — what an inbound link from book text produces. */
+/**
+ * A cold load with a fragment — what an inbound link from book text produces.
+ *
+ * The scroll half of this is `FragmentTarget`'s, not the browser's. The route
+ * streams a `loading.tsx` fallback and the browser scrolls against *that*:
+ * measured 2026-08-10, `#hill` resolves at ~145ms while the document is 726px
+ * tall, and the real 4,663px body swaps in at ~373ms. Whatever the browser did
+ * is lost by then.
+ *
+ * This passed for months on a technicality — it was the first file in the suite,
+ * so its one request hit a cold server and the timings inverted. Anything that
+ * runs before it warms the server and the page fails as it always did for a
+ * real reader, which is how the bug surfaced.
+ */
 test("a deep link opens the subrace and scrolls to it", async ({ page }) => {
   await page.goto(`${DWARF}#hill`);
   await expectHydrated(page);
 
   expect(await isDisclosureOpen(page, "hill")).toBe(true);
-  expect(await isInView(page, "hill")).toBe(true);
+  await expectInView(page, "hill");
 });
 
 /**
@@ -61,7 +74,7 @@ test("an outline jump opens the subrace and scrolls to it", async ({
   await page.locator(`${OUTLINE} a[href="#${target}"]`).click();
 
   expect(await isDisclosureOpen(page, target!)).toBe(true);
-  expect(await isInView(page, target!)).toBe(true);
+  await expectInView(page, target!);
 });
 
 /**

@@ -6,6 +6,7 @@ export {
   BrowseFrame,
   FilterRail,
 } from "./browse-layout";
+export { FragmentTarget } from "./fragment-target";
 export {
   ContentsSkeleton,
   ReadingSkeleton,
