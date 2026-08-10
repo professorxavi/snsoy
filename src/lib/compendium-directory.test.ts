@@ -33,22 +33,37 @@ describe("the directory covers the route map", () => {
     }
   });
 
-  it("points every typed entry at its own list route", () => {
-    for (const entry of typed) {
+  /** The default, and what all but three cards do. */
+  it("points a typed entry at its own list route unless it names another", () => {
+    for (const entry of typed.filter((candidate) => !candidate.route)) {
       expect(entryHref(entry)).toBe(`/compendium/${segmentFor(entry.type!)}`);
       expect(entryHref(entry)).toBe(listHrefFor(entry.type!));
     }
   });
 
   /**
-   * A card with no type browses a slice of one — sidekicks are `class` rows —
-   * so it cannot take its route from the route map and has to carry its own.
-   * Nothing else can say whether that route exists, either.
+   * Two kinds of card carry their own route: one that browses a slice of a type
+   * — sidekicks are `class` rows — and one whose type shares a list with
+   * another, as `baseitem` and `itemGroup` share `/compendium/items`. Neither
+   * can take its route from the route map, and neither can let `IMPLEMENTED`
+   * answer for whether that route exists.
    */
-  it("gives a slice card a route of its own, under the compendium", () => {
-    for (const entry of entries.filter((candidate) => !candidate.type)) {
-      expect(entry.route).toMatch(/^\/compendium\/[a-z-]+$/);
+  it("keeps a card's own route under the compendium, and says if it is live", () => {
+    for (const entry of entries.filter((candidate) => candidate.route)) {
+      // A query string is allowed: a shared list is reached with its filter set.
+      expect(entry.route).toMatch(/^\/compendium\/[a-z-]+(\?[\w=&]+)?$/);
       expect(typeof entry.ready).toBe("boolean");
+    }
+  });
+
+  /**
+   * A card sharing a list must still leave its entities addressable under their
+   * own segment, or the blend has leaked out of the query and into the URL.
+   */
+  it("keeps a segment for a type whose card points at a shared list", () => {
+    for (const entry of typed.filter((candidate) => candidate.route)) {
+      expect(segmentFor(entry.type!)).not.toBeNull();
+      expect(entry.route).not.toBe(listHrefFor(entry.type!));
     }
   });
 

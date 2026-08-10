@@ -9,6 +9,13 @@
 
 export interface FacetOption<T> {
   value: T;
+  /**
+   * What to call it, where the stored value is a code rather than a word. An
+   * item's type is filtered as `HA` and read as "Heavy Armor"; the value has to
+   * stay in the URL and the label has to reach the rail, so the option carries
+   * both. Absent wherever the value is already the label.
+   */
+  label?: string;
   /** How many rows this option would leave, given the *other* filters. */
   count: number;
   selected: boolean;
@@ -28,6 +35,8 @@ export function toOptions<T extends string | number>(
   rows: { value: T; n: number }[],
   selected: readonly T[],
   order: (a: T, b: T) => number,
+  /** Only where the value is a code the reader should never see. */
+  label?: (value: T) => string,
 ): FacetOption<T>[] {
   return rows
     .filter((row) => row.value != null)
@@ -36,6 +45,7 @@ export function toOptions<T extends string | number>(
       const isSelected = selected.includes(row.value);
       return {
         value: row.value,
+        ...(label ? { label: label(row.value) } : {}),
         count: row.n,
         selected: isSelected,
         // A selected option stays clickable even at zero, or a filter that

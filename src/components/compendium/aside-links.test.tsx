@@ -86,17 +86,18 @@ describe("AsideLinks", () => {
   });
 
   /**
-   * Much of what book text links to still has no renderer — 4,780 item
-   * references alone. Those links must behave exactly as they did before this
-   * wrapper existed rather than opening an empty panel.
+   * Much of what book text links to still has no renderer — senses are the
+   * largest of what is left at 794 references, ahead of actions at 743. Those
+   * links must behave exactly as they did before this wrapper existed rather
+   * than opening an empty panel.
    *
-   * The example used to be a creature, which was the largest gap of all until
-   * the stat block closed it. Whatever stands here has to be a type genuinely
-   * absent from `ASIDE_TYPES`, or the test passes for the wrong reason.
+   * The example has been a creature and then an item, and each was retired as
+   * its renderer landed. Whatever stands here has to be a type genuinely absent
+   * from `ASIDE_TYPES`, or the test passes for the wrong reason.
    */
   it("leaves a type it cannot render alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/items/dmg/bag-of-holding">Bag of Holding</a>);
+    renderLinks(loader, <a href="/compendium/senses/phb/darkvision">Darkvision</a>);
 
     const event = await clickAndCapture(screen.getByRole("link"));
 

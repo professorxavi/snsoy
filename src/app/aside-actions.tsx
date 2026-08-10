@@ -5,15 +5,22 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { ConditionAside } from "@/components/compendium/condition-aside";
+import { ItemDetail } from "@/components/compendium/item-detail";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
+import { itemGroupTags } from "@/lib/content/items";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
 import { getCondition } from "@/server/db/queries/conditions";
+import {
+  getItem,
+  itemVocabulary,
+  type ItemEntityType,
+} from "@/server/db/queries/items";
 import { getMonster } from "@/server/db/queries/monsters";
 import { getRace } from "@/server/db/queries/races";
 import { resolveReferences } from "@/server/db/queries/references";
@@ -58,6 +65,10 @@ export async function openEntityAside(
       return conditionAside(source, slug);
     case "monster":
       return monsterAside(source, slug);
+    case "item":
+    case "baseitem":
+    case "itemGroup":
+      return itemAside(type, source, slug);
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -164,6 +175,42 @@ async function monsterAside(source: string, slug: string): Promise<ReactNode> {
   const refs = await resolveReferences(collectReferences(monster.data));
 
   return <MonsterStatblock monster={monster} refs={refs} />;
+}
+
+/**
+ * An item, in full — magic item, mundane gear or item group alike.
+ *
+ * All three types share this because a single `{@item}` tag covers all three,
+ * and a reader following one has no reason to care which they landed on. Like a
+ * creature, an item has no page behind it, so this is the whole of what is
+ * shown rather than a preview of somewhere else.
+ *
+ * The vocabulary is fetched alongside the item because the corpus stores an
+ * item's type and properties as abbreviations and the column meant to hold the
+ * resolved names was never populated — see `itemVocabulary`.
+ */
+async function itemAside(
+  type: ItemEntityType,
+  source: string,
+  slug: string,
+): Promise<ReactNode> {
+  const item = await getItem(type, source, slug);
+  if (!item) return <AsideMessage>No such item.</AsideMessage>;
+
+  /*
+   * `data`, plus the group's members. A group lists what it covers as bare
+   * names rather than tags, so `itemGroupTags` puts them in the form the
+   * resolver reads — without it the 73 groups would print dead text where
+   * their whole purpose is to point somewhere.
+   */
+  const [refs, vocabulary] = await Promise.all([
+    resolveReferences(
+      collectReferences([item.data, itemGroupTags(item.data as { items?: string[] })]),
+    ),
+    itemVocabulary(),
+  ]);
+
+  return <ItemDetail item={item} refs={refs} vocabulary={vocabulary.properties} />;
 }
 
 /**

@@ -176,23 +176,24 @@ test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
 /**
  * A type with no aside renderer must behave exactly as it did before the
  * wrapper existed. Much of what book text links to is still in this state —
- * 4,780 item references alone — and quietly swallowing those clicks would be
- * worse than the navigation they currently perform.
+ * senses lead what is left at 794 references, actions at 743 — and quietly
+ * swallowing those clicks would be worse than the navigation they perform.
  *
- * This used to cite creatures as the example, which the stat block has since
- * made openable. The link exercised here has to stay one of the types the aside
- * genuinely cannot render, or the test passes without asserting anything.
+ * This has cited creatures and then items in turn, and each was retired as its
+ * renderer landed. The link exercised here has to stay one of the types the
+ * aside genuinely cannot render, or the test passes without asserting anything.
  */
 test("leaves a link it cannot render to navigate as before", async ({
   page,
 }) => {
-  await page.goto("/sources/phb/equipment");
+  await page.goto("/sources/phb/combat");
   await expectHydrated(page);
 
-  const item = page.locator('a[href^="/compendium/items/"]').first();
-  test.skip((await item.count()) === 0, "no item links in this chapter");
+  const item = page.locator('a[href^="/compendium/actions/"]').first();
+  test.skip((await item.count()) === 0, "no action links in this chapter");
 
   const href = await item.getAttribute("href");
+  await item.scrollIntoViewIfNeeded();
   await item.click();
 
   await expect(page).toHaveURL(new RegExp(`${href}$`));

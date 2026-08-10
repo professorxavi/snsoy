@@ -7,11 +7,19 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * top-level segment (`/compendium/spells`, `/compendium/traps`), because the
  * URL scheme requires one segment to name exactly one entity type.
  *
- * Most cards browse a whole type and take their route from it. One does not:
- * sidekicks are `class` rows that happen to carry `isSidekick`, and they get a
- * card because a player looking for one is not looking for a class. A card like
- * that names its own route and no type, which is the same rule the route map
- * follows — blend types in the list, never in the segment.
+ * Most cards browse a whole type and take their route from it. Two kinds do
+ * not, and both name their own `route`:
+ *
+ * - **A slice of a type.** Sidekicks are `class` rows that happen to carry
+ *   `isSidekick`, and they get a card because a player looking for one is not
+ *   looking for a class. Such a card names no type at all.
+ * - **A type that shares a list.** `baseitem` and `itemGroup` are browsed from
+ *   `/compendium/items` with its category filter set, because nobody looking
+ *   for a longsword knows the mundane one and the +1 are filed apart. They
+ *   still name their type, so the index is still provably complete, and they
+ *   still keep their own URL segment for the entities themselves — which is the
+ *   same rule the route map follows: blend types in the list, never in the
+ *   segment.
  */
 
 export interface DirectoryEntry {
@@ -22,7 +30,11 @@ export interface DirectoryEntry {
   blurb: string;
   /** Where the card goes. Defaults to the list route for `type`. */
   route?: string;
-  /** Set on a card with no type, since nothing else can say. */
+  /**
+   * Whether that route exists. Required on a card with no type, since nothing
+   * else can say; on a typed card it overrides `IMPLEMENTED`, which answers for
+   * the type's own list route and not for a shared one.
+   */
   ready?: boolean;
 }
 
@@ -43,6 +55,7 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "skill",
   "condition",
   "monster",
+  "item",
 ]);
 
 export const DIRECTORY: DirectoryGroup[] = [
@@ -102,6 +115,13 @@ export const DIRECTORY: DirectoryGroup[] = [
         label: "Monsters",
         blurb: "Statblocks by challenge rating, type and size.",
       },
+      /*
+       * Three cards, one list. `item`, `baseitem` and `itemGroup` are separate
+       * entity types and keep separate URL segments, but nobody browsing for a
+       * longsword knows that the mundane one and the +1 are filed apart — so
+       * the two narrower cards arrive at the same route with its category
+       * filter already set, the way the sidekicks card names its own route.
+       */
       {
         type: "item",
         label: "Magic Items",
@@ -111,11 +131,15 @@ export const DIRECTORY: DirectoryGroup[] = [
         type: "baseitem",
         label: "Equipment",
         blurb: "Weapons, armour and everything bought with gold.",
+        route: "/compendium/items?category=baseitem",
+        ready: true,
       },
       {
         type: "itemGroup",
         label: "Item Groups",
         blurb: "Items that arrive as a set or a random table.",
+        route: "/compendium/items?category=itemGroup",
+        ready: true,
       },
     ],
   },
@@ -253,7 +277,11 @@ export function entryHref(entry: DirectoryEntry): string {
   return entry.route ?? listHrefFor(entry.type!);
 }
 
-/** Whether that route exists yet. */
+/**
+ * Whether that route exists yet. An explicit `ready` wins: a card pointing into
+ * a list it shares with another type is live even though its own type has no
+ * browse view of its own and never will.
+ */
 export function entryReady(entry: DirectoryEntry): boolean {
-  return entry.type ? isImplemented(entry.type) : (entry.ready ?? false);
+  return entry.ready ?? (entry.type ? isImplemented(entry.type) : false);
 }
