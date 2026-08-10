@@ -176,21 +176,23 @@ test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
 /**
  * A type with no aside renderer must behave exactly as it did before the
  * wrapper existed. Much of what book text links to is still in this state —
- * senses lead what is left at 794 references, actions at 743 — and quietly
+ * deities lead what is left at 535 references, cards at 481 — and quietly
  * swallowing those clicks would be worse than the navigation they perform.
  *
- * This has cited creatures and then items in turn, and each was retired as its
- * renderer landed. The link exercised here has to stay one of the types the
- * aside genuinely cannot render, or the test passes without asserting anything.
+ * This has cited creatures, then items, then actions in turn, and each was
+ * retired as its renderer landed. The link exercised here has to stay one of
+ * the types the aside genuinely cannot render, or the test passes without
+ * asserting anything. This chapter carries 195 `{@deity}` tags, so it will hold
+ * until that slice is built — and then this moves again.
  */
 test("leaves a link it cannot render to navigate as before", async ({
   page,
 }) => {
-  await page.goto("/sources/phb/combat");
+  await page.goto("/sources/phb/gods-of-the-multiverse");
   await expectHydrated(page);
 
-  const item = page.locator('a[href^="/compendium/actions/"]').first();
-  test.skip((await item.count()) === 0, "no action links in this chapter");
+  const item = page.locator('a[href^="/compendium/deities/"]').first();
+  test.skip((await item.count()) === 0, "no deity links in this chapter");
 
   const href = await item.getAttribute("href");
   await item.scrollIntoViewIfNeeded();
