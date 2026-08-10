@@ -119,7 +119,6 @@ export function ContentsSkeleton() {
  */
 const CHAPTERS = ["42%", "58%", "35%", "64%", "48%", "52%", "38%", "60%"];
 
-/** A run of body text. `SkeletonText` shortens its last line for us. */
 function ProseSkeleton({ lines }: { lines: number }) {
   return <SkeletonText noOfLines={lines} gap="2.5" />;
 }

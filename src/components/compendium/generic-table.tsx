@@ -30,7 +30,6 @@ export interface GenericColumn<R> {
    * list is still on screen.
    */
   optional?: boolean;
-  /** For the short columns. A summary line is free to wrap. */
   nowrap?: boolean;
 }
 
@@ -47,11 +46,8 @@ export function GenericTable<R extends GenericListRow>({
   rows: R[];
   type: BrowsableType;
   columns: GenericColumn<R>[];
-  /** The plural, for the empty state. */
   noun: string;
-  /** Whether a search is narrowing the list, which changes what empty means. */
   filtered?: boolean;
-  /** Renders one entity for the aside. The route supplies its server function. */
   open: (source: string, slug: string) => Promise<ReactNode>;
 }) {
   if (rows.length === 0) {

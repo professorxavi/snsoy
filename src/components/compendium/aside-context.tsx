@@ -21,10 +21,8 @@ import {
  * loader and a new content type reuses this untouched.
  */
 
-/** Resolves to the aside's body. In practice a bound server function. */
 type Loader = () => Promise<ReactNode>;
 
-/** One level of the reading stack. */
 interface StackEntry {
   key: string;
   /** What to call it on the back button. The text of the link that opened it. */
@@ -32,10 +30,8 @@ interface StackEntry {
 }
 
 interface AsideApi {
-  /** Identifies what is open; also what marks a row as selected. */
   openKey: string | null;
   node: ReactNode;
-  /** True between the click and the reply. */
   pending: boolean;
   /** Where back would return to, or null at the bottom of the stack. */
   previous: StackEntry | null;

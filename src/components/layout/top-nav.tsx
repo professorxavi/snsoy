@@ -7,7 +7,6 @@ import { ColorModeButton } from "@/components/ui/color-mode";
 import { RouteProgress } from "./route-progress";
 import { SearchBox } from "./search-box";
 
-/** No Search link: the search box on the right is the only entry point. */
 const LINKS = [
   { href: "/compendium", label: "Compendium" },
   { href: "/sources", label: "Sources" },

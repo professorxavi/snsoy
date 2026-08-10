@@ -4,16 +4,12 @@ import { AppFrame } from "@/components/layout";
 import { Provider } from "@/components/ui/provider";
 import "./globals.css";
 
-/** Latin-only subsets: the content is English, and these are large variable faces. */
-
-/** Body and headings. Variable, so dark mode can pull the weight back to 350. */
 const literata = Literata({
   variable: "--font-body",
   subsets: ["latin"],
   display: "swap",
 });
 
-/** UI: nav, tables, filters, labels. */
 const plexSans = IBM_Plex_Sans({
   variable: "--font-ui",
   subsets: ["latin"],
