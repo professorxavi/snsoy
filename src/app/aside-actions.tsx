@@ -5,17 +5,22 @@ import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { ConditionAside } from "@/components/compendium/condition-aside";
+import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
+import { actionTimeLabel } from "@/lib/content/actions";
 import { itemGroupTags } from "@/lib/content/items";
+import { languageSubtitle } from "@/lib/content/languages";
+import { ruleTypeLabel } from "@/lib/content/variant-rules";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
 import { getCondition } from "@/server/db/queries/conditions";
+import { getGeneric } from "@/server/db/queries/generic";
 import {
   getItem,
   itemVocabulary,
@@ -69,6 +74,22 @@ export async function openEntityAside(
     case "baseitem":
     case "itemGroup":
       return itemAside(type, source, slug);
+    case "sense":
+      return genericAside(type, source, slug, "sense");
+    case "status":
+      return genericAside(type, source, slug, "status");
+    case "action":
+      return genericAside(type, source, slug, "action", (data) =>
+        actionTimeLabel(data["time"]),
+      );
+    case "language":
+      return genericAside(type, source, slug, "language", (data) =>
+        languageSubtitle(data),
+      );
+    case "variantrule":
+      return genericAside(type, source, slug, "variant rule", (data) =>
+        ruleTypeLabel(data["ruleType"]),
+      );
     default:
       return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
   }
@@ -211,6 +232,41 @@ async function itemAside(
   ]);
 
   return <ItemDetail item={item} refs={refs} vocabulary={vocabulary.properties} />;
+}
+
+/**
+ * One of the `generic_entities` types, in full.
+ *
+ * Like a skill or a condition — which are the same shape and will fold into
+ * this — these have no page behind them, so the panel is the whole of what is
+ * shown rather than a preview of somewhere else.
+ *
+ * No field map is passed. The map exists so a *list* can put a JSON value in a
+ * column; here the entity's whole blob is already in hand, so `subtitle` reads
+ * what it needs straight off it — an action's `time` arrives parsed here and as
+ * JSON text in a table cell, which is the difference the two formatters carry.
+ */
+async function genericAside(
+  type: BrowsableType,
+  source: string,
+  slug: string,
+  /** What to call it when there is nothing there: "No such sense." */
+  noun: string,
+  /** The one line under the name, for the types that have a second fact. */
+  subtitle?: (data: Record<string, unknown>) => string | null,
+): Promise<ReactNode> {
+  const entity = await getGeneric(type, source, slug, {});
+  if (!entity) return <AsideMessage>No such {noun}.</AsideMessage>;
+
+  const refs = await resolveReferences(collectReferences(entity.data));
+
+  return (
+    <GenericAside
+      entity={entity}
+      refs={refs}
+      subtitle={subtitle?.(entity.data)}
+    />
+  );
 }
 
 /**

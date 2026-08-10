@@ -199,8 +199,27 @@ export interface StatblockEntry {
   displayName?: string;
 }
 
+/**
+ * A link out of the prose.
+ *
+ * `internal` addresses a page of the reference site these data files were
+ * written for, which this app has no equivalent of — see `linkText`, which
+ * prints those as plain words rather than as an anchor to nowhere.
+ */
+export interface LinkEntry {
+  type: "link";
+  text?: string;
+  href?: {
+    type?: "internal" | "external";
+    url?: string;
+    path?: string;
+    hash?: string;
+  };
+}
+
 export type EntryObject =
   | EntriesEntry
+  | LinkEntry
   | ListEntry
   | ItemEntry
   | CellEntry

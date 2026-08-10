@@ -36,6 +36,12 @@ export function asideKey(
  * and 386 to `itemGroup` — because a single `{@item}` tag covers magic items,
  * mundane gear and groups alike. All three share one renderer, so all three
  * belong here or a tag would open for some of its targets and not others.
+ *
+ * The five short rules types arrived together and closed ~2,280 dead links
+ * between them: senses were the largest remaining gap after items at 794
+ * references — four entities carrying more inbound links than any other unbuilt
+ * type, because every stat block that says "darkvision 60 ft." is one of them —
+ * then actions at 743, statuses at 479, variant rules at 189 and languages at 75.
  */
 export const ASIDE_TYPES = new Set<BrowsableType>([
   "spell",
@@ -47,6 +53,11 @@ export const ASIDE_TYPES = new Set<BrowsableType>([
   "item",
   "baseitem",
   "itemGroup",
+  "sense",
+  "action",
+  "status",
+  "variantrule",
+  "language",
 ]);
 
 /**

@@ -1,6 +1,6 @@
 import { Box, Stack, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Illustration, isLandscape } from "@/components/compendium/entity-image";
 import { SIDEWAYS_SCROLLBAR } from "@/components/layout/constants";
 import {
@@ -33,6 +33,7 @@ import {
   type Entry,
   type EntryObject,
   type EntriesEntry,
+  type LinkEntry,
   type GalleryEntry,
   type InsetEntry,
   type ItemEntry,
@@ -167,6 +168,12 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "statblock":
       return <StatblockLink entry={entry as StatblockEntry} ctx={ctx} />;
 
+    case "inline":
+      return <InlineRun entry={entry as EntriesEntry} ctx={ctx} />;
+
+    case "link":
+      return <Paragraph>{linkText(entry as LinkEntry, ctx)}</Paragraph>;
+
     case "hr":
       return <Box as="hr" borderTopWidth="1px" borderColor="border" my="2" />;
 
@@ -184,6 +191,51 @@ const inline = (text: string, ctx: RenderContext) => (
     context={ctx.context}
   />
 );
+
+/**
+ * A run of entries that belong in one paragraph rather than one apiece.
+ *
+ * The books use this where a sentence is interrupted by something structured —
+ * a link, a formula — and the pieces have to close back up. Rendering the
+ * children normally would break the sentence across two paragraphs mid-clause.
+ */
+function InlineRun({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) {
+  return (
+    <Paragraph>
+      {entry.entries?.map((child, index) =>
+        typeof child === "string" || typeof child === "number" ? (
+          <Fragment key={index}>{inline(String(child), ctx)}</Fragment>
+        ) : isEntryObject(child) && child.type === "link" ? (
+          <Fragment key={index}>{linkText(child as LinkEntry, ctx)}</Fragment>
+        ) : null,
+      )}
+    </Paragraph>
+  );
+}
+
+/**
+ * A `link` entry's text.
+ *
+ * Only an external address becomes an anchor. An `internal` href addresses a
+ * page of the reference site these files were written for — `statgen.html`, a
+ * point-buy calculator — and this app has no such page, so linking it would
+ * send a reader nowhere. The sentence keeps its words and loses its link, which
+ * is the same thing `hrefFor` returning null does everywhere else.
+ */
+function linkText(entry: LinkEntry, ctx: RenderContext): ReactNode {
+  const text = inline(entry.text ?? "", ctx);
+  const url = entry.href?.type === "external" ? entry.href.url : null;
+
+  if (!url) return text;
+
+  return (
+    <Box asChild color="brand" _hover={{ textDecoration: "underline" }}>
+      <a href={url} rel="noreferrer noopener" target="_blank">
+        {text}
+      </a>
+    </Box>
+  );
+}
 
 function Paragraph({ children }: { children: ReactNode }) {
   return (

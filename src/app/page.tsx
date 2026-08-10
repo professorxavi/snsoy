@@ -12,11 +12,6 @@ const ENTRIES = [
     title: "Sources",
     body: "The full text of your books and adventures, chapter by chapter, with every reference resolved inline as you read.",
   },
-  {
-    href: "/characters",
-    title: "Characters",
-    body: "Build a character from the content you own, then play from a sheet that knows the rules behind it.",
-  },
 ] as const;
 
 export default function Home() {
@@ -68,7 +63,7 @@ export default function Home() {
         </Stack>
 
         <SimpleGrid
-          columns={{ base: 1, md: 3 }}
+          columns={{ base: 1, md: 2 }}
           gap="4"
           mt={{ base: "12", md: "16" }}
         >

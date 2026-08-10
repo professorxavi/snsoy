@@ -86,18 +86,19 @@ describe("AsideLinks", () => {
   });
 
   /**
-   * Much of what book text links to still has no renderer — senses are the
-   * largest of what is left at 794 references, ahead of actions at 743. Those
+   * Much of what book text links to still has no renderer — deities are the
+   * largest of what is left at 535 references, ahead of cards at 481. Those
    * links must behave exactly as they did before this wrapper existed rather
    * than opening an empty panel.
    *
-   * The example has been a creature and then an item, and each was retired as
-   * its renderer landed. Whatever stands here has to be a type genuinely absent
-   * from `ASIDE_TYPES`, or the test passes for the wrong reason.
+   * The example has been a creature, then an item, then a sense, and each was
+   * retired as its renderer landed. Whatever stands here has to be a type
+   * genuinely absent from `ASIDE_TYPES`, or the test passes for the wrong
+   * reason.
    */
   it("leaves a type it cannot render alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/senses/phb/darkvision">Darkvision</a>);
+    renderLinks(loader, <a href="/compendium/deities/phb/bahamut">Bahamut</a>);
 
     const event = await clickAndCapture(screen.getByRole("link"));
 

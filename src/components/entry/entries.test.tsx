@@ -229,3 +229,74 @@ describe("a feature referenced by another feature", () => {
     );
   });
 });
+
+/**
+ * A sentence the data broke apart and expects put back together.
+ *
+ * Found by the generic-entity smoke test, which is the only tier that would
+ * have: two occurrences in one variant rule out of 12,364 entities. Both wrap a
+ * link to a page of the reference site these data files were written for — a
+ * site this app is not, and has no equivalent page on.
+ */
+describe("an inline run", () => {
+  const RUN: Entry = {
+    type: "inline",
+    entries: [
+      "Alternatively, see the ",
+      {
+        type: "link",
+        text: "Point Buy Calculator.",
+        href: { type: "internal", path: "statgen.html", hash: "pointbuy" },
+      },
+    ],
+  };
+
+  /** One paragraph, or the sentence breaks mid-clause. */
+  it("closes the sentence back up rather than splitting it", () => {
+    const { container } = render(<Entries entries={[RUN]} />);
+
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    expect(container.textContent).toBe(
+      "Alternatively, see the Point Buy Calculator.",
+    );
+  });
+
+  /**
+   * The words survive, the anchor does not. An `internal` href addresses a page
+   * this app does not serve, so linking it would send a reader nowhere — the
+   * same call `hrefFor` makes when it returns null.
+   */
+  it("prints an internal link as plain words", () => {
+    render(<Entries entries={[RUN]} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText(/Point Buy Calculator/)).toBeInTheDocument();
+  });
+
+  it("keeps an anchor for an address that resolves", () => {
+    render(
+      <Entries
+        entries={[
+          {
+            type: "link",
+            text: "the rules",
+            href: { type: "external", url: "https://example.com/rules" },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "the rules" })).toHaveAttribute(
+      "href",
+      "https://example.com/rules",
+    );
+  });
+
+  /** Neither type reaches the coverage report any more. */
+  it("is no longer reported as a gap", () => {
+    resetCoverage();
+    render(<Entries entries={[RUN]} />);
+
+    expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+});
