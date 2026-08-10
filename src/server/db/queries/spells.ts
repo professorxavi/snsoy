@@ -19,6 +19,9 @@ import { db } from "../client";
 import { spells } from "../schema/content";
 import { entities } from "../schema/entities";
 import { sources } from "../schema/sources";
+import { flagOption, toOptions, type FacetOption } from "./facets";
+
+export type { FacetOption };
 
 /**
  * Spell list and detail queries. Filtering, sorting and paging run in the
@@ -192,15 +195,6 @@ export async function getSpell(sourceId: string, slug: string) {
  * Facets
  * ------------------------------------------------------------------ */
 
-export interface FacetOption<T> {
-  value: T;
-  /** How many spells this option would leave, given the other filters. */
-  count: number;
-  selected: boolean;
-  /** Nothing to show. Rendered inert rather than removed. */
-  disabled: boolean;
-}
-
 export interface SpellFacetOptions {
   levels: FacetOption<number>[];
   schools: FacetOption<string>[];
@@ -235,27 +229,6 @@ async function facetCounts<T extends string | number>(
 
   // Postgres returns bigint counts as strings through the driver.
   return rows.map((row) => ({ value: row.value, n: Number(row.n) }));
-}
-
-function toOptions<T extends string | number>(
-  rows: { value: T; n: number }[],
-  selected: readonly T[],
-  order: (a: T, b: T) => number,
-): FacetOption<T>[] {
-  return rows
-    .filter((row) => row.value != null)
-    .sort((a, b) => order(a.value, b.value))
-    .map((row) => {
-      const isSelected = selected.includes(row.value);
-      return {
-        value: row.value,
-        count: row.n,
-        selected: isSelected,
-        // A selected option stays clickable even at zero, or a filter that
-        // narrows to nothing could never be undone from the rail.
-        disabled: row.n === 0 && !isSelected,
-      };
-    });
 }
 
 /** Action economy order, not alphabetical. */
@@ -318,16 +291,7 @@ export async function spellFacets(
       flagCount(spells.isRitual, "ritual"),
     ]);
 
-  const flag = <T extends string>(
-    value: T,
-    n: number,
-    selected: boolean,
-  ): FacetOption<T> => ({
-    value,
-    count: n,
-    selected,
-    disabled: n === 0 && !selected,
-  });
+  const flag = flagOption;
 
   return {
     levels: toOptions(levels, filters.levels ?? [], (a, b) => a - b),

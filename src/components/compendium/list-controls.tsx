@@ -9,21 +9,33 @@ import { withValue, type QueryParams } from "@/lib/query-params";
  * before hydration and needs no client state.
  */
 
-/** Filter params carried through the search form so searching does not reset them. */
-const CARRIED_KEYS = ["level", "school", "time", "class", "conc", "ritual", "sort"];
-
 export function ListToolbar({
   params,
   matched,
   filtered,
   basePath,
+  noun,
+  carriedKeys,
 }: {
   params: QueryParams;
   matched: number;
   /** Whether any filter is applied. A count is only shown once one is. */
   filtered: boolean;
   basePath: string;
+  /**
+   * What the list holds, for the search label and the count: `["spell",
+   * "spells"]`. Both forms, because English plurals are not a function.
+   */
+  noun: [singular: string, plural: string];
+  /**
+   * Filter params carried through the search form, so searching does not
+   * silently clear the rail. Each view's own, since each has different facets —
+   * a key missing here is a filter that vanishes the moment someone searches.
+   */
+  carriedKeys: string[];
 }) {
+  const [singular, plural] = noun;
+
   return (
     <Box
       display="flex"
@@ -41,7 +53,7 @@ export function ListToolbar({
     >
       <form action={basePath} method="get">
         {/* Filters survive a search; page does not, since the results change. */}
-        {CARRIED_KEYS.map((key) => {
+        {[...carriedKeys, "sort"].map((key) => {
           const value = params[key];
           const single = Array.isArray(value) ? value[0] : value;
           return single ? (
@@ -65,8 +77,8 @@ export function ListToolbar({
             type="search"
             name="q"
             defaultValue={typeof params["q"] === "string" ? params["q"] : ""}
-            placeholder="Search spells"
-            aria-label="Search spells by name"
+            placeholder={`Search ${plural}`}
+            aria-label={`Search ${plural} by name`}
           />
         </Box>
       </form>
@@ -81,7 +93,7 @@ export function ListToolbar({
           fontVariantNumeric="tabular-nums"
           whiteSpace="nowrap"
         >
-          {matched} {matched === 1 ? "spell" : "spells"}
+          {matched.toLocaleString("en-US")} {matched === 1 ? singular : plural}
         </Text>
       ) : null}
     </Box>

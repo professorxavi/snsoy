@@ -46,6 +46,194 @@ describeDb("monster queries against the seed", () => {
     await pool?.end();
   });
 
+  describe("listMonsters", () => {
+    it("pages, and reports the whole corpus as the total", async () => {
+      const list = await queries.listMonsters();
+
+      expect(list.total).toBe(MONSTER_COUNT);
+      expect(list.rows).toHaveLength(50);
+      expect(list.page).toBe(1);
+      expect(list.pageCount).toBe(Math.ceil(MONSTER_COUNT / 50));
+    });
+
+    it("orders by name by default", async () => {
+      const names = (await queries.listMonsters()).rows.map((row) => row.name);
+
+      expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    });
+
+    /**
+     * A page beyond the end is clamped to the last one. Reporting the requested
+     * page instead gives "page 999 of 73" over an empty table.
+     */
+    it("clamps a page past the end", async () => {
+      const list = await queries.listMonsters({ page: 9999 });
+
+      expect(list.page).toBe(list.pageCount);
+      expect(list.rows.length).toBeGreaterThan(0);
+    });
+
+    /**
+     * CR is stored as a number so it sorts, and 84 creatures have none. Sorted
+     * ascending they belong at the end — a list of unrated creatures is not
+     * what "weakest first" means.
+     */
+    it("sorts by challenge with the unrated last", async () => {
+      const all = await queries.listMonsters({ sort: "cr", perPage: MONSTER_COUNT });
+      const ratings = all.rows.map((row) => row.cr);
+
+      const rated = ratings.filter((cr) => cr != null);
+      expect(rated).toEqual([...rated].sort((a, b) => a! - b!));
+      expect(ratings.slice(rated.length).every((cr) => cr == null)).toBe(true);
+      expect(rated[0]).toBe(0);
+    });
+
+    it("filters by challenge rating as printed", async () => {
+      const list = await queries.listMonsters({ crs: ["1/4"] });
+
+      expect(list.total).toBe(215);
+      expect(list.rows.every((row) => row.crDisplay === "1/4")).toBe(true);
+    });
+
+    /** A creature that is Small or Medium has to answer to both. */
+    it("matches either size a creature spans", async () => {
+      const small = await queries.listMonsters({ sizes: ["S"], perPage: MONSTER_COUNT });
+      const spanning = small.rows.filter((row) => (row.sizes?.length ?? 0) > 1);
+
+      expect(spanning.length).toBeGreaterThan(0);
+      expect(spanning.every((row) => row.sizes?.includes("S"))).toBe(true);
+    });
+
+    it("narrows on several facets at once", async () => {
+      const list = await queries.listMonsters({
+        types: ["dragon"],
+        legendary: true,
+      });
+
+      expect(list.total).toBeGreaterThan(0);
+      expect(
+        list.rows.every((row) => row.creatureType === "dragon" && row.isLegendary),
+      ).toBe(true);
+    });
+
+    it("searches names case-insensitively", async () => {
+      const list = await queries.listMonsters({ q: "GOBLIN" });
+
+      expect(list.total).toBeGreaterThan(0);
+      expect(list.rows.every((row) => /goblin/i.test(row.name))).toBe(true);
+    });
+
+    it("returns an empty page rather than failing on no matches", async () => {
+      const list = await queries.listMonsters({ q: "no-such-creature-anywhere" });
+
+      expect(list.total).toBe(0);
+      expect(list.rows).toEqual([]);
+      expect(list.pageCount).toBe(1);
+    });
+  });
+
+  describe("monsterFacets", () => {
+    it("offers every value in the corpus", async () => {
+      const facets = await queries.monsterFacets();
+
+      // 33 numeric ratings, plus "Unknown" — the one creature the corpus
+      // itself declines to rate.
+      expect(facets.crs).toHaveLength(34);
+      expect(facets.types).toHaveLength(14);
+      expect(facets.sizes).toHaveLength(6);
+      expect(facets.environments).toHaveLength(11);
+    });
+
+    /**
+     * "10" must not sort before "2", and "1/2" belongs between "1/4" and "1".
+     * Ordering by the printed string does all three wrong, which is why the
+     * facet carries the numeric rating alongside it.
+     */
+    it("orders challenge ratings numerically, not as text", async () => {
+      const facets = await queries.monsterFacets();
+      const values = facets.crs.map((facet) => facet.value);
+
+      expect(values.slice(0, 6)).toEqual(["0", "1/8", "1/4", "1/2", "1", "2"]);
+      expect(values.at(-2)).toBe("30");
+    });
+
+    /**
+     * "Unknown" has no numeric rating behind it, so it has no place on the
+     * scale. Read as a zero — which is what `Number(null)` gives — it sorts
+     * ahead of CR 0 and heads the entire rail.
+     */
+    it("puts the unrateable at the end rather than the front", async () => {
+      const values = (await queries.monsterFacets()).crs.map((f) => f.value);
+
+      expect(values[0]).toBe("0");
+      expect(values.at(-1)).toBe("Unknown");
+    });
+
+    it("orders sizes from smallest to largest", async () => {
+      const facets = await queries.monsterFacets();
+
+      expect(facets.sizes.map((facet) => facet.value)).toEqual([
+        "T",
+        "S",
+        "M",
+        "L",
+        "H",
+        "G",
+      ]);
+    });
+
+    /** Unfiltered, a facet's counts have to add up to the corpus. */
+    it("counts every creature across the type facet", async () => {
+      const facets = await queries.monsterFacets();
+      const total = facets.types.reduce((sum, facet) => sum + facet.count, 0);
+
+      // One creature has no type at all, so the facet cannot account for it.
+      expect(total).toBe(MONSTER_COUNT - 1);
+    });
+
+    /**
+     * The whole point of the facet query: a facet is counted against the
+     * *other* filters but not its own, so selecting one type does not zero out
+     * every other one and strand the reader inside their own filter.
+     */
+    it("counts a facet against the other filters, not its own", async () => {
+      const facets = await queries.monsterFacets({ types: ["dragon"] });
+
+      const dragon = facets.types.find((f) => f.value === "dragon")!;
+      const undead = facets.types.find((f) => f.value === "undead")!;
+
+      expect(dragon.selected).toBe(true);
+      // Still offered at its full count, because the type filter is skipped
+      // when counting the type facet.
+      expect(undead.count).toBeGreaterThan(0);
+      expect(undead.selected).toBe(false);
+
+      // A different facet *is* narrowed by the selected type.
+      const sizes = facets.sizes.reduce((sum, facet) => sum + facet.count, 0);
+      expect(sizes).toBeLessThan(MONSTER_COUNT);
+    });
+
+    it("disables an option that would return nothing", async () => {
+      // No creature is both a beast and a spellcaster with legendary actions.
+      const facets = await queries.monsterFacets({
+        types: ["beast"],
+        legendary: true,
+      });
+
+      expect(facets.sizes.some((facet) => facet.disabled)).toBe(true);
+      // A selected option stays clickable even at zero, or the filter that
+      // narrowed to nothing could never be undone from the rail.
+      expect(facets.legendary.disabled).toBe(false);
+    });
+
+    it("counts the flag facets", async () => {
+      const facets = await queries.monsterFacets();
+
+      expect(facets.legendary.count).toBe(351);
+      expect(facets.spellcaster.count).toBeGreaterThan(0);
+    });
+  });
+
   describe("getMonster", () => {
     it("returns a creature with everything the stat block prints", async () => {
       const dragon = await queries.getMonster("MM", "adult-red-dragon");

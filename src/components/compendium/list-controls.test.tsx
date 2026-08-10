@@ -12,12 +12,37 @@ import { ListToolbar, Pager } from "./list-controls";
 
 const BASE = "/compendium/spells";
 
+/** Spell filter keys, which is what this file exercises the carrying of. */
+const SPELL_KEYS = ["q", "level", "school", "time", "class", "conc", "ritual"];
+
+/**
+ * The toolbar with the spell view's own labelling supplied.
+ *
+ * `noun` and `carriedKeys` became props when the monsters list needed the same
+ * toolbar with different words and different facets. They are not what any test
+ * here is about, so they are defaulted in one place rather than repeated
+ * fourteen times.
+ */
+function Toolbar(
+  props: Partial<React.ComponentProps<typeof ListToolbar>> &
+    Pick<React.ComponentProps<typeof ListToolbar>, "params" | "matched" | "filtered">,
+) {
+  return (
+    <ListToolbar
+      basePath={BASE}
+      noun={["spell", "spells"]}
+      carriedKeys={SPELL_KEYS}
+      {...props}
+    />
+  );
+}
+
 describe("the list toolbar", () => {
   describe("the count", () => {
     /** An unfiltered total answers no question the reader asked. */
     it("stays hidden until something is narrowed", () => {
       render(
-        <ListToolbar params={{}} matched={525} filtered={false} basePath={BASE} />,
+        <Toolbar params={{}} matched={525} filtered={false} basePath={BASE} />,
       );
 
       expect(screen.queryByText(/525/)).not.toBeInTheDocument();
@@ -25,7 +50,7 @@ describe("the list toolbar", () => {
 
     it("appears once a filter is applied", () => {
       render(
-        <ListToolbar
+        <Toolbar
           params={{ level: "0" }}
           matched={42}
           filtered
@@ -38,7 +63,7 @@ describe("the list toolbar", () => {
 
     it("says spell, not spells, when one matched", () => {
       render(
-        <ListToolbar params={{ q: "x" }} matched={1} filtered basePath={BASE} />,
+        <Toolbar params={{ q: "x" }} matched={1} filtered basePath={BASE} />,
       );
 
       expect(screen.getByText("1 spell")).toBeInTheDocument();
@@ -46,7 +71,7 @@ describe("the list toolbar", () => {
 
     it("reports zero rather than going quiet", () => {
       render(
-        <ListToolbar params={{ q: "x" }} matched={0} filtered basePath={BASE} />,
+        <Toolbar params={{ q: "x" }} matched={0} filtered basePath={BASE} />,
       );
 
       expect(screen.getByText("0 spells")).toBeInTheDocument();
@@ -57,7 +82,7 @@ describe("the list toolbar", () => {
     /** A plain GET form, so searching works before hydration. */
     it("submits to the list route as a GET", () => {
       const { container } = render(
-        <ListToolbar params={{}} matched={0} filtered={false} basePath={BASE} />,
+        <Toolbar params={{}} matched={0} filtered={false} basePath={BASE} />,
       );
       const form = container.querySelector("form")!;
 
@@ -67,7 +92,7 @@ describe("the list toolbar", () => {
 
     it("keeps the current term in the box", () => {
       render(
-        <ListToolbar
+        <Toolbar
           params={{ q: "fire" }}
           matched={9}
           filtered
@@ -90,7 +115,7 @@ describe("the list toolbar", () => {
 
     it("carries the filters and sort through a search", () => {
       const { container } = render(
-        <ListToolbar
+        <Toolbar
           params={{ level: "3", school: "V", sort: "level" }}
           matched={9}
           filtered
@@ -108,7 +133,7 @@ describe("the list toolbar", () => {
     /** The results change, so holding page 7 would land the reader nowhere. */
     it("drops the page number", () => {
       const { container } = render(
-        <ListToolbar
+        <Toolbar
           params={{ level: "3", page: "7" }}
           matched={9}
           filtered

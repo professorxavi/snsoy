@@ -65,6 +65,8 @@ export default async function SpellsPage({
           matched={list.total}
           filtered={hasFilters(params, FILTER_KEYS)}
           basePath={BASE}
+          noun={["spell", "spells"]}
+          carriedKeys={FILTER_KEYS}
         />
         <SpellTable
           rows={list.rows}
