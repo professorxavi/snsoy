@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
+import { LanguageAsideMetadata } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
@@ -250,6 +251,16 @@ async function genericAside(
       entity={entity}
       refs={refs}
       subtitle={subtitle?.(entity.data, entity.name)}
+      metadata={
+        type === "language" ? (
+          <LanguageAsideMetadata
+            data={entity.data}
+            refs={refs}
+            selfKey={entity.naturalKey}
+            context={entity.name}
+          />
+        ) : null
+      }
     />
   );
 }

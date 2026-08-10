@@ -1,4 +1,5 @@
 import { Stack, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 import { Entries, type Entry } from "@/components/entry";
 import { AsideIdentity } from "@/components/compendium/aside-identity";
 import type { ReferenceIndex } from "@/lib/content/references";
@@ -28,11 +29,14 @@ export function GenericAside({
   entity,
   refs,
   subtitle,
+  metadata,
 }: {
   entity: ShortRuleEntity;
   refs: ReferenceIndex;
   /** One line under the name, where the type has a second fact worth stating. */
   subtitle?: string | null;
+  /** Type-specific facts the source records outside its prose. */
+  metadata?: ReactNode;
 }) {
   const data = entity.data as { entries?: Entry[] };
 
@@ -56,6 +60,8 @@ export function GenericAside({
           </Text>
         ) : null}
       </AsideIdentity>
+
+      {metadata}
 
       {/*
         Tags inside the entry are live, so the aside stacks one entity on the
