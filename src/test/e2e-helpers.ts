@@ -109,3 +109,45 @@ export async function isDisclosureOpen(page: Page, id: string) {
     return anchor?.closest("details")?.open ?? null;
   }, id);
 }
+
+/**
+ * The same, waited for rather than sampled once — for the same reason
+ * `expectInView` is.
+ *
+ * The disclosure is opened by `FragmentTarget`'s effect, which runs after the
+ * streamed body lands and after that subtree hydrates. Sampled once, this
+ * asserts on whichever of the two got there first, so it passes or fails on how
+ * much else the page had to hydrate — which is a property of the page's
+ * contents rather than of the behaviour under test.
+ */
+export async function expectDisclosureOpen(page: Page, id: string) {
+  await expect
+    .poll(() => isDisclosureOpen(page, id), {
+      message: `the disclosure around #${id} never opened`,
+      timeout: 10_000,
+    })
+    .toBe(true);
+}
+
+/**
+ * Wait for one element to be hydrated, rather than for the page to be.
+ *
+ * `expectHydrated` answers "did React attach at all", which it can do while a
+ * link further down the page is still server markup. Clicking such a link
+ * navigates instead of opening the aside — the handler that would have stopped
+ * it is not there yet — and the failure reads exactly like a broken feature.
+ */
+export async function expectNodeHydrated(page: Page, selector: string) {
+  await expect
+    .poll(
+      () =>
+        page.evaluate((sel) => {
+          const node = document.querySelector(sel);
+          return node
+            ? Object.keys(node).some((key) => key.startsWith("__reactProps$"))
+            : false;
+        }, selector),
+      { message: `${selector} never hydrated`, timeout: 10_000 },
+    )
+    .toBe(true);
+}

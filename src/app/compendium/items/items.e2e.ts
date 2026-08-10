@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { ASIDE, ROWS, expectHydrated } from "@/test/e2e-helpers";
+import {
+  ASIDE,
+  ROWS,
+  expectHydrated,
+  expectNodeHydrated,
+} from "@/test/e2e-helpers";
 
 /**
  * The item list's one browser-only risk: three entity types, one action.
@@ -55,7 +60,17 @@ test("opens an item cited in a chapter without leaving the chapter", async ({
   await expectHydrated(page);
 
   const url = page.url();
-  const link = page.locator('a[href^="/compendium/items/"]').first();
+  const selector = 'a[href^="/compendium/items/"]';
+
+  /*
+   * This link, not merely the page. A chapter is long and hydrates
+   * progressively, so `expectHydrated` can return while the anchor here is
+   * still server markup — and clicking it then navigates, because the handler
+   * that would have opened the aside is not attached yet.
+   */
+  await expectNodeHydrated(page, selector);
+
+  const link = page.locator(selector).first();
   await link.scrollIntoViewIfNeeded();
   await link.click();
 

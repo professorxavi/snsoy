@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   ASIDE,
   OUTLINE,
+  expectDisclosureOpen,
   expectHydrated,
   expectInView,
   isDisclosureOpen,
@@ -47,7 +48,7 @@ test("a deep link opens the subrace and scrolls to it", async ({ page }) => {
   await page.goto(`${DWARF}#hill`);
   await expectHydrated(page);
 
-  expect(await isDisclosureOpen(page, "hill")).toBe(true);
+  await expectDisclosureOpen(page, "hill");
   await expectInView(page, "hill");
 });
 
@@ -73,7 +74,7 @@ test("an outline jump opens the subrace and scrolls to it", async ({
 
   await page.locator(`${OUTLINE} a[href="#${target}"]`).click();
 
-  expect(await isDisclosureOpen(page, target!)).toBe(true);
+  await expectDisclosureOpen(page, target!);
   await expectInView(page, target!);
 });
 
