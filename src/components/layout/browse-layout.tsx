@@ -1,6 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { BELOW_TOPBAR, TOPBAR } from "./constants";
+import { FILTER_RAIL_ID, FilterSheetToggle } from "./filter-sheet";
 
 /**
  * The compendium browse layout: filter rail, table, and the entity aside.
@@ -14,6 +15,7 @@ import { BELOW_TOPBAR, TOPBAR } from "./constants";
 
 /** Lets `:has()` tell a filled aside from an empty one. */
 export const ASIDE_CONTENT_ATTR = "data-aside-content";
+
 
 export function BrowseFrame({
   aside,
@@ -133,6 +135,10 @@ export function AsideDrawer({ children }: { children: ReactNode }) {
 /**
  * The filter rail. Owned by the page, not the layout, because facet counts
  * depend on the current filters and a layout never receives `searchParams`.
+ *
+ * Below `lg` the same element is the mobile filter sheet — see `FilterSheetToggle`,
+ * which ships with the rail so the control cannot outlive it. The toggle is
+ * `position: fixed`, so it is out of flow and the grid still sees one child here.
  */
 export function FilterRail({
   children,
@@ -143,27 +149,53 @@ export function FilterRail({
   collapsed: ReactNode;
 }) {
   return (
-    <Box
-      as="aside"
-      aria-label="Filters"
-      display={{ base: "none", lg: "block" }}
-      position="sticky"
-      top={TOPBAR}
-      /* Sized to the viewport, not its contents, so the border does not stop
-         partway down the page. */
-      h={BELOW_TOPBAR}
-      overflowY="auto"
-      bg="bg.panel"
-      borderRightWidth="1px"
-      borderColor="border"
-    >
-      <Box data-rail-full="">{children}</Box>
-      <Box data-rail-mini="">{collapsed}</Box>
-    </Box>
+    <>
+      <Box
+        as="aside"
+        id={FILTER_RAIL_ID}
+        /* Literal, for the reason `BrowseColumns` gives: a key built from an
+           imported constant is dropped before it reaches the DOM. */
+        {...{ "data-filter-rail": "" }}
+        aria-label="Filters"
+        /* Focusable only on purpose: opening the sheet moves focus here. */
+        tabIndex={-1}
+        display={{ base: "none", lg: "block" }}
+        position="sticky"
+        top={TOPBAR}
+        /* Sized to the viewport, not its contents, so the border does not stop
+           partway down the page. */
+        h={BELOW_TOPBAR}
+        overflowY="auto"
+        bg="bg.panel"
+        borderRightWidth="1px"
+        borderColor="border"
+      >
+        <Box data-rail-full="">{children}</Box>
+        <Box data-rail-mini="">{collapsed}</Box>
+      </Box>
+
+      <FilterSheetToggle />
+    </>
   );
 }
 
-/** Rail and list, side by side. */
+/**
+ * Rail and list, side by side — and, below `lg`, the rail as a bottom sheet.
+ *
+ * The toggle is inside this subtree, so `:has()` can read its state from here
+ * and restyle the rail without either of them holding a reference to the other.
+ * The same way the frame above reacts to the aside.
+ *
+ * **The two attribute names below are spelled out rather than interpolated from
+ * `FILTER_SHEET_ATTR` and `FILTER_RAIL_ATTR`, and they have to be.** Chakra's
+ * Next.js integration extracts the `css` prop statically, and it resolves only
+ * literals and constants declared in this same module — a key built from an
+ * imported constant, or from a local inside the component, produces no rule at
+ * all. It does not warn; the styles simply are not in the stylesheet, which
+ * reads in the browser exactly like a `:has()` that never matched. Measured,
+ * four ways, against a production build. Renaming either attribute means
+ * changing it here too, and the browser test is what will catch it if not.
+ */
 export function BrowseColumns({ children }: { children: ReactNode }) {
   return (
     <Box
@@ -173,6 +205,39 @@ export function BrowseColumns({ children }: { children: ReactNode }) {
         alignItems: "start",
         "@media (min-width: 62em)": {
           gridTemplateColumns: "var(--rail-w) minmax(0, 1fr)",
+        },
+
+        /*
+         * Below `lg` the rail is hidden, and these three rules are the only
+         * thing that shows it: the sheet is the rail moved, not a copy of it.
+         * Capped short of the full height so the list stays visible behind it
+         * and it reads as a layer over the page rather than another screen.
+         *
+         * No media query guards them, because the sheet cannot be open above
+         * `lg` — `FilterSheetToggle` closes itself at that width and says why.
+         */
+        "&:has([data-filter-sheet]) [data-filter-rail]": {
+          display: "block",
+          position: "fixed",
+          insetInline: 0,
+          top: "auto",
+          bottom: 0,
+          height: "auto",
+          maxHeight: "70dvh",
+          zIndex: "var(--chakra-z-index-modal)",
+          borderTopWidth: "1px",
+          borderTopLeftRadius: "var(--chakra-radii-l3)",
+          borderTopRightRadius: "var(--chakra-radii-l3)",
+          boxShadow: "var(--chakra-shadows-lg)",
+        },
+
+        /* The collapsed rail pays for the aside's width, which a sheet does not
+           take — so the sheet carries the real thing even with an entity open. */
+        "&:has([data-filter-sheet]) [data-filter-rail] [data-rail-full]": {
+          display: "block",
+        },
+        "&:has([data-filter-sheet]) [data-filter-rail] [data-rail-mini]": {
+          display: "none",
         },
       }}
     >

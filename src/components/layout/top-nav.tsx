@@ -1,8 +1,18 @@
 "use client";
 
-import { Box, Flex } from "@chakra-ui/react";
+import {
+  Box,
+  CloseButton,
+  Drawer,
+  Flex,
+  IconButton,
+  Portal,
+  Stack,
+} from "@chakra-ui/react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { LuMenu } from "react-icons/lu";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { RouteProgress } from "./route-progress";
 import { SearchBox } from "./search-box";
@@ -28,6 +38,8 @@ export function TopNav() {
       bg="brand"
       color="brand.contrast"
     >
+      <MobileNav pathname={pathname} />
+
       <Box
         asChild
         fontFamily="display"
@@ -78,7 +90,10 @@ export function TopNav() {
           for that. */}
       <SearchBox />
 
+      {/* On a phone this lives in the drawer instead: the bar has room for the
+          search field or for everything else, and the field wins. */}
       <ColorModeButton
+        display={{ base: "none", md: "inline-flex" }}
         color="brand.contrast"
         _hover={{ bg: "whiteAlpha.300" }}
       />
@@ -87,5 +102,93 @@ export function TopNav() {
           this Flex is already the containing block it needs. */}
       <RouteProgress />
     </Flex>
+  );
+}
+
+/**
+ * The same links as the bar, in a drawer, below `md`.
+ *
+ * Under that width the bar's nav is `display: none` and nothing replaced it —
+ * the only way to reach the compendium from a phone was the wordmark and then
+ * a link on the home page. The search field stays in the bar rather than moving
+ * in here: on a phone it is the primary action, not a secondary one.
+ *
+ * Controlled rather than left to itself, because a link is not a close button.
+ * Following one navigates without unmounting the bar, so the drawer would stay
+ * open over the page that was just asked for.
+ */
+function MobileNav({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Drawer.Root
+      open={open}
+      onOpenChange={(details) => setOpen(details.open)}
+      placement="start"
+      size="xs"
+    >
+      <Drawer.Trigger asChild>
+        <IconButton
+          aria-label="Menu"
+          variant="ghost"
+          size="sm"
+          display={{ base: "inline-flex", md: "none" }}
+          color="brand.contrast"
+          _hover={{ bg: "whiteAlpha.300" }}
+        >
+          <LuMenu />
+        </IconButton>
+      </Drawer.Trigger>
+
+      <Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.Header>
+              <Drawer.Title fontFamily="display" fontWeight="normal">
+                S&amp;S
+              </Drawer.Title>
+              <Drawer.CloseTrigger asChild>
+                <CloseButton size="sm" />
+              </Drawer.CloseTrigger>
+            </Drawer.Header>
+
+            <Drawer.Body>
+              <Stack as="nav" aria-label="Main" gap="1">
+                {LINKS.map((link) => {
+                  const active = pathname.startsWith(link.href);
+                  return (
+                    <Box
+                      key={link.href}
+                      asChild
+                      fontFamily="ui"
+                      fontSize="sm"
+                      fontWeight={active ? "semibold" : "normal"}
+                      color={active ? "brand" : "fg.muted"}
+                      px="2"
+                      py="2"
+                      rounded="l1"
+                      bg={active ? "brand.subtle" : "transparent"}
+                    >
+                      <NextLink
+                        href={link.href}
+                        aria-current={active ? "page" : undefined}
+                        onClick={() => setOpen(false)}
+                      >
+                        {link.label}
+                      </NextLink>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Drawer.Body>
+
+            <Drawer.Footer justifyContent="flex-start">
+              <ColorModeButton />
+            </Drawer.Footer>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Portal>
+    </Drawer.Root>
   );
 }
