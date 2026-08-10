@@ -5,6 +5,7 @@ import NextLink from "next/link";
 import { usePathname } from "next/navigation";
 import { ColorModeButton } from "@/components/ui/color-mode";
 import { RouteProgress } from "./route-progress";
+import { SearchBox } from "./search-box";
 
 /** No Search link: the search box on the right is the only entry point. */
 const LINKS = [
@@ -71,36 +72,12 @@ export function TopNav() {
         })}
       </Flex>
 
-      {/* A plain GET form, so Enter lands on `/search?q=…` with no JavaScript.
-          The results page is not built yet. */}
-      <Box asChild ml="auto">
-        <form action="/search" method="get">
-          <Box
-            asChild
-            fontSize="xs"
-            px="2.5"
-            py="1"
-            rounded="l1"
-            w={{ base: "32", sm: "44" }}
-            bg="whiteAlpha.200"
-            borderWidth="1px"
-            borderColor="whiteAlpha.300"
-            color="brand.contrast"
-            _placeholder={{ color: "brand.contrast", opacity: 0.7 }}
-            _focusVisible={{
-              bg: "whiteAlpha.300",
-              borderColor: "whiteAlpha.500",
-            }}
-          >
-            <input
-              type="search"
-              name="q"
-              placeholder="Search…"
-              aria-label="Search the compendium"
-            />
-          </Box>
-        </form>
-      </Box>
+      {/* Still a plain GET form under the typeahead, so Enter lands on
+          `/search?q=…` with no JavaScript. Not prefilled with the current
+          query: reading it back would mean `useSearchParams` here, and this bar
+          is on every page in the app. The results page carries its own field
+          for that. */}
+      <SearchBox />
 
       <ColorModeButton
         color="brand.contrast"

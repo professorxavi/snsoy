@@ -91,14 +91,35 @@ export function AsideProvider({ children }: { children: ReactNode }) {
    */
   const cache = useRef(new Map<string, ReactNode>());
 
-  /** The most recent request, so a slow reply cannot overwrite a newer one. */
+  /**
+   * What is already open or on its way, so clicking the same row twice does not
+   * refetch it. Dedupe only — see `seq` for the part that decides which reply
+   * is allowed to land.
+   */
   const requested = useRef<string | null>(null);
+
+  /**
+   * Ticket for the newest request. A reply sets the panel only if its ticket is
+   * still the current one.
+   *
+   * Separate from `requested` because the two answer different questions, and
+   * one ref answering both was a bug: `requested` is cleared whenever the page
+   * navigates, and while it was also the stale-response guard, that clearing
+   * threw away a reply that was legitimately in flight. Effects run children
+   * first, so anything opening the aside *as a page arrives* — the typeahead's
+   * chosen entity, through `AsideAutoOpen` — set the guard microseconds before
+   * the navigation reset cleared it, and the panel then sat on its skeleton for
+   * ever. A counter nothing else touches cannot be caught by that.
+   */
+  const seq = useRef(0);
 
   const openKey = stack.length > 0 ? stack[stack.length - 1]!.key : null;
   const previous = stack.length > 1 ? stack[stack.length - 2]! : null;
 
   const close = useCallback(() => {
     requested.current = null;
+    // Nothing still in flight may populate a panel the reader has closed.
+    seq.current += 1;
     setStack([]);
     setNode(null);
   }, []);
@@ -112,6 +133,7 @@ export function AsideProvider({ children }: { children: ReactNode }) {
 
     const cached = cache.current.get(key);
     if (cached) {
+      seq.current += 1;
       setNode(cached);
       return;
     }
@@ -120,18 +142,21 @@ export function AsideProvider({ children }: { children: ReactNode }) {
     // body under another's heading while the next is in flight.
     setNode(null);
 
+    const ticket = (seq.current += 1);
+
     startTransition(async () => {
       const loaded = await load();
       cache.current.set(key, loaded);
       // Clicking three references quickly can resolve out of order. The last
       // click wins, whichever reply lands last.
-      if (requested.current === key) setNode(loaded);
+      if (seq.current === ticket) setNode(loaded);
     });
   }, []);
 
   const back = useCallback(() => {
     if (!previous) return;
     requested.current = previous.key;
+    seq.current += 1;
     setStack((current) => current.slice(0, -1));
     // Always a hit: nothing reaches the stack without having been cached.
     setNode(cache.current.get(previous.key) ?? null);
@@ -171,9 +196,14 @@ export function AsideProvider({ children }: { children: ReactNode }) {
     setNode(null);
   }
 
-  // The guard is a ref, which may not be written during render, so it is
-  // cleared once the navigation commits — without it the entity just closed
-  // would refuse to open again on coming back.
+  /*
+   * The dedupe guard is a ref, which may not be written during render, so it is
+   * cleared once the navigation commits — without it the entity just closed
+   * would refuse to open again on coming back.
+   *
+   * Safe to run after a child has already opened something, which it does: this
+   * clears only the dedupe, and the reply in flight is protected by its ticket.
+   */
   useEffect(() => {
     requested.current = null;
   }, [pathname]);

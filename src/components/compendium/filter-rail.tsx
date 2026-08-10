@@ -117,10 +117,20 @@ export function ClearFilters({
   params,
   filterKeys,
   basePath,
+  keep = ["sort"],
 }: {
   params: QueryParams;
   filterKeys: string[];
   basePath: string;
+  /**
+   * Params that survive the clear. Sort by default, because it is not a filter
+   * and clearing one is not a request to reorder the list.
+   *
+   * Search overrides it: `q` is not a filter either, and dropping it would turn
+   * "clear filters" into "abandon the search" — the one link on the page that
+   * must not lose what was typed.
+   */
+  keep?: string[];
 }) {
   return (
     <Box minH="4">
@@ -135,9 +145,7 @@ export function ClearFilters({
           color="brand"
           _hover={{ textDecoration: "underline" }}
         >
-          {/* Sort survives, because it is not a filter and clearing one is not
-              a request to reorder the list. */}
-          <NextLink href={`${basePath}${clearAll(params, ["sort"])}`}>
+          <NextLink href={`${basePath}${clearAll(params, keep)}`}>
             Clear filters
           </NextLink>
         </Box>
