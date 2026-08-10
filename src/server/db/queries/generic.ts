@@ -63,6 +63,17 @@ export type GenericDetail<F extends FieldMap> = GenericEntity & {
   readonly [K in keyof F]: string | null;
 };
 
+export type LanguageVariant = GenericEntity;
+
+export interface LanguageGroup extends GenericListRow {
+  sourceIds: string[];
+  variants: LanguageVariant[];
+  kind: string | null;
+  script: string | null;
+  kindVaries: boolean;
+  scriptVaries: boolean;
+}
+
 /**
  * The field map as a Drizzle projection. Keys are our own constants, never
  * anything a reader typed, and `jsonb ->> text` takes a bound parameter without
@@ -154,4 +165,98 @@ export async function getGeneric<F extends FieldMap>(
     .limit(1);
 
   return (row as GenericDetail<F> | undefined) ?? null;
+}
+
+/** One browse row per language name; source records stay intact as variants. */
+export async function listLanguages(q?: string): Promise<LanguageGroup[]> {
+  const term = q?.trim();
+  const rows = await db
+    .select({
+      id: entities.id,
+      naturalKey: entities.naturalKey,
+      name: entities.name,
+      slug: entities.slug,
+      sourceId: entities.sourceId,
+      page: entities.page,
+      sourceName: sources.name,
+      data: genericEntities.data,
+    })
+    .from(genericEntities)
+    .innerJoin(entities, eq(entities.id, genericEntities.entityId))
+    .innerJoin(sources, eq(sources.id, entities.sourceId))
+    .where(
+      and(
+        eq(entities.entityType, "language"),
+        ...(term ? [ilike(entities.name, `%${term}%`)] : []),
+      ),
+    )
+    .orderBy(asc(entities.name), asc(entities.sourceId));
+
+  return groupLanguages(rows as LanguageVariant[]);
+}
+
+/** Finds a grouped language through any of its source-specific addresses. */
+export async function getLanguageGroup(
+  sourceId: string,
+  slug: string,
+): Promise<LanguageGroup | null> {
+  const match = await getGeneric("language", sourceId, slug, {});
+  if (!match) return null;
+
+  const rows = await db
+    .select({
+      id: entities.id,
+      naturalKey: entities.naturalKey,
+      name: entities.name,
+      slug: entities.slug,
+      sourceId: entities.sourceId,
+      page: entities.page,
+      sourceName: sources.name,
+      data: genericEntities.data,
+    })
+    .from(genericEntities)
+    .innerJoin(entities, eq(entities.id, genericEntities.entityId))
+    .innerJoin(sources, eq(sources.id, entities.sourceId))
+    .where(and(eq(entities.entityType, "language"), eq(entities.name, match.name)))
+    .orderBy(asc(entities.sourceId));
+
+  return groupLanguages(rows as LanguageVariant[])[0] ?? null;
+}
+
+export function groupLanguages(rows: LanguageVariant[]): LanguageGroup[] {
+  const groups = new Map<string, LanguageVariant[]>();
+  for (const row of rows) groups.set(row.name, [...(groups.get(row.name) ?? []), row]);
+
+  return [...groups.values()].map((group) => {
+    const variants = group.toSorted((a, b) => {
+      if (a.sourceId === "PHB") return -1;
+      if (b.sourceId === "PHB") return 1;
+      return a.sourceId.localeCompare(b.sourceId);
+    });
+    const first = variants[0]!;
+    const kind = sharedField(variants, "type");
+    const script = sharedField(variants, "script");
+    return {
+      id: first.id,
+      name: first.name,
+      slug: first.slug,
+      sourceId: first.sourceId,
+      sourceIds: variants.map((variant) => variant.sourceId),
+      variants,
+      kind: kind.value,
+      script: script.value,
+      kindVaries: kind.varies,
+      scriptVaries: script.varies,
+    };
+  });
+}
+
+function sharedField(
+  variants: LanguageVariant[],
+  key: string,
+): { value: string | null; varies: boolean } {
+  const values = variants.map((variant) => variant.data[key]);
+  const [first] = values;
+  const shared = values.every((value) => value === first);
+  return { value: shared && typeof first === "string" ? first : null, varies: !shared };
 }

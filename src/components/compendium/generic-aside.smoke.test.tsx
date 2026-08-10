@@ -2,7 +2,6 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { coverageReport, resetCoverage } from "@/components/entry/coverage";
-import { LanguageAsideMetadata } from "@/components/compendium/language-aside";
 import { system } from "@/theme";
 import type { GenericEntity } from "@/server/db/queries/generic";
 import { GenericAside } from "./generic-aside";
@@ -97,20 +96,7 @@ describeDb("the generic panel over every entity it serves", () => {
 
       renderToStaticMarkup(
         <ChakraProvider value={system}>
-          <GenericAside
-            entity={entity}
-            refs={{}}
-            metadata={
-              row.entityType === "language" ? (
-                <LanguageAsideMetadata
-                  data={row.data}
-                  refs={{}}
-                  selfKey={row.naturalKey}
-                  context={row.name}
-                />
-              ) : null
-            }
-          />
+          <GenericAside entity={entity} refs={{}} />
         </ChakraProvider>,
       );
     }

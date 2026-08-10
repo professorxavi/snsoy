@@ -9,7 +9,7 @@ import { ListToolbar } from "@/components/compendium/list-controls";
 import { languageKind, languageScript } from "@/lib/content/languages";
 import { readString, type QueryParams } from "@/lib/query-params";
 import { listHrefFor } from "@/lib/routes";
-import { listGeneric, type GenericRow } from "@/server/db/queries/generic";
+import { listLanguages, type LanguageGroup } from "@/server/db/queries/generic";
 
 export const metadata: Metadata = {
   title: "Languages",
@@ -17,22 +17,14 @@ export const metadata: Metadata = {
     "Every language in the books, what kind it is, and the script it is written in.",
 };
 
-const FIELDS = { kind: "type", script: "script" } as const;
-
-type LanguageRow = GenericRow<typeof FIELDS>;
+type LanguageRow = LanguageGroup;
 
 const COLUMNS: GenericColumn<LanguageRow>[] = [
-  /*
-   * A source column, which the shorter rules lists all do without. It is not
-   * decoration here: 40 of the 135 rows share a name with a language from
-   * another book, three of them called Common, so without it the list prints
-   * the same word repeatedly with nothing to tell one from the next.
-   */
-  { label: "Source", cell: (row) => row.sourceId, nowrap: true },
-  { label: "Kind", cell: (row) => languageKind(row.kind), nowrap: true },
+  { label: "Sources", cell: (row) => row.sourceIds.join(", ") },
+  { label: "Kind", cell: (row) => row.kindVaries ? "Varies" : languageKind(row.kind), nowrap: true },
   {
     label: "Script",
-    cell: (row) => languageScript(row.script),
+    cell: (row) => row.scriptVaries ? "Varies" : languageScript(row.script),
     nowrap: true,
     // The first thing a 400px panel can afford to lose: a reader with one
     // language open is reading it, not comparing alphabets.
@@ -57,7 +49,7 @@ export default async function LanguagesPage({
 }) {
   const params = await searchParams;
   const q = readString(params, "q");
-  const rows = await listGeneric("language", FIELDS, q);
+  const rows = await listLanguages(q);
 
   return (
     <Box as="main" id="main" maxW="4xl" px={{ base: "5", md: "8" }} pb="16">

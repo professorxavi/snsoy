@@ -6,20 +6,19 @@ import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
 import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
-import { LanguageAsideMetadata } from "@/components/compendium/language-aside";
+import { LanguageAside } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
 import { actionTimeLabel } from "@/lib/content/actions";
 import { itemGroupTags } from "@/lib/content/items";
-import { languageSubtitle } from "@/lib/content/languages";
 import { checkName } from "@/lib/content/skills";
 import { ruleTypeLabel } from "@/lib/content/variant-rules";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
-import { getGeneric } from "@/server/db/queries/generic";
+import { getGeneric, getLanguageGroup } from "@/server/db/queries/generic";
 import {
   getItem,
   itemVocabulary,
@@ -33,7 +32,7 @@ import { getSpell } from "@/server/db/queries/spells";
 type AsideLoader = (source: string, slug: string) => Promise<ReactNode>;
 type GenericAsideType = Extract<
   AsideType,
-  "skill" | "condition" | "sense" | "status" | "action" | "language" | "variantrule"
+  "skill" | "condition" | "sense" | "status" | "action" | "variantrule"
 >;
 type GenericAsideConfig = {
   noun: string;
@@ -52,10 +51,6 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   action: {
     noun: "action",
     subtitle: (data: Record<string, unknown>) => actionTimeLabel(data["time"]),
-  },
-  language: {
-    noun: "language",
-    subtitle: languageSubtitle,
   },
   variantrule: {
     noun: "variant rule",
@@ -76,7 +71,7 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   sense: (source, slug) => genericAside("sense", source, slug),
   status: (source, slug) => genericAside("status", source, slug),
   action: (source, slug) => genericAside("action", source, slug),
-  language: (source, slug) => genericAside("language", source, slug),
+  language: languageAside,
   variantrule: (source, slug) => genericAside("variantrule", source, slug),
 };
 
@@ -251,18 +246,19 @@ async function genericAside(
       entity={entity}
       refs={refs}
       subtitle={subtitle?.(entity.data, entity.name)}
-      metadata={
-        type === "language" ? (
-          <LanguageAsideMetadata
-            data={entity.data}
-            refs={refs}
-            selfKey={entity.naturalKey}
-            context={entity.name}
-          />
-        ) : null
-      }
     />
   );
+}
+
+async function languageAside(source: string, slug: string): Promise<ReactNode> {
+  const language = await getLanguageGroup(source, slug);
+  if (!language) return <AsideMessage>No such language.</AsideMessage>;
+
+  const refs = await resolveReferences(
+    collectReferences(language.variants.map((variant) => variant.data)),
+  );
+
+  return <LanguageAside language={language} refs={refs} />;
 }
 
 /**
