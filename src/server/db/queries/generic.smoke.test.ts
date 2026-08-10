@@ -26,6 +26,8 @@ const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
 /** Measured against the seed. See the note on exact counts above. */
 const COUNTS = {
+  skill: 18,
+  condition: 15,
   sense: 4,
   status: 2,
   action: 30,

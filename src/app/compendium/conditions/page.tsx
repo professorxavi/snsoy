@@ -1,14 +1,22 @@
 import { Box, Heading, Stack, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import { openEntityAside } from "@/app/aside-actions";
-import { ConditionTable } from "@/components/compendium/condition-table";
-import { listConditions } from "@/server/db/queries/conditions";
+import {
+  GenericTable,
+  type GenericColumn,
+} from "@/components/compendium/generic-table";
+import { conditionEffect } from "@/lib/content/conditions";
+import { listGeneric, type GenericListRow } from "@/server/db/queries/generic";
 
 export const metadata: Metadata = {
   title: "Conditions",
   description:
     "The fifteen conditions, and what each one does to the creature under it.",
 };
+
+const COLUMNS: GenericColumn<GenericListRow>[] = [
+  { label: "Effect", cell: (row) => conditionEffect(row.slug) },
+];
 
 /**
  * The condition browse view.
@@ -19,7 +27,7 @@ export const metadata: Metadata = {
  * conditions have no second facet to sort by.
  */
 export default async function ConditionsPage() {
-  const rows = await listConditions();
+  const rows = await listGeneric("condition", {});
 
   return (
     /*
@@ -62,7 +70,13 @@ export default async function ConditionsPage() {
         </Text>
       </Stack>
 
-      <ConditionTable rows={rows} open={openEntityAside.bind(null, "condition")} />
+      <GenericTable
+        rows={rows}
+        type="condition"
+        columns={COLUMNS}
+        noun="conditions"
+        open={openEntityAside.bind(null, "condition")}
+      />
     </Box>
   );
 }

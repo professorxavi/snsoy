@@ -34,6 +34,8 @@ const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
  * restores the same dump, so a number that moves means the seed was re-cut.
  */
 const TYPES = {
+  skill: 18,
+  condition: 15,
   sense: 4,
   status: 2,
   action: 30,

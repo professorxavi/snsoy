@@ -4,22 +4,20 @@ import { Box, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { ClassAside } from "@/components/compendium/class-aside";
-import { ConditionAside } from "@/components/compendium/condition-aside";
 import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { RaceAside } from "@/components/compendium/race-aside";
-import { SkillAside } from "@/components/compendium/skill-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
-import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
+import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
 import { actionTimeLabel } from "@/lib/content/actions";
 import { itemGroupTags } from "@/lib/content/items";
 import { languageSubtitle } from "@/lib/content/languages";
+import { checkName } from "@/lib/content/skills";
 import { ruleTypeLabel } from "@/lib/content/variant-rules";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getClass } from "@/server/db/queries/classes";
-import { getCondition } from "@/server/db/queries/conditions";
 import { getGeneric } from "@/server/db/queries/generic";
 import {
   getItem,
@@ -29,17 +27,25 @@ import {
 import { getMonster } from "@/server/db/queries/monsters";
 import { getRace } from "@/server/db/queries/races";
 import { resolveReferences } from "@/server/db/queries/references";
-import { getSkill } from "@/server/db/queries/skills";
 import { getSpell } from "@/server/db/queries/spells";
 
 type AsideLoader = (source: string, slug: string) => Promise<ReactNode>;
-type GenericAsideType = "sense" | "status" | "action" | "language" | "variantrule";
+type GenericAsideType = Extract<
+  AsideType,
+  "skill" | "condition" | "sense" | "status" | "action" | "language" | "variantrule"
+>;
 type GenericAsideConfig = {
   noun: string;
-  subtitle?: (data: Record<string, unknown>) => string | null;
+  subtitle?: (data: Record<string, unknown>, name: string) => string | null;
 };
 
 const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
+  skill: {
+    noun: "skill",
+    subtitle: (data, name) =>
+      checkName(typeof data["ability"] === "string" ? data["ability"] : null, name),
+  },
+  condition: { noun: "condition" },
   sense: { noun: "sense" },
   status: { noun: "status" },
   action: {
@@ -56,12 +62,12 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   },
 };
 
-const ASIDE_LOADERS: Partial<Record<BrowsableType, AsideLoader>> = {
+const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   spell: spellAside,
   class: classAside,
   race: raceAside,
-  skill: skillAside,
-  condition: conditionAside,
+  skill: (source, slug) => genericAside("skill", source, slug),
+  condition: (source, slug) => genericAside("condition", source, slug),
   monster: monsterAside,
   item: (source, slug) => itemAside("item", source, slug),
   baseitem: (source, slug) => itemAside("baseitem", source, slug),
@@ -98,9 +104,11 @@ export async function openEntityAside(
   source: string,
   slug: string,
 ): Promise<ReactNode> {
-  return ASIDE_LOADERS[type]?.(source, slug) ?? (
-    <AsideMessage>Nothing to show for this yet.</AsideMessage>
-  );
+  if (!isAsideType(type)) {
+    return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
+  }
+
+  return ASIDE_LOADERS[type](source, slug);
 }
 
 async function spellAside(source: string, slug: string): Promise<ReactNode> {
@@ -154,33 +162,6 @@ async function raceAside(source: string, slug: string): Promise<ReactNode> {
   );
 
   return <RaceAside race={race} refs={refs} />;
-}
-
-/*
- * Skills and conditions have no page behind them, so these two are not previews
- * of somewhere else — they are the whole of what we show. Both are short enough
- * to print entire, which is the reason they were given no page.
- */
-
-async function skillAside(source: string, slug: string): Promise<ReactNode> {
-  const skill = await getSkill(source, slug);
-  if (!skill) return <AsideMessage>No such skill.</AsideMessage>;
-
-  const refs = await resolveReferences(collectReferences(skill.data));
-
-  return <SkillAside skill={skill} refs={refs} />;
-}
-
-async function conditionAside(source: string, slug: string): Promise<ReactNode> {
-  const condition = await getCondition(source, slug);
-  if (!condition) return <AsideMessage>No such condition.</AsideMessage>;
-
-  // Worth resolving here where it is not for a skill: conditions cite each
-  // other by name — four of them open by saying the creature is incapacitated
-  // — and those tags are what let the aside stack one on the next.
-  const refs = await resolveReferences(collectReferences(condition.data));
-
-  return <ConditionAside condition={condition} refs={refs} />;
 }
 
 /**
@@ -268,7 +249,7 @@ async function genericAside(
     <GenericAside
       entity={entity}
       refs={refs}
-      subtitle={subtitle?.(entity.data)}
+      subtitle={subtitle?.(entity.data, entity.name)}
     />
   );
 }

@@ -26,8 +26,8 @@ export function asideKey(
  *
  * Much of what book text links to still has no page and no renderer, and those
  * links are broken today. Adding a type here is what makes them work, one
- * renderer at a time, and it must stay in step with the switch in
- * `openEntityAside`.
+ * renderer at a time. The server loader map is total over this list, so every
+ * declared type has a renderer.
  *
  * Creatures were the big one at 15,887 references, more than spells, items and
  * conditions together, and joined the list with the stat block renderer.
@@ -43,7 +43,7 @@ export function asideKey(
  * type, because every stat block that says "darkvision 60 ft." is one of them —
  * then actions at 743, statuses at 479, variant rules at 189 and languages at 75.
  */
-export const ASIDE_TYPES = new Set<BrowsableType>([
+export const ASIDE_TYPE_LIST = [
   "spell",
   "class",
   "race",
@@ -58,7 +58,15 @@ export const ASIDE_TYPES = new Set<BrowsableType>([
   "status",
   "variantrule",
   "language",
-]);
+] as const satisfies readonly BrowsableType[];
+
+export type AsideType = (typeof ASIDE_TYPE_LIST)[number];
+
+export const ASIDE_TYPES: ReadonlySet<BrowsableType> = new Set(ASIDE_TYPE_LIST);
+
+export function isAsideType(type: BrowsableType): type is AsideType {
+  return ASIDE_TYPES.has(type as AsideType);
+}
 
 /**
  * Marks a link that must navigate even inside the aside.

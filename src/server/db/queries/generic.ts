@@ -11,9 +11,8 @@ import { sources } from "../schema/sources";
  * That table is one `data jsonb` blob per entity and nothing else, and it holds
  * 22 of the 32 browsable types — two thirds of what the compendium still has to
  * build. So this is the read path for most of them rather than one slice's
- * machinery. `queries/skills.ts` and `queries/conditions.ts` are already the
- * same two queries written twice; without this the next five types would have
- * written them a third through a seventh time.
+ * machinery. Skills keep their custom list order, while their details and all
+ * other short rule types use this shared path.
  *
  * What varies per type is only which keys come out of the blob, so that is the
  * parameter. What must never vary is the type predicate: every one of those 22
