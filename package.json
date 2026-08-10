@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack",
+    "predev": "tsx scripts/dev/reset.ts",
+    "dev": "next dev --webpack -p 3000",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
