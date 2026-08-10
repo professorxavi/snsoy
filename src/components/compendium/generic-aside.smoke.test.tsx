@@ -19,7 +19,7 @@ import { GenericAside } from "./generic-aside";
  * One file rather than one per type. The panel is the same component for all of
  * them, so five copies would assert the same thing five times over and diverge
  * the moment one was edited. Add a type to `TYPES` when its case joins the
- * switch in `openEntityAside`.
+ * loader map in `openEntityAside`.
  *
  * Rendered to a string rather than into a DOM — the question is which branches
  * were taken, and jsdom would build markup nobody reads to answer it.

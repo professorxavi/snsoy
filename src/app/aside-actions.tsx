@@ -32,6 +32,47 @@ import { resolveReferences } from "@/server/db/queries/references";
 import { getSkill } from "@/server/db/queries/skills";
 import { getSpell } from "@/server/db/queries/spells";
 
+type AsideLoader = (source: string, slug: string) => Promise<ReactNode>;
+type GenericAsideType = "sense" | "status" | "action" | "language" | "variantrule";
+type GenericAsideConfig = {
+  noun: string;
+  subtitle?: (data: Record<string, unknown>) => string | null;
+};
+
+const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
+  sense: { noun: "sense" },
+  status: { noun: "status" },
+  action: {
+    noun: "action",
+    subtitle: (data: Record<string, unknown>) => actionTimeLabel(data["time"]),
+  },
+  language: {
+    noun: "language",
+    subtitle: languageSubtitle,
+  },
+  variantrule: {
+    noun: "variant rule",
+    subtitle: (data: Record<string, unknown>) => ruleTypeLabel(data["ruleType"]),
+  },
+};
+
+const ASIDE_LOADERS: Partial<Record<BrowsableType, AsideLoader>> = {
+  spell: spellAside,
+  class: classAside,
+  race: raceAside,
+  skill: skillAside,
+  condition: conditionAside,
+  monster: monsterAside,
+  item: (source, slug) => itemAside("item", source, slug),
+  baseitem: (source, slug) => itemAside("baseitem", source, slug),
+  itemGroup: (source, slug) => itemAside("itemGroup", source, slug),
+  sense: (source, slug) => genericAside("sense", source, slug),
+  status: (source, slug) => genericAside("status", source, slug),
+  action: (source, slug) => genericAside("action", source, slug),
+  language: (source, slug) => genericAside("language", source, slug),
+  variantrule: (source, slug) => genericAside("variantrule", source, slug),
+};
+
 /**
  * One entity, rendered on the server for the aside.
  *
@@ -57,42 +98,9 @@ export async function openEntityAside(
   source: string,
   slug: string,
 ): Promise<ReactNode> {
-  switch (type) {
-    case "spell":
-      return spellAside(source, slug);
-    case "class":
-      return classAside(source, slug);
-    case "race":
-      return raceAside(source, slug);
-    case "skill":
-      return skillAside(source, slug);
-    case "condition":
-      return conditionAside(source, slug);
-    case "monster":
-      return monsterAside(source, slug);
-    case "item":
-    case "baseitem":
-    case "itemGroup":
-      return itemAside(type, source, slug);
-    case "sense":
-      return genericAside(type, source, slug, "sense");
-    case "status":
-      return genericAside(type, source, slug, "status");
-    case "action":
-      return genericAside(type, source, slug, "action", (data) =>
-        actionTimeLabel(data["time"]),
-      );
-    case "language":
-      return genericAside(type, source, slug, "language", (data) =>
-        languageSubtitle(data),
-      );
-    case "variantrule":
-      return genericAside(type, source, slug, "variant rule", (data) =>
-        ruleTypeLabel(data["ruleType"]),
-      );
-    default:
-      return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
-  }
+  return ASIDE_LOADERS[type]?.(source, slug) ?? (
+    <AsideMessage>Nothing to show for this yet.</AsideMessage>
+  );
 }
 
 async function spellAside(source: string, slug: string): Promise<ReactNode> {
@@ -237,9 +245,8 @@ async function itemAside(
 /**
  * One of the `generic_entities` types, in full.
  *
- * Like a skill or a condition — which are the same shape and will fold into
- * this — these have no page behind them, so the panel is the whole of what is
- * shown rather than a preview of somewhere else.
+ * Like a skill or a condition, these have no page behind them, so the panel is
+ * the whole of what is shown rather than a preview of somewhere else.
  *
  * No field map is passed. The map exists so a *list* can put a JSON value in a
  * column; here the entity's whole blob is already in hand, so `subtitle` reads
@@ -247,14 +254,11 @@ async function itemAside(
  * JSON text in a table cell, which is the difference the two formatters carry.
  */
 async function genericAside(
-  type: BrowsableType,
+  type: GenericAsideType,
   source: string,
   slug: string,
-  /** What to call it when there is nothing there: "No such sense." */
-  noun: string,
-  /** The one line under the name, for the types that have a second fact. */
-  subtitle?: (data: Record<string, unknown>) => string | null,
 ): Promise<ReactNode> {
+  const { noun, subtitle } = GENERIC_ASIDE_TYPES[type];
   const entity = await getGeneric(type, source, slug, {});
   if (!entity) return <AsideMessage>No such {noun}.</AsideMessage>;
 

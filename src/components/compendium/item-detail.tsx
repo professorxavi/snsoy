@@ -1,6 +1,6 @@
 import { Box, Stack, Text } from "@chakra-ui/react";
-import NextLink from "next/link";
 import type { ReactNode } from "react";
+import { AsideIdentity } from "@/components/compendium/aside-identity";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import {
   applyBaseName,
@@ -16,7 +16,6 @@ import {
 } from "@/lib/content/items";
 import type { ReferenceIndex } from "@/lib/content/references";
 import { walkStrings } from "@/lib/content/walk";
-import { sourceHref } from "@/lib/routes";
 import type { ItemDetail as ItemDetailRow } from "@/server/db/queries/items";
 
 /**
@@ -100,33 +99,12 @@ export function ItemDetail({
 
   return (
     <Stack gap="4" px="4" py="4">
-      <Box>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          <Box asChild _hover={{ color: "brand" }}>
-            <NextLink href={sourceHref(item.sourceId)}>{item.sourceName}</NextLink>
-          </Box>
-          {item.page ? ` · p. ${item.page}` : null}
-        </Text>
-
-        <Text
-          as="h1"
-          fontFamily="display"
-          fontSize="2xl"
-          lineHeight="1.05"
-          letterSpacing="tight"
-          textWrap="balance"
-          mt="1"
-        >
-          {item.name}
-        </Text>
-
+      <AsideIdentity
+        sourceId={item.sourceId}
+        sourceName={item.sourceName}
+        page={item.page}
+        name={item.name}
+      >
         {typeLine ? (
           <Text
             fontFamily="body"
@@ -138,7 +116,7 @@ export function ItemDetail({
             {typeLine}
           </Text>
         ) : null}
-      </Box>
+      </AsideIdentity>
 
       {stats.length > 0 ? (
         <Stack

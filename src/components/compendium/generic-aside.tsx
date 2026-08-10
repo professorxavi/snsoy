@@ -1,13 +1,19 @@
-import { Box, Stack, Text } from "@chakra-ui/react";
-import NextLink from "next/link";
+import { Stack, Text } from "@chakra-ui/react";
 import { Entries, type Entry } from "@/components/entry";
+import { AsideIdentity } from "@/components/compendium/aside-identity";
 import type { ReferenceIndex } from "@/lib/content/references";
-import { sourceHref } from "@/lib/routes";
-import type { GenericEntity } from "@/server/db/queries/generic";
+
+export interface ShortRuleEntity {
+  naturalKey: string;
+  name: string;
+  sourceId: string;
+  sourceName: string;
+  page: number | null;
+  data: unknown;
+}
 
 /**
- * A `generic_entities` row in the aside — which is the only place these types
- * are ever rendered.
+ * A short rule in the aside, rendered in full because it has no page behind it.
  *
  * The bargain the skill and condition asides already struck, made once. Each of
  * these types is short enough to print entire, which is the reason none of them
@@ -15,16 +21,15 @@ import type { GenericEntity } from "@/server/db/queries/generic";
  * the glance it takes, least of all the page you met the word on. So there is no
  * "open full page" link here — there is nowhere else to go.
  *
- * The only per-type difference is the subtitle. A skill states the check it
- * rolls, an action how long it takes; a condition has no second fact about it
- * and passes nothing.
+ * The optional subtitle carries a type's one extra fact, such as a skill's
+ * check or an action's time.
  */
 export function GenericAside({
   entity,
   refs,
   subtitle,
 }: {
-  entity: GenericEntity;
+  entity: ShortRuleEntity;
   refs: ReferenceIndex;
   /** One line under the name, where the type has a second fact worth stating. */
   subtitle?: string | null;
@@ -33,35 +38,12 @@ export function GenericAside({
 
   return (
     <Stack gap="4" px="4" py="4">
-      <Box>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          <Box asChild _hover={{ color: "brand" }}>
-            <NextLink href={sourceHref(entity.sourceId)}>
-              {entity.sourceName}
-            </NextLink>
-          </Box>
-          {entity.page ? ` · p. ${entity.page}` : null}
-        </Text>
-
-        <Text
-          as="h1"
-          fontFamily="display"
-          fontSize="2xl"
-          lineHeight="1.05"
-          letterSpacing="tight"
-          textWrap="balance"
-          mt="1"
-        >
-          {entity.name}
-        </Text>
-
+      <AsideIdentity
+        sourceId={entity.sourceId}
+        sourceName={entity.sourceName}
+        page={entity.page}
+        name={entity.name}
+      >
         {subtitle ? (
           <Text
             fontFamily="body"
@@ -73,7 +55,7 @@ export function GenericAside({
             {subtitle}
           </Text>
         ) : null}
-      </Box>
+      </AsideIdentity>
 
       {/*
         Tags inside the entry are live, so the aside stacks one entity on the

@@ -1,11 +1,12 @@
-import { Box, Stack, Text } from "@chakra-ui/react";
+import { Stack, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { Entries, type Entry } from "@/components/entry";
+import { AsideIdentity } from "@/components/compendium/aside-identity";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { descriptionEntries } from "@/lib/content/classes";
 import type { ReferenceIndex } from "@/lib/content/references";
 import { splitSections } from "@/lib/content/outline";
-import { hrefFor, sourceHref } from "@/lib/routes";
+import { hrefFor } from "@/lib/routes";
 import type { ClassDetail } from "@/server/db/queries/classes";
 import { ClassSummary } from "./class-summary";
 
@@ -46,37 +47,14 @@ export function ClassAside({
 
   return (
     <Stack gap="4" px="4" py="4">
-      <Box>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          <Box asChild _hover={{ color: "brand" }}>
-            <NextLink href={sourceHref(found.sourceId)}>
-              {found.sourceName}
-            </NextLink>
-          </Box>
-          {found.page ? ` · p. ${found.page}` : null}
-        </Text>
-
-        <Text
-          as="h1"
-          fontFamily="display"
-          fontSize="2xl"
-          lineHeight="1.05"
-          letterSpacing="tight"
-          textWrap="balance"
-          mt="1"
-        >
-          {found.name}
-        </Text>
-
+      <AsideIdentity
+        sourceId={found.sourceId}
+        sourceName={found.sourceName}
+        page={found.page}
+        name={found.name}
+      >
         <ClassSummary found={found} />
-      </Box>
+      </AsideIdentity>
 
       {/*
         Above the description, not below it.

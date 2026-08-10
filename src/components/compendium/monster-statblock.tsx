@@ -1,5 +1,4 @@
 import { Box, Stack, Text } from "@chakra-ui/react";
-import NextLink from "next/link";
 import type { ReactNode } from "react";
 import {
   Entries,
@@ -7,6 +6,7 @@ import {
   type Entry,
   type SpellcastingEntry,
 } from "@/components/entry";
+import { AsideIdentity } from "@/components/compendium/aside-identity";
 import {
   abilityScores,
   formatArmorClass,
@@ -31,7 +31,6 @@ import {
   type Speeds,
 } from "@/lib/content/monsters";
 import type { ReferenceIndex } from "@/lib/content/references";
-import { sourceHref } from "@/lib/routes";
 import type { MonsterDetail } from "@/server/db/queries/monsters";
 
 /**
@@ -103,35 +102,12 @@ export function MonsterStatblock({
 
   return (
     <Stack gap="3" px="4" py="4">
-      <Box>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          <Box asChild _hover={{ color: "brand" }}>
-            <NextLink href={sourceHref(monster.sourceId)}>
-              {monster.sourceName}
-            </NextLink>
-          </Box>
-          {monster.page ? ` · p. ${monster.page}` : null}
-        </Text>
-
-        <Text
-          as="h1"
-          fontFamily="display"
-          fontSize="2xl"
-          lineHeight="1.05"
-          letterSpacing="tight"
-          textWrap="balance"
-          mt="1"
-        >
-          {monster.name}
-        </Text>
-
+      <AsideIdentity
+        sourceId={monster.sourceId}
+        sourceName={monster.sourceName}
+        page={monster.page}
+        name={monster.name}
+      >
         <Text
           fontFamily="body"
           fontStyle="italic"
@@ -141,7 +117,7 @@ export function MonsterStatblock({
         >
           {formatCreatureLine(data)}
         </Text>
-      </Box>
+      </AsideIdentity>
 
       {/* The three lines that decide whether it can be hurt and how it moves. */}
       <Ruled>

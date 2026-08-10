@@ -1,11 +1,12 @@
 import { Box, Stack, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { Entries, type Entry } from "@/components/entry";
+import { AsideIdentity } from "@/components/compendium/aside-identity";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { splitSections } from "@/lib/content/outline";
 import { descriptionEntries } from "@/lib/content/races";
 import type { ReferenceIndex } from "@/lib/content/references";
-import { hrefFor, sourceHref } from "@/lib/routes";
+import { hrefFor } from "@/lib/routes";
 import type { RaceDetail } from "@/server/db/queries/races";
 import { TraitSummary } from "./trait-summary";
 
@@ -53,35 +54,12 @@ export function RaceAside({
 
   return (
     <Stack gap="4" px="4" py="4">
-      <Box>
-        <Text
-          fontFamily="ui"
-          fontSize="2xs"
-          fontWeight="medium"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          color="fg.subtle"
-        >
-          <Box asChild _hover={{ color: "brand" }}>
-            <NextLink href={sourceHref(race.sourceId)}>
-              {race.sourceName}
-            </NextLink>
-          </Box>
-          {race.page ? ` · p. ${race.page}` : null}
-        </Text>
-
-        <Text
-          as="h1"
-          fontFamily="display"
-          fontSize="2xl"
-          lineHeight="1.05"
-          letterSpacing="tight"
-          textWrap="balance"
-          mt="1"
-        >
-          {race.name}
-        </Text>
-
+      <AsideIdentity
+        sourceId={race.sourceId}
+        sourceName={race.sourceName}
+        page={race.page}
+        name={race.name}
+      >
         <TraitSummary race={race} />
 
         {traits.length > 0 ? (
@@ -103,7 +81,7 @@ export function RaceAside({
             </Text>
           </Box>
         ) : null}
-      </Box>
+      </AsideIdentity>
 
       {/*
         Said here as well as on the page. Someone who meets an NPC race in a
