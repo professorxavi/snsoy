@@ -153,6 +153,17 @@ describe("labelForTag", () => {
       "difficult terrain",
     );
   });
+
+  /**
+   * A weapon property addresses by code, and the code is the one thing that
+   * must not reach the page — the Gunner feat would otherwise read "ignore the
+   * LD property".
+   */
+  it("shows a weapon property's words rather than its code", () => {
+    expect(labelForTag(tag("{@itemProperty LD|PHB|loading}"))).toBe("loading");
+    expect(labelForTag(tag("{@itemProperty F|PHB|finesse}"))).toBe("finesse");
+    expect(labelForTag(tag("{@itemProperty Ammunition}"))).toBe("Ammunition");
+  });
 });
 
 describe("collectReferences", () => {

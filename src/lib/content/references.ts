@@ -119,6 +119,12 @@ export type FormatKind = (typeof FORMAT_TAGS)[keyof typeof FORMAT_TAGS];
  * `{@link text|url}` loses its URL, but both keep their words — and a sentence
  * missing a typographic flourish reads better than one interrupted by a red
  * unsupported-tag marker.
+ *
+ * `itemProperty` is here because there is nothing for it to open. It addresses
+ * a weapon property — finesse, loading, two-handed — which lives in
+ * `support_data` as vocabulary rather than as an entity, so it has no natural
+ * key, no page and no aside. All 17 occurrences carry their own display text,
+ * so the words survive intact; see `labelForTag`.
  */
 const PLAIN_TAGS = new Set([
   "filter",
@@ -128,6 +134,7 @@ const PLAIN_TAGS = new Set([
   "footnote",
   "style",
   "link",
+  "itemProperty",
 ]);
 
 export type TagKind =
@@ -433,6 +440,15 @@ export function labelForTag(tag: TagSegment): string {
     /** `{@quickref name|source|chapter|?|display}` */
     case "quickref":
       return part(tag, 4) || first;
+
+    /*
+     * `{@itemProperty LD|PHB|loading}`. The first part is the property's code,
+     * which is the one thing a reader must not be shown — "LD" in the middle of
+     * a sentence about loading weapons. Every occurrence in the data carries the
+     * display text, and the code is only the fallback for one that does not.
+     */
+    case "itemProperty":
+      return part(tag, 2) || first;
 
     // The rendered value is the per-level step, not the base.
     case "scaledamage":

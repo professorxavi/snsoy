@@ -57,7 +57,6 @@ const KNOWN_TAG_GAPS = [
   "comicH4",
   "comicNote",
   "crochet",
-  "itemProperty",
   "savingThrow",
   "vehupgrade",
 ] as const;
