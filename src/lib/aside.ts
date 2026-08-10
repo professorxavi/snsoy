@@ -48,6 +48,12 @@ export function asideKey(
  * nobody writes "see the Grappler feat" in prose, and everybody searches for it
  * directly. 179 inbound links to backgrounds, 167 to feats, 63 to optional
  * features and 45 to character options, against 396 entities between them.
+ *
+ * The four DM reference types cost nothing to add — 99 entities between them,
+ * all in `generic_entities`, all rendering through the panel the short rules
+ * types already had. Traps and hazards are the pair a chapter actually cites:
+ * a room description saying the floor gives way to a {@trap pit trap} is a
+ * link that used to go nowhere.
  */
 export const ASIDE_TYPE_LIST = [
   "spell",
@@ -68,6 +74,10 @@ export const ASIDE_TYPE_LIST = [
   "feat",
   "optionalfeature",
   "charoption",
+  "trap",
+  "hazard",
+  "disease",
+  "object",
 ] as const satisfies readonly BrowsableType[];
 
 export type AsideType = (typeof ASIDE_TYPE_LIST)[number];

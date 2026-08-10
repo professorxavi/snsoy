@@ -319,3 +319,46 @@ describe("an inline run", () => {
     ]);
   });
 });
+
+/**
+ * An attack stored as fields rather than as a sentence.
+ *
+ * Only the 13 objects that fight back use this shape; the bestiary writes the
+ * same line inline with `{@atk}` and `{@h}`. The point of the case under test
+ * is that both arrive at the same rendered sentence — so what is asserted is
+ * the sentence, not the structure.
+ */
+describe("a structured attack", () => {
+  const BOLT: Entry = {
+    type: "attack",
+    attackType: "RW",
+    attackEntries: ["{@hit +6} to hit, range 120/480 ft., one target."],
+    hitEntries: ["16 ({@damage 3d10}) piercing damage."],
+  };
+
+  it("reads as the line the tags would have produced", () => {
+    render(<Entries entries={[BOLT]} />);
+
+    expect(screen.getByText("Ranged Weapon Attack:")).toBeInTheDocument();
+    expect(screen.getByText("Hit:")).toBeInTheDocument();
+    expect(screen.getByText(/\+6/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/range 120\/480 ft\., one target\./),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/piercing damage\./)).toBeInTheDocument();
+  });
+
+  /** Two objects carry an attack with no damage clause of its own. */
+  it("holds up when half the attack is missing", () => {
+    render(<Entries entries={[{ type: "attack", attackType: "MW" }]} />);
+
+    expect(screen.getByText("Melee Weapon Attack:")).toBeInTheDocument();
+  });
+
+  it("is not reported as a gap", () => {
+    resetCoverage();
+    render(<Entries entries={[BOLT]} />);
+
+    expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+});

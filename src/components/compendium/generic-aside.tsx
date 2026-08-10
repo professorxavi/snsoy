@@ -1,4 +1,5 @@
 import { Stack, Text } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 import { Entries, type Entry } from "@/components/entry";
 import { AsideIdentity } from "@/components/compendium/aside-identity";
 import type { ReferenceIndex } from "@/lib/content/references";
@@ -28,11 +29,19 @@ export function GenericAside({
   entity,
   refs,
   subtitle,
+  children,
 }: {
   entity: ShortRuleEntity;
   refs: ReferenceIndex;
   /** One line under the name, where the type has a second fact worth stating. */
   subtitle?: string | null;
+  /**
+   * Anything the type carries beyond its prose, printed after it. Only the
+   * objects use it so far: 13 of the 20 keep their attacks in `actionEntries`,
+   * beside `entries` rather than inside it, and without this they would open
+   * showing a name and nothing else.
+   */
+  children?: ReactNode;
 }) {
   const data = entity.data as { entries?: Entry[] };
 
@@ -69,6 +78,8 @@ export function GenericAside({
         selfKey={entity.naturalKey}
         context={entity.name}
       />
+
+      {children}
     </Stack>
   );
 }

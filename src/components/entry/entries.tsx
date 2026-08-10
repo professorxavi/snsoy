@@ -29,6 +29,7 @@ import {
   isEntryObject,
   isRow,
   type AbilityFormulaEntry,
+  type AttackEntry,
   type CellEntry,
   type Entry,
   type EntryObject,
@@ -168,6 +169,9 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "statblock":
       return <StatblockLink entry={entry as StatblockEntry} ctx={ctx} />;
 
+    case "attack":
+      return <AttackLine entry={entry as AttackEntry} ctx={ctx} />;
+
     case "inline":
       return <InlineRun entry={entry as EntriesEntry} ctx={ctx} />;
 
@@ -191,6 +195,34 @@ const inline = (text: string, ctx: RenderContext) => (
     context={ctx.context}
   />
 );
+
+/**
+ * An attack written as structure rather than as prose.
+ *
+ * The bestiary writes its attacks inline — `{@atk rw} {@hit +6} to hit, range
+ * 120/480 ft. {@h}16 ({@damage 3d10}) piercing damage.` — and 13 of the 20
+ * objects carry the same sentence split into fields instead. Rather than a
+ * second way of styling the same line, the fields are put back into the form
+ * the tags already produce, so an object's Bolt reads exactly as a creature's
+ * would: same cues, same rolls, same spacing rule for `{@h}`, which supplies
+ * its own trailing space.
+ *
+ * `attackType` is the `{@atk}` code in upper case, and the tag lower-cases it.
+ */
+function AttackLine({ entry, ctx }: { entry: AttackEntry; ctx: RenderContext }) {
+  const attack = (entry.attackEntries ?? []).join(" ");
+  const hit = (entry.hitEntries ?? []).join(" ");
+
+  const line = [
+    entry.attackType ? `{@atk ${entry.attackType}}` : null,
+    attack || null,
+    hit ? `{@h}${hit}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return <Paragraph>{inline(line, ctx)}</Paragraph>;
+}
 
 /**
  * A run of entries that belong in one paragraph rather than one apiece.

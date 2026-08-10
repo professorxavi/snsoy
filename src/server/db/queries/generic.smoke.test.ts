@@ -33,6 +33,11 @@ const COUNTS = {
   action: 30,
   variantrule: 115,
   language: 135,
+  charoption: 44,
+  trap: 29,
+  hazard: 28,
+  disease: 22,
+  object: 20,
 } as const;
 
 describeDb("generic entity queries against the seed", () => {

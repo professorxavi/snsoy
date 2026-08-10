@@ -217,8 +217,24 @@ export interface LinkEntry {
   };
 }
 
+/**
+ * An attack in fields rather than in prose: the to-hit clause and the damage
+ * clause apart, with the reach and kind as an `{@atk}` code.
+ *
+ * Only the objects use it — the bestiary writes the same sentence inline — and
+ * `AttackLine` puts it back into that form rather than styling it twice.
+ */
+export interface AttackEntry {
+  type: "attack";
+  /** "MW", "RW": the `{@atk}` code, upper case. */
+  attackType?: string;
+  attackEntries?: string[];
+  hitEntries?: string[];
+}
+
 export type EntryObject =
   | EntriesEntry
+  | AttackEntry
   | LinkEntry
   | ListEntry
   | ItemEntry

@@ -8,6 +8,7 @@ import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
 import { LanguageAside } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
+import { ObjectActions } from "@/components/compendium/object-actions";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
@@ -15,13 +16,18 @@ import { actionTimeLabel } from "@/lib/content/actions";
 import { characterOptionSummary } from "@/lib/content/character-options";
 import { featPrerequisite } from "@/lib/content/feats";
 import { itemGroupTags } from "@/lib/content/items";
+import { objectSummary } from "@/lib/content/objects";
+import { trapKindLabel, trapThreat } from "@/lib/content/traps";
 import {
   featureTypeSummary,
   formatPrerequisites,
 } from "@/lib/content/optional-features";
 import { checkName } from "@/lib/content/skills";
 import { ruleTypeLabel } from "@/lib/content/variant-rules";
-import { collectReferences } from "@/lib/content/references";
+import {
+  collectReferences,
+  type ReferenceIndex,
+} from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import { getBackground } from "@/server/db/queries/backgrounds";
 import { getClass } from "@/server/db/queries/classes";
@@ -48,10 +54,24 @@ type GenericAsideType = Extract<
   | "action"
   | "variantrule"
   | "charoption"
+  | "trap"
+  | "hazard"
+  | "disease"
+  | "object"
 >;
 type GenericAsideConfig = {
   noun: string;
   subtitle?: (data: Record<string, unknown>, name: string) => string | null;
+  /**
+   * Anything the type keeps outside `entries`. Only the objects have any — see
+   * `ObjectActions` — and giving it a slot here is what keeps them on the
+   * shared path instead of earning a loader of their own.
+   */
+  extra?: (
+    data: Record<string, unknown>,
+    entity: { naturalKey: string; name: string },
+    refs: ReferenceIndex,
+  ) => ReactNode;
 };
 
 const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
@@ -78,6 +98,33 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
     subtitle: (data: Record<string, unknown>) =>
       characterOptionSummary(data["optionType"]),
   },
+  trap: {
+    noun: "trap",
+    // Kind and threat together: "deadly" means one thing to a 3rd-level party
+    // and another to a 17th-level one, so the tier travels with it.
+    subtitle: (data: Record<string, unknown>) => {
+      const kind = trapKindLabel(data["trapHazType"]);
+      const threat = trapThreat(data["rating"]);
+      return threat === "—" ? kind : `${kind} · ${threat}`;
+    },
+  },
+  hazard: {
+    noun: "hazard",
+    subtitle: (data: Record<string, unknown>) => trapKindLabel(data["trapHazType"]),
+  },
+  disease: { noun: "disease" },
+  object: {
+    noun: "object",
+    subtitle: (data: Record<string, unknown>) => objectSummary(data),
+    extra: (data, entity, refs) => (
+      <ObjectActions
+        actions={data["actionEntries"]}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
 };
 
 const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
@@ -96,6 +143,10 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   language: languageAside,
   variantrule: (source, slug) => genericAside("variantrule", source, slug),
   charoption: (source, slug) => genericAside("charoption", source, slug),
+  trap: (source, slug) => genericAside("trap", source, slug),
+  hazard: (source, slug) => genericAside("hazard", source, slug),
+  disease: (source, slug) => genericAside("disease", source, slug),
+  object: (source, slug) => genericAside("object", source, slug),
   background: backgroundAside,
   feat: featAside,
   optionalfeature: optionalFeatureAside,
@@ -261,7 +312,7 @@ async function genericAside(
   source: string,
   slug: string,
 ): Promise<ReactNode> {
-  const { noun, subtitle } = GENERIC_ASIDE_TYPES[type];
+  const { noun, subtitle, extra } = GENERIC_ASIDE_TYPES[type];
   const entity = await getGeneric(type, source, slug, {});
   if (!entity) return <AsideMessage>No such {noun}.</AsideMessage>;
 
@@ -272,7 +323,9 @@ async function genericAside(
       entity={entity}
       refs={refs}
       subtitle={subtitle?.(entity.data, entity.name)}
-    />
+    >
+      {extra?.(entity.data, entity, refs)}
+    </GenericAside>
   );
 }
 

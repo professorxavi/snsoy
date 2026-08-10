@@ -5,6 +5,7 @@ import { coverageReport, resetCoverage } from "@/components/entry/coverage";
 import { system } from "@/theme";
 import type { GenericEntity } from "@/server/db/queries/generic";
 import { GenericAside } from "./generic-aside";
+import { ObjectActions } from "./object-actions";
 
 /**
  * Every entity of every generic type the aside can open, through the panel that
@@ -42,6 +43,10 @@ const TYPES = {
   variantrule: 115,
   language: 135,
   charoption: 44,
+  trap: 29,
+  hazard: 28,
+  disease: 22,
+  object: 20,
 } as const;
 
 /**
@@ -132,7 +137,23 @@ describeDb("the generic panel over every entity it serves", () => {
 
       renderToStaticMarkup(
         <ChakraProvider value={system}>
-          <GenericAside entity={entity} refs={{}} />
+          <GenericAside entity={entity} refs={{}}>
+            {/*
+              Objects keep their attacks outside `entries`, and the panel is
+              handed them the same way in production. Without this the 13 that
+              have any would be swept for coverage over the half of themselves
+              that renders — and the `attack` entry type, which only they use,
+              would never be exercised at all.
+            */}
+            {row.entityType === "object" ? (
+              <ObjectActions
+                actions={(row.data as Record<string, unknown>)["actionEntries"]}
+                refs={{}}
+                selfKey={row.naturalKey}
+                context={row.name}
+              />
+            ) : null}
+          </GenericAside>
         </ChakraProvider>,
       );
     }
