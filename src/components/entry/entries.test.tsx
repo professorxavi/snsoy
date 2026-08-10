@@ -299,4 +299,23 @@ describe("an inline run", () => {
 
     expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
   });
+
+  it("reports an unsupported structured child", () => {
+    resetCoverage();
+    render(
+      <Entries
+        context="Test section"
+        entries={[{ type: "inline", entries: [{ type: "futureInline" }] }]}
+      />,
+    );
+
+    expect(coverageReport()).toEqual([
+      {
+        kind: "entry",
+        name: "futureInline",
+        count: 1,
+        firstSeenIn: "Test section",
+      },
+    ]);
+  });
 });

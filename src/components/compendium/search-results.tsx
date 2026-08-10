@@ -2,7 +2,7 @@ import { Box, Stack, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import { AsideLink } from "@/components/compendium/aside-link";
-import { ASIDE_TYPES, asideKey } from "@/lib/aside";
+import { asideKey, isAsideType } from "@/lib/aside";
 import { parseSnippet, typeLabel } from "@/lib/content/search";
 import { isBrowsable, type BrowsableType } from "@/lib/routes";
 import type { SearchResult } from "@/server/db/queries/search";
@@ -152,10 +152,10 @@ function ResultRow({
    * vehicle — and those rows print as plain text rather than as a link that
    * would 404, which is the same rule the reader's cross-references follow.
    */
-  const openable =
-    row.href !== null &&
-    isBrowsable(row.entityType) &&
-    ASIDE_TYPES.has(row.entityType);
+  const asideType =
+    isBrowsable(row.entityType) && isAsideType(row.entityType)
+      ? row.entityType
+      : null;
 
   return (
     <Box
@@ -180,7 +180,7 @@ function ResultRow({
           color="fg"
           minW="0"
         >
-          {openable ? (
+          {asideType && row.href ? (
             <Box
               asChild
               color="fg"
@@ -190,19 +190,19 @@ function ResultRow({
               _hover={{ color: "brand" }}
             >
               <AsideLink
-                href={row.href!}
+                href={row.href}
                 // Keyed exactly as the browse tables and the reader key theirs,
                 // so the same entity reached three ways is one cache entry and
                 // one selected row.
                 entityKey={asideKey(
-                  row.entityType as BrowsableType,
+                  asideType,
                   row.sourceId,
                   row.slug,
                 )}
                 label={row.name}
                 load={open.bind(
                   null,
-                  row.entityType as BrowsableType,
+                  asideType,
                   row.sourceId,
                   row.slug,
                 )}

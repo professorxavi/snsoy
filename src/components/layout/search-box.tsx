@@ -1,6 +1,7 @@
 "use client";
 
 import { Box, Text } from "@chakra-ui/react";
+import NextLink from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -375,7 +376,9 @@ function SuggestionList({
         color="brand"
         _hover={{ bg: "bg.muted" }}
       >
-        <a href={resultsHref(query)}>See all results for “{query.trim()}”</a>
+        <NextLink href={resultsHref(query)}>
+          See all results for “{query.trim()}”
+        </NextLink>
       </Box>
     </Box>
   );

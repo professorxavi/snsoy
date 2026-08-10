@@ -207,10 +207,20 @@ function InlineRun({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) 
           <Fragment key={index}>{inline(String(child), ctx)}</Fragment>
         ) : isEntryObject(child) && child.type === "link" ? (
           <Fragment key={index}>{linkText(child as LinkEntry, ctx)}</Fragment>
+        ) : isEntryObject(child) ? (
+          reportUnsupportedInlineChild(child, ctx)
         ) : null,
       )}
     </Paragraph>
   );
+}
+
+function reportUnsupportedInlineChild(
+  child: EntryObject,
+  ctx: RenderContext,
+) {
+  reportGap("entry", String(child.type), ctx.context);
+  return null;
 }
 
 /**
