@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   collectOptionalFeatures,
+  featureTypeSummary,
   formatPrerequisites,
   optionalFeatureKey,
   optionalFeatureProgressions,
@@ -141,5 +142,32 @@ describe("optionalFeatureProgressions", () => {
         optionalfeatureProgression: [{ name: "Mystery", progression: { "1": 1 } }],
       }),
     ).toEqual([]);
+  });
+});
+
+/**
+ * The codes are ours, not the data's — nothing in `support_data` names them, so
+ * without this map the browse list is 151 rows tagged `EI` and `MV:B`.
+ */
+describe("featureTypeSummary", () => {
+  it("names a kind", () => {
+    expect(featureTypeSummary(["EI"])).toBe("Eldritch Invocation");
+    expect(featureTypeSummary(["MV:B"])).toBe("Battle Master Maneuver");
+  });
+
+  /** 25 options carry two: a fighting style shared between two classes. */
+  it("names both kinds where an option belongs to two", () => {
+    expect(featureTypeSummary(["FS:F", "FS:R"])).toBe(
+      "Fighting Style (Fighter), Fighting Style (Ranger)",
+    );
+  });
+
+  it("passes an unknown code through rather than blanking the cell", () => {
+    expect(featureTypeSummary(["ZZ"])).toBe("ZZ");
+  });
+
+  it("prints an em dash for nothing", () => {
+    expect(featureTypeSummary([])).toBe("—");
+    expect(featureTypeSummary(null)).toBe("—");
   });
 });

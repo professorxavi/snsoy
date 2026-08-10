@@ -61,6 +61,10 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "status",
   "variantrule",
   "language",
+  "background",
+  "feat",
+  "optionalfeature",
+  "charoption",
 ]);
 
 export const DIRECTORY: DirectoryGroup[] = [

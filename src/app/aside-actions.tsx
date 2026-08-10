@@ -12,13 +12,22 @@ import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
 import { actionTimeLabel } from "@/lib/content/actions";
+import { characterOptionSummary } from "@/lib/content/character-options";
+import { featPrerequisite } from "@/lib/content/feats";
 import { itemGroupTags } from "@/lib/content/items";
+import {
+  featureTypeSummary,
+  formatPrerequisites,
+} from "@/lib/content/optional-features";
 import { checkName } from "@/lib/content/skills";
 import { ruleTypeLabel } from "@/lib/content/variant-rules";
 import { collectReferences } from "@/lib/content/references";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
+import { getBackground } from "@/server/db/queries/backgrounds";
 import { getClass } from "@/server/db/queries/classes";
+import { getFeat } from "@/server/db/queries/feats";
 import { getGeneric, getLanguageGroup } from "@/server/db/queries/generic";
+import { getOptionalFeature } from "@/server/db/queries/optional-features";
 import {
   getItem,
   itemVocabulary,
@@ -32,7 +41,13 @@ import { getSpell } from "@/server/db/queries/spells";
 type AsideLoader = (source: string, slug: string) => Promise<ReactNode>;
 type GenericAsideType = Extract<
   AsideType,
-  "skill" | "condition" | "sense" | "status" | "action" | "variantrule"
+  | "skill"
+  | "condition"
+  | "sense"
+  | "status"
+  | "action"
+  | "variantrule"
+  | "charoption"
 >;
 type GenericAsideConfig = {
   noun: string;
@@ -56,6 +71,13 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
     noun: "variant rule",
     subtitle: (data: Record<string, unknown>) => ruleTypeLabel(data["ruleType"]),
   },
+  charoption: {
+    noun: "character option",
+    // The kind is the only thing separating a dark gift from a rune, and the
+    // option's own text never names it.
+    subtitle: (data: Record<string, unknown>) =>
+      characterOptionSummary(data["optionType"]),
+  },
 };
 
 const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
@@ -73,6 +95,10 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   action: (source, slug) => genericAside("action", source, slug),
   language: languageAside,
   variantrule: (source, slug) => genericAside("variantrule", source, slug),
+  charoption: (source, slug) => genericAside("charoption", source, slug),
+  background: backgroundAside,
+  feat: featAside,
+  optionalfeature: optionalFeatureAside,
 };
 
 /**
@@ -246,6 +272,65 @@ async function genericAside(
       entity={entity}
       refs={refs}
       subtitle={subtitle?.(entity.data, entity.name)}
+    />
+  );
+}
+
+/**
+ * The three player options with a table of their own.
+ *
+ * Each prints in full for the same reason the short rules do — there is no page
+ * behind it — but each reaches its own query module rather than the generic
+ * one, because all three predate `generic_entities` and were given typed
+ * columns by ingest.
+ *
+ * What differs between them is one line. A background's own text opens with its
+ * proficiencies, so it needs no subtitle; a feat's never states its
+ * prerequisite, which is structured data beside the prose and is the first
+ * thing a player checks; an optional feature needs both what kind of choice it
+ * is and what it costs to take.
+ */
+async function backgroundAside(source: string, slug: string): Promise<ReactNode> {
+  const background = await getBackground(source, slug);
+  if (!background) return <AsideMessage>No such background.</AsideMessage>;
+
+  const refs = await resolveReferences(collectReferences(background.data));
+
+  return <GenericAside entity={background} refs={refs} />;
+}
+
+async function featAside(source: string, slug: string): Promise<ReactNode> {
+  const feat = await getFeat(source, slug);
+  if (!feat) return <AsideMessage>No such feat.</AsideMessage>;
+
+  const refs = await resolveReferences(collectReferences(feat.data));
+  const prerequisite = featPrerequisite(feat.prerequisites);
+
+  return (
+    <GenericAside
+      entity={feat}
+      refs={refs}
+      subtitle={prerequisite ? `Prerequisite: ${prerequisite}` : null}
+    />
+  );
+}
+
+async function optionalFeatureAside(
+  source: string,
+  slug: string,
+): Promise<ReactNode> {
+  const feature = await getOptionalFeature(source, slug);
+  if (!feature) return <AsideMessage>No such option.</AsideMessage>;
+
+  const refs = await resolveReferences(collectReferences(feature.data));
+  const prerequisite = formatPrerequisites(feature.prerequisites);
+  const kind = featureTypeSummary(feature.featureTypes);
+
+  return (
+    <GenericAside
+      entity={feature}
+      refs={refs}
+      subtitle={prerequisite ? `${kind} · Prerequisite: ${prerequisite}` : kind}
     />
   );
 }

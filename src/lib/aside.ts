@@ -42,6 +42,12 @@ export function asideKey(
  * references — four entities carrying more inbound links than any other unbuilt
  * type, because every stat block that says "darkvision 60 ft." is one of them —
  * then actions at 743, statuses at 479, variant rules at 189 and languages at 75.
+ *
+ * The four player options came next, and they are the first types here chosen
+ * for what a *player* looks up rather than for how often the books cite them —
+ * nobody writes "see the Grappler feat" in prose, and everybody searches for it
+ * directly. 179 inbound links to backgrounds, 167 to feats, 63 to optional
+ * features and 45 to character options, against 396 entities between them.
  */
 export const ASIDE_TYPE_LIST = [
   "spell",
@@ -58,6 +64,10 @@ export const ASIDE_TYPE_LIST = [
   "status",
   "variantrule",
   "language",
+  "background",
+  "feat",
+  "optionalfeature",
+  "charoption",
 ] as const satisfies readonly BrowsableType[];
 
 export type AsideType = (typeof ASIDE_TYPE_LIST)[number];

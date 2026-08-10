@@ -210,12 +210,37 @@ const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six"];
 
 const count = (value: number) => COUNT_WORDS[value] ?? String(value);
 
-/** "sleight of hand" as the books set it. Only "of" stays lowercase. */
-function titleCase(value: string): string {
+/**
+ * "sleight of hand" as the books set it — the joining words stay lowercase.
+ *
+ * Shared with the feat and background lists, which name the same kinds of
+ * things: proficiencies, and other entities cited by their lowercase key.
+ * Without the small words a feat prerequisite reads "Scion Of The Outer
+ * Planes", which is not how any book prints it. The first word is always
+ * capitalised, since it opens the phrase.
+ */
+const SMALL_WORDS = new Set(["of", "the", "a", "an", "and", "or", "to", "in"]);
+
+export function titleCase(value: string): string {
   return value
     .split(" ")
-    .map((word) => (word === "of" ? word : word.charAt(0).toUpperCase() + word.slice(1)))
+    .map((word, index) =>
+      index > 0 && SMALL_WORDS.has(word) ? word : capitalize(word),
+    )
     .join(" ");
+}
+
+/**
+ * The first *letter*, not the first character, and once per hyphenated part.
+ * The names this runs over are written "half-elf", "thieves' tools" and
+ * "(evil outer plane)", and capitalising position zero would leave two of the
+ * three untouched.
+ */
+function capitalize(word: string): string {
+  return word
+    .split("-")
+    .map((part) => part.replace(/[a-z]/, (letter) => letter.toUpperCase()))
+    .join("-");
 }
 
 const sentence = (value: string) =>

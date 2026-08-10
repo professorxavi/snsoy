@@ -41,6 +41,19 @@ const TYPES = {
   action: 30,
   variantrule: 115,
   language: 135,
+  charoption: 44,
+} as const;
+
+/**
+ * The three player options that predate `generic_entities` and were given typed
+ * columns by ingest. They render through the same panel, so they are covered
+ * here rather than in a file of their own — only the table they are read from
+ * differs.
+ */
+const TYPED_TABLES = {
+  background: 96,
+  feat: 105,
+  optionalfeature: 151,
 } as const;
 
 /**
@@ -63,7 +76,11 @@ describeDb("the generic panel over every entity it serves", () => {
     const { genericEntities } = await import("@/server/db/schema/content");
     const { entities } = await import("@/server/db/schema/entities");
 
-    const rows = await db
+    const { backgrounds, feats, optionalFeatures } = await import(
+      "@/server/db/schema/content"
+    );
+
+    const generic = await db
       .select({
         entityType: entities.entityType,
         naturalKey: entities.naturalKey,
@@ -78,6 +95,25 @@ describeDb("the generic panel over every entity it serves", () => {
       .where(
         inArray(entities.entityType, Object.keys(TYPES) as (keyof typeof TYPES)[]),
       );
+
+    const typed = await Promise.all(
+      [backgrounds, feats, optionalFeatures].map((table) =>
+        db
+          .select({
+            entityType: entities.entityType,
+            naturalKey: entities.naturalKey,
+            name: entities.name,
+            slug: entities.slug,
+            sourceId: entities.sourceId,
+            page: entities.page,
+            data: table.data,
+          })
+          .from(table)
+          .innerJoin(entities, eq(entities.id, table.entityId)),
+      ),
+    );
+
+    const rows = [...generic, ...typed.flat()];
 
     rendered = {};
     resetCoverage();
@@ -111,9 +147,12 @@ describeDb("the generic panel over every entity it serves", () => {
     await pool?.end();
   });
 
-  it.each(Object.entries(TYPES))("renders every %s", (type, count) => {
-    expect(rendered[type]).toBe(count);
-  });
+  it.each([...Object.entries(TYPES), ...Object.entries(TYPED_TABLES)])(
+    "renders every %s",
+    (type, count) => {
+      expect(rendered[type]).toBe(count);
+    },
+  );
 
   /**
    * The assertion that says a block of dead cross-references is genuinely

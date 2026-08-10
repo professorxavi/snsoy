@@ -76,6 +76,52 @@ export function collectOptionalFeatures(value: unknown): Set<string> {
 }
 
 /* ------------------------------------------------------------------ *
+ * Kinds
+ * ------------------------------------------------------------------ */
+
+/**
+ * What the codes on `optional_features.feature_types` mean.
+ *
+ * Ours, not the data's: nothing in `support_data` names these, and without the
+ * names the list is 151 rows tagged `EI`, `MV:B` and `FS:F`. The order is the
+ * one the rail shows them in — by how many options each kind has, which puts
+ * the 54 invocations first and the 2 bardic fighting styles last.
+ *
+ * The three fighting-style codes stay separate rather than collapsing into one
+ * "Fighting Style": which class a style belongs to is the only thing that
+ * distinguishes two otherwise identical entries, and a warlock reading the list
+ * cannot take the ranger's.
+ */
+const FEATURE_TYPE_LABELS: Record<string, string> = {
+  EI: "Eldritch Invocation",
+  "MV:B": "Battle Master Maneuver",
+  ED: "Elemental Discipline",
+  AI: "Artificer Infusion",
+  "FS:F": "Fighting Style (Fighter)",
+  MM: "Metamagic",
+  AS: "Arcane Shot",
+  "FS:R": "Fighting Style (Ranger)",
+  "FS:P": "Fighting Style (Paladin)",
+  RN: "Rune",
+  PB: "Pact Boon",
+  "FS:B": "Fighting Style (Bard)",
+};
+
+/** The codes in rail order. Anything unlisted sorts after, by its own name. */
+export const FEATURE_TYPE_CODES = Object.keys(FEATURE_TYPE_LABELS);
+
+export function featureTypeLabel(code: string): string {
+  return FEATURE_TYPE_LABELS[code] ?? code;
+}
+
+/** Every kind an option belongs to, for its row. Several carry two. */
+export function featureTypeSummary(codes: string[] | null): string {
+  if (!codes || codes.length === 0) return "—";
+
+  return codes.map(featureTypeLabel).join(", ");
+}
+
+/* ------------------------------------------------------------------ *
  * Prerequisites
  * ------------------------------------------------------------------ */
 
