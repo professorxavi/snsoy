@@ -130,6 +130,46 @@ describe("the list toolbar", () => {
       });
     });
 
+    /**
+     * The second search must replace the first, not join it.
+     *
+     * `q` is in every faceted list's `FILTER_KEYS` — `hasFilters` and
+     * `ClearFilters` read the same list — so it arrives in `carriedKeys` and
+     * used to be emitted as a hidden input beside the field itself. The browser
+     * then submitted the parameter twice: searching "blue" and then "axe" gave
+     * `?q=blue&q=axe`, and `readString` takes the first value, so every search
+     * after the first returned the first one's results.
+     */
+    it("does not carry the term as a hidden field beside the search box", () => {
+      const { container } = render(
+        <Toolbar
+          params={{ q: "blue", level: "3" }}
+          matched={9}
+          filtered
+          basePath={BASE}
+        />,
+      );
+
+      expect(hidden(container)).toEqual({ level: "3" });
+      expect(container.querySelectorAll('[name="q"]')).toHaveLength(1);
+    });
+
+    /** One input per key, whatever the caller passed. */
+    it("writes each carried key once even if it is named twice", () => {
+      const { container } = render(
+        <ListToolbar
+          params={{ sort: "level", level: "3" }}
+          matched={9}
+          filtered
+          basePath={BASE}
+          noun={["spell", "spells"]}
+          carriedKeys={["sort", "level"]}
+        />,
+      );
+
+      expect(container.querySelectorAll('[name="sort"]')).toHaveLength(1);
+    });
+
     /** The results change, so holding page 7 would land the reader nowhere. */
     it("drops the page number", () => {
       const { container } = render(

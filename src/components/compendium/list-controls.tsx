@@ -52,8 +52,22 @@ export function ListToolbar({
       zIndex="1"
     >
       <form action={basePath} method="get">
-        {/* Filters survive a search; page does not, since the results change. */}
-        {[...carriedKeys, "sort"].map((key) => {
+        {/*
+          Filters survive a search; page does not, since the results change.
+
+          Never `q`, and that exclusion is the whole of this. Every faceted list
+          passes its own `FILTER_KEYS` here and every one of those begins with
+          `q`, because the same list is what `hasFilters` and `ClearFilters`
+          read. Emitting a hidden `q` beside the field below made the browser
+          submit the parameter twice — searching "blue" and then "axe" produced
+          `?q=blue&q=axe`, and `readString` takes the first value, so the second
+          search returned the first search's results for ever.
+
+          A Set because a key must appear once whatever the caller passes.
+        */}
+        {[...new Set([...carriedKeys, "sort"])].map((key) => {
+          if (key === "q") return null;
+
           const value = params[key];
           const single = Array.isArray(value) ? value[0] : value;
           return single ? (

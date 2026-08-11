@@ -224,3 +224,35 @@ test("stands the rail and the aside the full height of the viewport", async ({
 
   expect(await fillsViewportBelowTopbar(page, ASIDE)).toBe(true);
 });
+
+/**
+ * Searching twice without clearing in between.
+ *
+ * `q` is in every faceted list's `FILTER_KEYS`, so it reached `ListToolbar` as
+ * a carried key and was written as a hidden input beside the search field
+ * itself. The browser submitted both: a second search gave `?q=fire&q=acid`,
+ * and since `readString` takes the first value, every search after the first
+ * returned the first one's results. Only a real form submission shows it —
+ * jsdom pins the markup, the browser pins what it does with it.
+ */
+test("a second search replaces the first rather than joining it", async ({
+  page,
+}) => {
+  await page.goto(SPELLS);
+  await expectHydrated(page);
+
+  const search = page.getByRole("searchbox", { name: /search spells/i });
+
+  await search.fill("fire");
+  await search.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`${SPELLS}\\?q=fire$`));
+  const first = await page.locator(`${ROWS} a`).first().textContent();
+
+  await search.fill("acid");
+  await search.press("Enter");
+
+  // One `q`, carrying the new term — not `?q=fire&q=acid`.
+  await expect(page).toHaveURL(new RegExp(`${SPELLS}\\?q=acid$`));
+  await expect(page.locator(`${ROWS} a`).first()).not.toHaveText(first ?? "");
+  await expect(page.locator(`${ROWS} a`).first()).toHaveText(/acid/i);
+});
