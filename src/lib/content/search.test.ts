@@ -99,7 +99,7 @@ describe("the open parameter", () => {
    * then say it has nothing to show.
    */
   it("refuses a type the aside cannot render", () => {
-    expect(parseOpenParam("deity:phb:bahamut")).toBeNull();
+    expect(parseOpenParam("vehicle:ggr:apparatus-of-kwalish")).toBeNull();
     expect(parseOpenParam("card:dmg:the-fates")).toBeNull();
   });
 
@@ -160,19 +160,20 @@ describe("suggestionHref", () => {
   });
 
   /**
-   * Deities, cards and feats still have no renderer and no route. The results
-   * page at least shows the row, its kind and its book.
+   * Vehicles and cards still have no renderer and no route — they are the last
+   * batch left to build. The results page at least shows the row, its kind and
+   * its book.
    */
   it("falls back to the results page for a type with nowhere to go", () => {
     expect(
       suggestionHref({
-        name: "Bahamut",
-        entityType: "deity",
-        sourceId: "PHB",
-        slug: "bahamut",
+        name: "Zephyr",
+        entityType: "vehicle",
+        sourceId: "GoS",
+        slug: "zephyr",
         href: null,
       }),
-    ).toBe("/search?q=Bahamut");
+    ).toBe("/search?q=Zephyr");
   });
 });
 

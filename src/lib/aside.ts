@@ -54,6 +54,12 @@ export function asideKey(
  * types already had. Traps and hazards are the pair a chapter actually cites:
  * a room description saying the floor gives way to a {@trap pit trap} is a
  * link that used to go nowhere.
+ *
+ * The five lore types close the largest block of dead links left in book text
+ * after the items: 535 references to deities alone. They are also the batch
+ * that proved most of what a type knows may sit outside `entries` — a deity's
+ * domains and symbol, a cult's goal, and a recipe, which has no `entries` at
+ * all and is ingredients and instructions instead.
  */
 export const ASIDE_TYPE_LIST = [
   "spell",
@@ -78,6 +84,11 @@ export const ASIDE_TYPE_LIST = [
   "hazard",
   "disease",
   "object",
+  "deity",
+  "recipe",
+  "reward",
+  "cult",
+  "boon",
 ] as const satisfies readonly BrowsableType[];
 
 export type AsideType = (typeof ASIDE_TYPE_LIST)[number];

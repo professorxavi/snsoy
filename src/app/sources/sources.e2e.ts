@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { ASIDE, expectHydrated, expectInView } from "@/test/e2e-helpers";
+import {
+  ASIDE,
+  expectHydrated,
+  expectInView,
+  expectNodeHydrated,
+} from "@/test/e2e-helpers";
 
 /**
  * How a chapter's tables come out once a browser has laid them out.
@@ -132,6 +137,9 @@ test("opens a class from the chapter without leaving it", async ({ page }) => {
     });
   const before = await measure();
 
+  // This link, not merely the page: a chapter hydrates progressively, and a
+  // click that lands first navigates instead of opening the panel.
+  await expectNodeHydrated(page, 'a[href^="/compendium/classes/"]');
   await page.getByRole("link", { name: "Barbarian" }).first().click();
 
   await expect(page.locator(`${ASIDE} h1`)).toHaveText("Barbarian");
@@ -175,24 +183,26 @@ test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
 
 /**
  * A type with no aside renderer must behave exactly as it did before the
- * wrapper existed. Much of what book text links to is still in this state —
- * deities lead what is left at 535 references, cards at 481 — and quietly
- * swallowing those clicks would be worse than the navigation they perform.
+ * wrapper existed. Quietly swallowing those clicks would be worse than the
+ * navigation they perform.
  *
- * This has cited creatures, then items, then actions in turn, and each was
- * retired as its renderer landed. The link exercised here has to stay one of
- * the types the aside genuinely cannot render, or the test passes without
- * asserting anything. This chapter carries 195 `{@deity}` tags, so it will hold
- * until that slice is built — and then this moves again.
+ * This has cited creatures, then items, then actions, then deities in turn, and
+ * each was retired as its renderer landed. The link exercised here has to stay
+ * one of the types the aside genuinely cannot render, or the test passes
+ * without asserting anything — which now leaves only the vehicles. Not the
+ * cards: a card's natural key carries its deck (`card|abjurer|tarokka deck|cos`)
+ * and `{@card}` builds a key without one, so those 481 tags resolve to nothing
+ * and render as plain words. That is Batch E's to fix. When the vehicles land
+ * there will be nothing left to stand here, and this case goes with them.
  */
 test("leaves a link it cannot render to navigate as before", async ({
   page,
 }) => {
-  await page.goto("/sources/phb/gods-of-the-multiverse");
+  await page.goto("/sources/lox/chaos-in-doomspace");
   await expectHydrated(page);
 
-  const item = page.locator('a[href^="/compendium/deities/"]').first();
-  test.skip((await item.count()) === 0, "no deity links in this chapter");
+  const item = page.locator('a[href^="/compendium/vehicles/"]').first();
+  test.skip((await item.count()) === 0, "no vehicle links in this chapter");
 
   const href = await item.getAttribute("href");
   await item.scrollIntoViewIfNeeded();

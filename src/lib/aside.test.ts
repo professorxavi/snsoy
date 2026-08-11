@@ -8,6 +8,6 @@ describe("aside types", () => {
 
   it("distinguishes types the aside can render", () => {
     expect(isAsideType("spell")).toBe(true);
-    expect(isAsideType("deity")).toBe(false);
+    expect(isAsideType("vehicle")).toBe(false);
   });
 });

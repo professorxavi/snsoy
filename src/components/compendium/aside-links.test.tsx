@@ -91,14 +91,14 @@ describe("AsideLinks", () => {
    * links must behave exactly as they did before this wrapper existed rather
    * than opening an empty panel.
    *
-   * The example has been a creature, then an item, then a sense, and each was
-   * retired as its renderer landed. Whatever stands here has to be a type
-   * genuinely absent from `ASIDE_TYPES`, or the test passes for the wrong
-   * reason.
+   * The example has been a creature, then an item, then a sense, then a deity,
+   * and each was retired as its renderer landed. Whatever stands here has to be
+   * a type genuinely absent from `ASIDE_TYPES`, or the test passes for the wrong
+   * reason — which leaves the vehicles, the cards and nothing else.
    */
   it("leaves a type it cannot render alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/deities/phb/bahamut">Bahamut</a>);
+    renderLinks(loader, <a href="/compendium/vehicles/gos/zephyr">Zephyr</a>);
 
     const event = await clickAndCapture(screen.getByRole("link"));
 

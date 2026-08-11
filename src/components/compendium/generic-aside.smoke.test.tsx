@@ -6,6 +6,7 @@ import { system } from "@/theme";
 import type { GenericEntity } from "@/server/db/queries/generic";
 import { GenericAside } from "./generic-aside";
 import { ObjectActions } from "./object-actions";
+import { RecipeBody } from "./recipe-body";
 
 /**
  * Every entity of every generic type the aside can open, through the panel that
@@ -47,6 +48,11 @@ const TYPES = {
   hazard: 28,
   disease: 22,
   object: 20,
+  deity: 494,
+  recipe: 241,
+  reward: 235,
+  cult: 29,
+  boon: 12,
 } as const;
 
 /**
@@ -148,6 +154,21 @@ describeDb("the generic panel over every entity it serves", () => {
             {row.entityType === "object" ? (
               <ObjectActions
                 actions={(row.data as Record<string, unknown>)["actionEntries"]}
+                refs={{}}
+                selfKey={row.naturalKey}
+                context={row.name}
+              />
+            ) : null}
+
+            {/*
+              A recipe has no `entries` at all, so sweeping it through the panel
+              alone would render nothing and report nothing. This is where its
+              ingredients and instructions — and the `{@unit}` tag that only
+              they use — are actually exercised.
+            */}
+            {row.entityType === "recipe" ? (
+              <RecipeBody
+                data={row.data as Record<string, unknown>}
                 refs={{}}
                 selfKey={row.naturalKey}
                 context={row.name}

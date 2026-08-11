@@ -38,6 +38,11 @@ const COUNTS = {
   hazard: 28,
   disease: 22,
   object: 20,
+  deity: 494,
+  recipe: 241,
+  reward: 235,
+  cult: 29,
+  boon: 12,
 } as const;
 
 describeDb("generic entity queries against the seed", () => {

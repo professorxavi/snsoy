@@ -8,14 +8,22 @@ import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
 import { LanguageAside } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
+import { LabelledLines } from "@/components/compendium/labelled-lines";
 import { ObjectActions } from "@/components/compendium/object-actions";
+import { RecipeBody } from "@/components/compendium/recipe-body";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
 import { actionTimeLabel } from "@/lib/content/actions";
 import { characterOptionSummary } from "@/lib/content/character-options";
+import {
+  deityAlignment,
+  deityDomains,
+  deitySubtitle,
+} from "@/lib/content/deities";
 import { featPrerequisite } from "@/lib/content/feats";
 import { itemGroupTags } from "@/lib/content/items";
+import { recipeSubtitle } from "@/lib/content/recipes";
 import { objectSummary } from "@/lib/content/objects";
 import { trapKindLabel, trapThreat } from "@/lib/content/traps";
 import {
@@ -58,6 +66,11 @@ type GenericAsideType = Extract<
   | "hazard"
   | "disease"
   | "object"
+  | "deity"
+  | "recipe"
+  | "reward"
+  | "cult"
+  | "boon"
 >;
 type GenericAsideConfig = {
   noun: string;
@@ -125,7 +138,88 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
       />
     ),
   },
+
+  /*
+   * The lore types, all of which keep most of what they know beside `entries`
+   * rather than inside it — see `LabelledLines`. A deity is the extreme case:
+   * 320 of the 494 have no prose at all, and are entirely these lines.
+   */
+  deity: {
+    noun: "deity",
+    subtitle: (data: Record<string, unknown>) => deitySubtitle(data),
+    extra: (data, entity, refs) => (
+      <LabelledLines
+        lines={[
+          { label: "Alignment.", text: nullable(deityAlignment(data["alignment"])) },
+          { label: "Domains.", text: nullable(deityDomains(data["domains"])) },
+          { label: "Province.", text: text(data["province"]) },
+          { label: "Symbol.", text: text(data["symbol"]) },
+        ]}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
+  recipe: {
+    noun: "recipe",
+    subtitle: (data: Record<string, unknown>) => recipeSubtitle(data),
+    extra: (data, entity, refs) => (
+      <RecipeBody
+        data={data}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
+  reward: {
+    noun: "reward",
+    subtitle: (data: Record<string, unknown>) => text(data["type"]),
+  },
+  cult: {
+    noun: "cult",
+    subtitle: (data: Record<string, unknown>) => text(data["type"]),
+    extra: (data, entity, refs) => (
+      <LabelledLines
+        lines={[
+          { label: "Goal.", text: entryOf(data["goal"]) },
+          { label: "Typical Cultists.", text: entryOf(data["cultists"]) },
+          { label: "Signature Spells.", text: entryOf(data["signatureSpells"]) },
+        ]}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
+  boon: {
+    noun: "boon",
+    subtitle: (data: Record<string, unknown>) => text(data["type"]),
+    extra: (data, entity, refs) => (
+      <LabelledLines
+        lines={[
+          { label: "Ability.", text: entryOf(data["ability"]) },
+          { label: "Signature Spells.", text: entryOf(data["signatureSpells"]) },
+        ]}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
 };
+
+/** A blob field that is a string, or nothing. */
+const text = (value: unknown): string | null =>
+  typeof value === "string" && value.length > 0 ? value : null;
+
+/** The `{entry: "…"}` wrapper the cults and boons put their short facts in. */
+const entryOf = (value: unknown): string | null =>
+  text((value as { entry?: unknown } | null)?.entry);
+
+/** An em dash is the right cell in a table and the wrong line in a panel. */
+const nullable = (value: string): string | null => (value === "—" ? null : value);
 
 const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   spell: spellAside,
@@ -143,6 +237,11 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   language: languageAside,
   variantrule: (source, slug) => genericAside("variantrule", source, slug),
   charoption: (source, slug) => genericAside("charoption", source, slug),
+  deity: (source, slug) => genericAside("deity", source, slug),
+  recipe: (source, slug) => genericAside("recipe", source, slug),
+  reward: (source, slug) => genericAside("reward", source, slug),
+  cult: (source, slug) => genericAside("cult", source, slug),
+  boon: (source, slug) => genericAside("boon", source, slug),
   trap: (source, slug) => genericAside("trap", source, slug),
   hazard: (source, slug) => genericAside("hazard", source, slug),
   disease: (source, slug) => genericAside("disease", source, slug),
