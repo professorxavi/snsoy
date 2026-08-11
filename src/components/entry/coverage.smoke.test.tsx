@@ -28,16 +28,20 @@ import { coverageReport, resetCoverage } from "./coverage";
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
 /**
- * Entry types the renderer has no treatment for yet.
+ * Entry types the renderer has no treatment for yet. **Empty:** every structure
+ * the books use in their prose now renders.
  *
- * Shrinking this list is the point. Adding to it should be a deliberate act
- * with a reason, not something a test update absorbs on the way past.
+ * Shrinking this list was the point, and adding to it should be a deliberate
+ * act with a reason rather than something a test update absorbs on the way
+ * past. That goes double now that it is empty — the next name added here is the
+ * first, and it should be argued for.
+ *
+ * The last three came off together. `flowchart` earned the ratchet on its own:
+ * a *container*, so one unhandled marker dropped all 115 blocks inside the 17
+ * of them — the opening summary of nine adventures. `abilityGeneric` and
+ * `inlineBlock` were one occurrence and two, both first met in the PHB.
  */
-const KNOWN_ENTRY_GAPS = [
-  "abilityGeneric",
-  "flowchart",
-  "inlineBlock",
-] as const;
+const KNOWN_ENTRY_GAPS: readonly string[] = [];
 
 /**
  * Tags with no treatment yet.
@@ -119,7 +123,7 @@ describeDb("renderer coverage over every book section", () => {
 
   it("meets no entry type outside the known gaps", () => {
     const unexpected = [...gaps.entry].filter(
-      (name) => !KNOWN_ENTRY_GAPS.includes(name as never),
+      (name) => !KNOWN_ENTRY_GAPS.includes(name),
     );
 
     expect(unexpected).toEqual([]);

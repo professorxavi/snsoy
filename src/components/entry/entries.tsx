@@ -30,13 +30,17 @@ import {
   isEntryObject,
   isRow,
   type AbilityFormulaEntry,
+  type AbilityGenericEntry,
   type AttackEntry,
   type CellEntry,
   type Entry,
   type EntryObject,
   type EntriesEntry,
+  type FlowBlockEntry,
+  type FlowchartEntry,
   type LinkEntry,
   type GalleryEntry,
+  type InlineBlockEntry,
   type InsetEntry,
   type ItemEntry,
   type ListEntry,
@@ -124,6 +128,9 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
         />
       );
 
+    case "abilityGeneric":
+      return <AbilityGeneric entry={entry as AbilityGenericEntry} ctx={ctx} />;
+
     case "refClassFeature":
     case "refSubclassFeature":
       return <FeatureReference entry={entry} ctx={ctx} />;
@@ -148,6 +155,15 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "inset":
     case "insetReadaloud":
       return <InsetBlock entry={entry as InsetEntry} ctx={ctx} />;
+
+    case "flowchart":
+      return <Flowchart entry={entry as FlowchartEntry} ctx={ctx} />;
+
+    // Every one of the 115 is inside a flowchart, but `Flowchart` hands its
+    // blocks to `Entries` rather than rendering them itself, so they arrive
+    // back here and need a case of their own.
+    case "flowBlock":
+      return <FlowBlock entry={entry as FlowBlockEntry} ctx={ctx} />;
 
     case "variant":
       return <InsetBlock entry={entry as InsetEntry} ctx={ctx} />;
@@ -178,6 +194,16 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
 
     case "inline":
       return <InlineRun entry={entry as EntriesEntry} ctx={ctx} />;
+
+    /*
+     * Not `InlineRun`, despite the name. Both occurrences are the PHB's list of
+     * conditions — a sentence, then the fifteen names — and closing a list back
+     * up into a sentence would drop it: `InlineRun` renders only strings and
+     * links, and reports anything else as a gap. Rendered as the blocks they
+     * are, which is how the page prints them.
+     */
+    case "inlineBlock":
+      return <Entries entries={(entry as InlineBlockEntry).entries} {...ctx} />;
 
     case "link":
       return <Paragraph>{linkText(entry as LinkEntry, ctx)}</Paragraph>;
@@ -451,6 +477,40 @@ function AbilityFormula({
   const label = `${entry.name ?? "Spell"} ${dc ? "save DC" : "attack modifier"}`;
 
   return (
+    <FormulaLine>
+      <Text as="span" fontWeight="semibold">
+        {label}
+      </Text>
+      {" = "}
+      {dc ? "8 + " : ""}your proficiency bonus + your {ability} modifier
+    </FormulaLine>
+  );
+}
+
+/**
+ * The third of the ability entries, and the one that states its formula rather
+ * than deriving it: the PHB's passive check total, "10 + all modifiers that
+ * normally apply to the check".
+ *
+ * One occurrence in the whole corpus, and it shares the box with the other two
+ * because it is the same kind of thing — a line to copy onto a sheet, set apart
+ * from the paragraph that introduces it.
+ */
+function AbilityGeneric({
+  entry,
+  ctx,
+}: {
+  entry: AbilityGenericEntry;
+  ctx: RenderContext;
+}) {
+  if (!entry.text) return null;
+
+  return <FormulaLine>{inline(entry.text, ctx)}</FormulaLine>;
+}
+
+/** The box the three ability entries share. */
+function FormulaLine({ children }: { children: ReactNode }) {
+  return (
     <Text
       fontFamily="body"
       fontSize="sm"
@@ -460,11 +520,7 @@ function AbilityFormula({
       bg="bg.muted"
       rounded="l1"
     >
-      <Text as="span" fontWeight="semibold">
-        {label}
-      </Text>
-      {" = "}
-      {dc ? "8 + " : ""}your proficiency bonus + your {ability} modifier
+      {children}
     </Text>
   );
 }
@@ -1121,6 +1177,78 @@ function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
       px="4"
       py="3"
     >
+      {entry.name ? (
+        <Text
+          as="h4"
+          fontFamily="display"
+          fontSize="sm"
+          lineHeight="1.2"
+          mb="2"
+        >
+          {inline(entry.name, ctx)}
+        </Text>
+      ) : null}
+      <Entries entries={entry.entries} {...ctx} />
+    </Box>
+  );
+}
+
+/**
+ * An adventure's shape: the steps it runs through, in order.
+ *
+ * Print draws these as boxes joined by arrows, laid out across a page. A
+ * reading column has no width for that and no need of it — the arrows all point
+ * one way — so the boxes stack and a short rule stands between them to say that
+ * one follows the next. Nothing is lost but the geometry.
+ *
+ * The blocks go back through `Entries` rather than being rendered here, because
+ * a block's own contents are ordinary prose and lists.
+ */
+function Flowchart({
+  entry,
+  ctx,
+}: {
+  entry: FlowchartEntry;
+  ctx: RenderContext;
+}) {
+  const blocks = entry.blocks ?? [];
+  if (blocks.length === 0) return null;
+
+  return (
+    <Stack gap="0" align="stretch">
+      {blocks.map((block, index) => (
+        <Fragment key={index}>
+          {index > 0 ? (
+            <Box
+              aria-hidden="true"
+              alignSelf="center"
+              w="1px"
+              h="4"
+              bg="border.emphasized"
+            />
+          ) : null}
+          <EntryNode entry={block} {...ctx} />
+        </Fragment>
+      ))}
+    </Stack>
+  );
+}
+
+/**
+ * One step of a flowchart. 83 of the 115 are named; the rest are a paragraph.
+ *
+ * `page` is the print page the step is described on and is deliberately not
+ * rendered, as page numbers are not rendered anywhere else in the reader.
+ */
+function FlowBlock({
+  entry,
+  ctx,
+}: {
+  entry: FlowBlockEntry;
+  ctx: RenderContext;
+}) {
+  return (
+    <Box borderWidth="1px" borderColor="border" rounded="l1" px="4" py="3">
       {entry.name ? (
         <Text
           as="h4"

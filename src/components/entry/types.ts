@@ -82,6 +82,33 @@ export interface AbilityFormulaEntry {
 }
 
 /**
+ * A formula the books state in words rather than derive from an ability.
+ *
+ * One occurrence: the PHB's passive check total, "10 + all modifiers that
+ * normally apply to the check". Its two siblings above compute their sentence
+ * from `attributes`; this one carries the sentence, and is set apart the same
+ * way because it is read the same way — copied onto a sheet, not read as prose.
+ */
+export interface AbilityGenericEntry {
+  type: "abilityGeneric";
+  text?: string;
+}
+
+/**
+ * Children that belong together as one block.
+ *
+ * Both occurrences are the same thing — the PHB's list of conditions and the
+ * Dungeon Kit screen's reprint of it — a sentence followed by the fifteen
+ * names. Its sibling `inline` closes a sentence back up into one paragraph,
+ * which is wrong here: a list is not part of a sentence. So this renders its
+ * children as the blocks they are.
+ */
+export interface InlineBlockEntry {
+  type: "inlineBlock";
+  entries?: Entry[];
+}
+
+/**
  * A choice between optional features — fighting styles, metamagic, maneuvers.
  * Its children are usually `refOptionalfeature`, but plain entries occur.
  */
@@ -111,6 +138,31 @@ export interface InsetEntry {
   type: "inset" | "insetReadaloud";
   name?: string;
   entries?: Entry[];
+}
+
+/**
+ * An adventure's shape, drawn in print as boxes joined by arrows.
+ *
+ * 17 of them across 9 chapters, 115 blocks between them — the opening summary
+ * of Icewind Dale, Waterdeep: Dragon Heist and seven others. It is a container
+ * and nothing else: without a case for it the renderer prints one marker and
+ * drops every block inside, which is why this is the largest entry gap in the
+ * data by some way — the other two are one and two occurrences.
+ *
+ * A block is a step: a name (83 of the 115 have one) and a paragraph or two.
+ * `page` is the print page the step is described on and is not rendered, as
+ * page numbers are not rendered anywhere else.
+ */
+export interface FlowchartEntry {
+  type: "flowchart";
+  blocks?: Entry[];
+}
+
+export interface FlowBlockEntry {
+  type: "flowBlock";
+  name?: string;
+  entries?: Entry[];
+  page?: number;
 }
 
 /**
@@ -243,10 +295,14 @@ export type EntryObject =
   | TableEntry
   | TableGroupEntry
   | AbilityFormulaEntry
+  | AbilityGenericEntry
+  | InlineBlockEntry
   | OptionsEntry
   | RefOptionalFeatureEntry
   | QuoteEntry
   | InsetEntry
+  | FlowchartEntry
+  | FlowBlockEntry
   | VariantEntry
   | SpellcastingEntry
   | SectionEntry

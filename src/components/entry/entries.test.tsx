@@ -362,3 +362,169 @@ describe("a structured attack", () => {
     expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
   });
 });
+
+/**
+ * The adventure-shape diagram nine chapters open with.
+ *
+ * A container, which is what makes it worth its own test: one unhandled marker
+ * used to drop all 115 blocks in the corpus, and a test that only checked the
+ * outer type would not have noticed the prose going missing.
+ */
+describe("a flowchart", () => {
+  /** Trimmed from IDRotF's "Welcome to the Far North". */
+  const FLOWCHART: Entry = {
+    type: "flowchart",
+    blocks: [
+      {
+        type: "flowBlock",
+        id: "015",
+        name: "Chapter 1: Ten-Towns",
+        page: 9,
+        entries: [
+          "{@i For 1st to 4th-level characters}",
+          "Adventure quests prompt our intrepid heroes to visit the many settlements of Ten-Towns.",
+        ],
+      },
+      {
+        type: "flowBlock",
+        id: "016",
+        name: "Chapter 2: Icewind Dale",
+        page: 9,
+        entries: ["Tall tales lead the characters to adventure locations."],
+      },
+    ],
+  };
+
+  it("prints every block, headed and in order", () => {
+    render(<Entries entries={[FLOWCHART]} />);
+
+    const headings = screen.getAllByRole("heading");
+    expect(headings.map((node) => node.textContent)).toEqual([
+      "Chapter 1: Ten-Towns",
+      "Chapter 2: Icewind Dale",
+    ]);
+    expect(
+      screen.getByText(/visit the many settlements of Ten-Towns/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/lead the characters to adventure locations/),
+    ).toBeInTheDocument();
+  });
+
+  /** A block's text is ordinary prose, so its tags are live. */
+  it("renders a block's markup rather than printing it", () => {
+    render(<Entries entries={[FLOWCHART]} />);
+
+    expect(screen.getByText("For 1st to 4th-level characters")).toBeInTheDocument();
+    expect(screen.queryByText(/\{@i/)).toBeNull();
+  });
+
+  /** Page numbers are print addressing and are shown nowhere in the reader. */
+  it("does not print the page a step is described on", () => {
+    const { container } = render(<Entries entries={[FLOWCHART]} />);
+
+    expect(container.textContent).not.toContain("9");
+  });
+
+  /** 32 of the 115 blocks carry prose and no name. */
+  it("holds up for a block with no name", () => {
+    render(
+      <Entries
+        entries={[
+          { type: "flowchart", blocks: [{ type: "flowBlock", entries: ["Just prose."] }] },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Just prose.")).toBeInTheDocument();
+    expect(screen.queryByRole("heading")).toBeNull();
+  });
+
+  it("renders nothing for a chart with no blocks", () => {
+    const { container } = render(<Entries entries={[{ type: "flowchart" }]} />);
+
+    // `Entries` always wraps in a stack, so the question is whether anything
+    // was put in it — an empty box with a connector would be worse than none.
+    expect(container.textContent).toBe("");
+    expect(container.firstElementChild?.childElementCount).toBe(0);
+  });
+
+  it("is not reported as a gap", () => {
+    resetCoverage();
+    render(<Entries entries={[FLOWCHART]} />);
+
+    expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+});
+
+/**
+ * The passive check total, which the PHB states in words rather than deriving
+ * from an ability the way its two siblings do. One occurrence in the corpus.
+ */
+describe("a stated formula", () => {
+  const PASSIVE: Entry = {
+    type: "abilityGeneric",
+    text: "10 + all modifiers that normally apply to the check",
+  };
+
+  it("prints the formula it carries", () => {
+    render(<Entries entries={[PASSIVE]} />);
+
+    expect(
+      screen.getByText("10 + all modifiers that normally apply to the check"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders nothing where there is no text", () => {
+    const { container } = render(
+      <Entries entries={[{ type: "abilityGeneric" }]} />,
+    );
+
+    expect(container.textContent).toBe("");
+  });
+
+  it("is not reported as a gap", () => {
+    resetCoverage();
+    render(<Entries entries={[PASSIVE]} />);
+
+    expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+});
+
+/**
+ * The PHB's list of conditions, and the Dungeon Kit's reprint of it.
+ *
+ * Named `inlineBlock`, but its sibling `inline` would be the wrong treatment:
+ * that one closes a sentence back up into one paragraph and renders only
+ * strings and links, so the list of fifteen names would vanish and report
+ * itself as a gap. That is the regression this guards.
+ */
+describe("an inline block", () => {
+  const CONDITIONS: Entry = {
+    type: "inlineBlock",
+    entries: [
+      "For a full list of the conditions, see the page. The conditions are:",
+      {
+        type: "list",
+        items: ["{@condition blinded}", "{@condition charmed}"],
+        columns: 3,
+      },
+    ],
+  };
+
+  it("keeps the list its sibling treatment would drop", () => {
+    const { container } = render(<Entries entries={[CONDITIONS]} />);
+
+    expect(screen.getByText(/The conditions are:/)).toBeInTheDocument();
+    expect(container.querySelectorAll("li")).toHaveLength(2);
+    expect(screen.getByText("blinded")).toBeInTheDocument();
+    expect(screen.getByText("charmed")).toBeInTheDocument();
+  });
+
+  it("is not reported as a gap, list and all", () => {
+    resetCoverage();
+    render(<Entries entries={[CONDITIONS]} />);
+
+    expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+});
