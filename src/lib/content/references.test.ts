@@ -284,3 +284,25 @@ describe("lookupReference", () => {
     expect(lookupReference(["item|nonexistent|phb"], index)).toBeNull();
   });
 });
+
+/**
+ * The cookbooks' agreement tag. The count reaches it already substituted from
+ * an amount placeholder, which is why it can be a numeral, a spelled-out word
+ * or a fraction — see `ingredientText`.
+ */
+describe("labelForTag on a unit", () => {
+  it("agrees with the count", () => {
+    expect(labelForTag(tag("{@unit 1|egg|eggs}"))).toBe("egg");
+    expect(labelForTag(tag("{@unit 2|yolk|yolks}"))).toBe("yolks");
+  });
+
+  it("treats a fraction and a spelled-out one as singular", () => {
+    expect(labelForTag(tag("{@unit ½|cup|cups}"))).toBe("cup");
+    expect(labelForTag(tag("{@unit One|bottle|bottles}"))).toBe("bottle");
+  });
+
+  /** 1½ cups, not 1½ cup. */
+  it("treats a mixed number as more than one", () => {
+    expect(labelForTag(tag("{@unit 1½|cup|cups}"))).toBe("cups");
+  });
+});

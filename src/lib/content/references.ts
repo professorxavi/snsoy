@@ -135,6 +135,7 @@ const PLAIN_TAGS = new Set([
   "style",
   "link",
   "itemProperty",
+  "unit",
 ]);
 
 export type TagKind =
@@ -400,6 +401,23 @@ const LABEL_PART: Record<string, number> = {
  * A code may name only its reach (`{@atk m}`, four occurrences), in which case
  * there is no kind to print and the line is just "Melee Attack:".
  */
+/**
+ * Which way a `{@unit}` tag agrees: "½ cup", "1 egg", "2 eggs".
+ *
+ * The count has already had its placeholder substituted by the time this runs,
+ * so it can be a numeral, a spelled-out word where the line opens with one, or
+ * a vulgar fraction. Anything at or below one takes the singular, which is what
+ * English does with fractions; a mixed number like 1½ does not.
+ */
+function isSingular(count: string): boolean {
+  const text = count.trim().toLowerCase();
+  if (text === "one") return true;
+  if (/^[⅛¼⅓½⅔¾]$/.test(text)) return true;
+
+  const value = Number(text);
+  return Number.isFinite(value) && value <= 1;
+}
+
 function attackLabel(codes: string): string {
   const REACH: Record<string, string> = { m: "Melee", r: "Ranged" };
   const KIND: Record<string, string> = { w: "Weapon", s: "Spell" };
@@ -440,6 +458,15 @@ export function labelForTag(tag: TagSegment): string {
     /** `{@quickref name|source|chapter|?|display}` */
     case "quickref":
       return part(tag, 4) || first;
+
+    /*
+     * `{@unit 2|yolk|yolks}` — the cookbooks' agreement tag, and the reason an
+     * ingredient line reads "1 egg" and "2 egg yolks" from one string. The
+     * count arrives as an already-substituted amount placeholder, so by the
+     * time this runs the first part is a number.
+     */
+    case "unit":
+      return isSingular(first) ? part(tag, 1) : part(tag, 2) || part(tag, 1);
 
     /*
      * `{@itemProperty LD|PHB|loading}`. The first part is the property's code,

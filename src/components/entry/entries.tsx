@@ -10,6 +10,7 @@ import {
 import { abilityPhrase } from "@/lib/content/dnd";
 import type { ImageEntry } from "@/lib/content/media";
 import { spellFrequencyLabel, spellLevelLabel } from "@/lib/content/monsters";
+import { objectSummary } from "@/lib/content/objects";
 import {
   optionalFeatureKey,
   type OptionalFeatureBody,
@@ -169,6 +170,9 @@ function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "statblock":
       return <StatblockLink entry={entry as StatblockEntry} ctx={ctx} />;
 
+    case "statblockInline":
+      return <InlineStatblock entry={entry} />;
+
     case "attack":
       return <AttackLine entry={entry as AttackEntry} ctx={ctx} />;
 
@@ -195,6 +199,36 @@ const inline = (text: string, ctx: RenderContext) => (
     context={ctx.context}
   />
 );
+
+/**
+ * A stat block written into the text rather than pointed at.
+ *
+ * `statblock` addresses an entity that exists elsewhere and renders as a link
+ * to it; this one carries the block itself, for something too small to be worth
+ * its own entry in the books — all three occurrences are Clay No-Face, a Tiny
+ * construct that exists only inside the charm that animates it.
+ *
+ * Printed as a name and the one line that matters, rather than as a full panel.
+ * There is nothing to open and nothing more the data holds: no actions, no
+ * abilities, just a size and a hit point total.
+ */
+function InlineStatblock({ entry }: { entry: EntryObject }) {
+  const data = (entry as { data?: Record<string, unknown> }).data;
+  if (!data || typeof data["name"] !== "string") return null;
+
+  const name = data["name"];
+
+  return (
+    <Text fontFamily="body" fontSize="sm" lineHeight="1.55">
+      <Text as="span" fontWeight="semibold">
+        {name}
+      </Text>{" "}
+      <Text as="span" color="fg.muted">
+        {objectSummary(data)}
+      </Text>
+    </Text>
+  );
+}
 
 /**
  * An attack written as structure rather than as prose.
