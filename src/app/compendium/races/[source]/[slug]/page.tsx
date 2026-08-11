@@ -35,6 +35,9 @@ import { getRace, type SubraceDetail } from "@/server/db/queries/races";
  * Subrace sections are anchored on the subrace's slug, which is what `hrefFor`
  * produces for a fragment (`/compendium/races/phb/dwarf#hill`). The ids here
  * and the resolver must agree or inbound links land in the wrong place.
+ *
+ * A slug is unique per source rather than per parent, so it is an anchor and
+ * not a key. Both subrace lists are keyed on the natural key instead.
  */
 
 interface RouteParams {
@@ -130,6 +133,7 @@ export default async function RacePage({ params }: RouteParams) {
           { id: SUBRACES_ID, label: "Subraces" },
           ...race.subraces.map((sub) => ({
             id: sub.slug,
+            listKey: sub.naturalKey,
             label: sub.name,
             depth: 1 as const,
           })),
@@ -319,6 +323,7 @@ function toItem(
 ) {
   return {
     id: sub.slug,
+    listKey: sub.naturalKey,
     name: sub.name,
     meta: [sub.sourceName, sub.page ? `p. ${sub.page}` : ""]
       .filter(Boolean)

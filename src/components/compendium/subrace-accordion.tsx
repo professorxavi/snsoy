@@ -21,6 +21,11 @@ import type { ReactNode } from "react";
 export interface SubraceItem {
   /** The subrace's slug, which inbound links resolve to. */
   id: string;
+  /**
+   * What React lists this disclosure by. Separate from `id`, since a slug is
+   * unique only within a source — pass the subrace's natural key.
+   */
+  listKey: string;
   name: string;
   meta?: ReactNode;
   body: ReactNode;
@@ -34,7 +39,7 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
       {items.map((item) => (
         <Box
           as="details"
-          key={item.id}
+          key={item.listKey}
           borderBottomWidth="1px"
           borderColor="border"
           css={{ "&[open] [data-chevron]": { transform: "rotate(90deg)" } }}

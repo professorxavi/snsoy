@@ -8,10 +8,16 @@ import { Box, Stack, Text } from "@chakra-ui/react";
  */
 
 export interface OutlineItem {
+  /** The anchor this row jumps to. */
   id: string;
   label: string;
   /** Nested a level in, e.g. subraces under a "Subraces" heading. */
   depth?: 0 | 1;
+  /**
+   * What React lists this row by, for a list whose anchors are not unique.
+   * Defaults to the anchor.
+   */
+  listKey?: string;
 }
 
 export function OutlineNav({
@@ -38,7 +44,7 @@ export function OutlineNav({
 
       <Stack as="ul" gap="0" css={{ listStyle: "none" }}>
         {items.map((item) => (
-          <Box as="li" key={item.id}>
+          <Box as="li" key={item.listKey ?? item.id}>
             <Box
               asChild
               display="block"

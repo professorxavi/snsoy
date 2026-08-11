@@ -30,6 +30,11 @@ const subrace = (
 ): SubraceDetail =>
   ({
     slug,
+    // Both lists key on this rather than the slug, which is unique only within
+    // a source — see "two subraces that share a slug".
+    naturalKey: `subrace|${slug}|dwarf|phb|${(
+      (over.sourceId as string | undefined) ?? "PHB"
+    ).toLowerCase()}`,
     name,
     sourceId: "PHB",
     sourceName: "Player's Handbook",
@@ -276,6 +281,58 @@ describe("a race page", () => {
           /^Variant/.test(link.textContent!),
         ),
       ).toHaveLength(13);
+    });
+
+    /**
+     * The Elf case. PHB Elf has two subraces named Eladrin, one printed in the
+     * DMG and one in Mordenkainen's, and both slug to `eladrin` — the only pair
+     * in the data that collides. Keying either list on the slug drops one of
+     * them, and neither the outline nor the disclosures would say so.
+     *
+     * The shared anchor is left alone deliberately: `hrefFor` builds a fragment
+     * from the slug for every fragment type, so telling these two apart in a
+     * URL is a change to the route map rather than to this page. Both rows are
+     * rendered and the anchor lands on the first.
+     */
+    it("renders two subraces that share a slug", async () => {
+      const warnings: unknown[][] = [];
+      const spy = vi
+        .spyOn(console, "error")
+        .mockImplementation((...args) => void warnings.push(args));
+
+      try {
+        const { container } = await renderPage({
+          name: "Elf",
+          slug: "elf",
+          subraces: [
+            subrace("eladrin", "Eladrin", {
+              sourceId: "DMG",
+              sourceName: "Dungeon Master's Guide",
+            }),
+            subrace("eladrin", "Eladrin", {
+              sourceId: "MTF",
+              sourceName: "Mordenkainen's Tome of Foes",
+            }),
+          ],
+        });
+
+        expect(container.querySelectorAll("details")).toHaveLength(2);
+        expect(
+          outlineLinks(container).filter(
+            (link) => link.textContent === "Eladrin",
+          ),
+        ).toHaveLength(2);
+        expect(container.textContent).toContain("Dungeon Master's Guide");
+        expect(container.textContent).toContain("Mordenkainen's Tome of Foes");
+
+        // A duplicate key warns rather than throwing, and React still paints
+        // both rows — so the warning is the only thing that catches a regression.
+        expect(
+          warnings.filter(([message]) => String(message).includes("same key")),
+        ).toEqual([]);
+      } finally {
+        spy.mockRestore();
+      }
     });
   });
 

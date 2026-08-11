@@ -268,6 +268,7 @@ export default async function ClassPage({ params }: RouteParams) {
           { id: SUBCLASSES_ID, label: found.subclassTitle ?? "Subclasses" },
           ...found.subclasses.map((subclass) => ({
             id: subclass.slug,
+            listKey: subclass.naturalKey,
             label: subclass.name,
             depth: 1 as const,
           })),
@@ -487,6 +488,7 @@ export default async function ClassPage({ params }: RouteParams) {
             <SubraceList
               items={found.subclasses.map((subclass) => ({
                 id: subclass.slug,
+                listKey: subclass.naturalKey,
                 name: subclass.name,
                 meta: [subclass.sourceName, subclass.page ? `p. ${subclass.page}` : ""]
                   .filter(Boolean)

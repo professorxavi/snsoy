@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@/test/render";
 import { SubraceList } from "./subrace-accordion";
 
@@ -17,12 +17,30 @@ import { SubraceList } from "./subrace-accordion";
  * The second one is why ~93 inbound subrace links work. Move the `id` up onto
  * the `<details>` and every one of them silently lands on a collapsed section.
  * Nothing about the rendered page would look wrong.
+ *
+ * A third is why `listKey` exists at all — see "two subraces that share a slug".
  */
 
 const ITEMS = [
-  { id: "hill", name: "Hill", meta: "PHB", body: <p>Hill dwarf traits.</p> },
-  { id: "mountain", name: "Mountain", body: <p>Mountain dwarf traits.</p> },
-  { id: "duergar", name: "Duergar", body: <p>Duergar traits.</p> },
+  {
+    id: "hill",
+    listKey: "subrace|hill|dwarf|phb|phb",
+    name: "Hill",
+    meta: "PHB",
+    body: <p>Hill dwarf traits.</p>,
+  },
+  {
+    id: "mountain",
+    listKey: "subrace|mountain|dwarf|phb|phb",
+    name: "Mountain",
+    body: <p>Mountain dwarf traits.</p>,
+  },
+  {
+    id: "duergar",
+    listKey: "subrace|duergar|dwarf|phb|scag",
+    name: "Duergar",
+    body: <p>Duergar traits.</p>,
+  },
 ];
 
 const disclosures = () =>
@@ -65,6 +83,68 @@ describe("the subrace list", () => {
     expect(screen.getByText("Hill dwarf traits.")).toBeInTheDocument();
     expect(screen.getByText("Duergar traits.")).toBeInTheDocument();
     expect(disclosures().every((el) => !el.open)).toBe(true);
+  });
+
+  /**
+   * PHB Elf has two subraces named Eladrin — one printed in the DMG, one in
+   * Mordenkainen's — and both slug to `eladrin`. It is the only such pair among
+   * all the subraces, and it is enough to make React drop one of the two if the
+   * slug is what the list is keyed by.
+   *
+   * The count alone would not catch it: a duplicate key is a console warning
+   * rather than a throw, and React still renders both rows here. So the warning
+   * is what is asserted, and the natural key is what stops it.
+   */
+  describe("two subraces that share a slug", () => {
+    const ELADRIN = [
+      {
+        id: "eladrin",
+        listKey: "subrace|eladrin|elf|phb|dmg",
+        name: "Eladrin",
+        meta: "Dungeon Master's Guide",
+        body: <p>Eladrin traits, as the DMG prints them.</p>,
+      },
+      {
+        id: "eladrin",
+        listKey: "subrace|eladrin|elf|phb|mtf",
+        name: "Eladrin",
+        meta: "Mordenkainen's Tome of Foes",
+        body: <p>Eladrin traits, as MTF prints them.</p>,
+      },
+    ];
+
+    let warnings: unknown[][];
+
+    beforeEach(() => {
+      warnings = [];
+      vi.spyOn(console, "error").mockImplementation((...args) => {
+        warnings.push(args);
+      });
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("lists both, each with its own body", () => {
+      render(<SubraceList items={ELADRIN} />);
+
+      expect(disclosures()).toHaveLength(2);
+      expect(
+        screen.getByText("Eladrin traits, as the DMG prints them."),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("Eladrin traits, as MTF prints them."),
+      ).toBeInTheDocument();
+    });
+
+    it("keys them apart, so React does not treat them as one row", () => {
+      render(<SubraceList items={ELADRIN} />);
+
+      expect(
+        warnings.filter(([message]) => String(message).includes("same key")),
+      ).toEqual([]);
+    });
   });
 
   describe("the anchor a deep link targets", () => {
