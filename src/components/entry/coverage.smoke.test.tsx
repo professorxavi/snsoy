@@ -58,7 +58,6 @@ const KNOWN_TAG_GAPS = [
   "comicNote",
   "crochet",
   "savingThrow",
-  "vehupgrade",
 ] as const;
 
 describeDb("renderer coverage over every book section", () => {

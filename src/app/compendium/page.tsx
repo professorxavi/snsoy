@@ -15,8 +15,15 @@ export const metadata: Metadata = {
 };
 
 /**
- * The compendium index: 34 content types in five groups, with the ones that
- * have no browse view yet listed but inert rather than linking to a 404.
+ * The compendium index: 31 content types in five groups, every one of them a
+ * live link.
+ *
+ * For most of this project's life the page was mostly dashed "Not yet built"
+ * cards; `IMPLEMENTED` and `DIRECTORY` now agree completely, so that branch
+ * renders nothing. It is kept anyway. It is the only thing standing between a
+ * type added to `routes.ts` ahead of its browse view and a card that links
+ * confidently to a 404 — and a guard that has stopped firing is not the same
+ * thing as a guard that is no longer needed.
  */
 export default function CompendiumPage() {
   return (

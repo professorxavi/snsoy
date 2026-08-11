@@ -86,19 +86,16 @@ describe("AsideLinks", () => {
   });
 
   /**
-   * Much of what book text links to still has no renderer — deities are the
-   * largest of what is left at 535 references, ahead of cards at 481. Those
-   * links must behave exactly as they did before this wrapper existed rather
-   * than opening an empty panel.
-   *
-   * The example has been a creature, then an item, then a sense, then a deity,
-   * and each was retired as its renderer landed. Whatever stands here has to be
-   * a type genuinely absent from `ASIDE_TYPES`, or the test passes for the wrong
-   * reason — which leaves the vehicles, the cards and nothing else.
+   * A URL under `/compendium/` that names no known segment. This is what is
+   * left of the case that used to be made with a type the aside cannot render —
+   * a creature, then an item, then a sense, then a deity, then a vehicle, each
+   * retired as its renderer landed, and now there is no such type at all. The
+   * `ASIDE_TYPES` guard in the handler is still there and still right; the
+   * invariant that leaves it unreachable is pinned in `aside.test.ts`.
    */
-  it("leaves a type it cannot render alone", async () => {
+  it("leaves a compendium URL it cannot read alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/vehicles/gos/zephyr">Zephyr</a>);
+    renderLinks(loader, <a href="/compendium/psionics/utmc/mantle-of-awe">Mantle</a>);
 
     const event = await clickAndCapture(screen.getByRole("link"));
 

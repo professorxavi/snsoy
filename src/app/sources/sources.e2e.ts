@@ -182,34 +182,54 @@ test("closes on Escape, leaving the chapter where it was", async ({ page }) => {
 });
 
 /**
- * A type with no aside renderer must behave exactly as it did before the
- * wrapper existed. Quietly swallowing those clicks would be worse than the
- * navigation they perform.
+ * There used to be a case here for a link the aside cannot render, asserting it
+ * navigated exactly as it had before the wrapper existed. It cited creatures,
+ * then items, then actions, then deities, then vehicles, and each was retired
+ * as its renderer landed — and with the vehicles there is nothing left to
+ * stand in it. The guard is still in `AsideLinks`; what makes it unreachable is
+ * pinned in `aside.test.ts` instead.
  *
- * This has cited creatures, then items, then actions, then deities in turn, and
- * each was retired as its renderer landed. The link exercised here has to stay
- * one of the types the aside genuinely cannot render, or the test passes
- * without asserting anything — which now leaves only the vehicles. Not the
- * cards: a card's natural key carries its deck (`card|abjurer|tarokka deck|cos`)
- * and `{@card}` builds a key without one, so those 481 tags resolve to nothing
- * and render as plain words. That is Batch E's to fix. When the vehicles land
- * there will be nothing left to stand here, and this case goes with them.
+ * These two took its place, and they are the same assertion from the other
+ * side. Both exercise the inbound-link path — a tag in a chapter, not a row in
+ * a list — which is the one that was broken.
  */
-test("leaves a link it cannot render to navigate as before", async ({
-  page,
-}) => {
+test("opens a vehicle from the chapter that sails it", async ({ page }) => {
   await page.goto("/sources/lox/chaos-in-doomspace");
   await expectHydrated(page);
 
-  const item = page.locator('a[href^="/compendium/vehicles/"]').first();
-  test.skip((await item.count()) === 0, "no vehicle links in this chapter");
+  const link = page.locator('a[href^="/compendium/vehicles/"]').first();
+  test.skip((await link.count()) === 0, "no vehicle links in this chapter");
 
-  const href = await item.getAttribute("href");
-  await item.scrollIntoViewIfNeeded();
-  await item.click();
+  const name = (await link.textContent())?.trim() ?? "";
+  await link.scrollIntoViewIfNeeded();
+  await link.click();
 
-  await expect(page).toHaveURL(new RegExp(`${href}$`));
-  await expect(page.locator(ASIDE)).toHaveCount(0);
+  // A vehicle has no page, so the panel is the whole of what is shown — and it
+  // must carry the stat block, not just the name: 33 of the 35 have no prose.
+  await expect(page.locator(`${ASIDE} h1`)).toHaveText(new RegExp(name, "i"));
+  await expect(page.locator(ASIDE).getByText("Creature Capacity")).toBeVisible();
+});
+
+/**
+ * The card fix, from the reader's side.
+ *
+ * A card's natural key carries its deck — `card|abjurer|tarokka deck|cos` — and
+ * `{@card}` was read as though the deck were a source, so all 545 of these tags
+ * resolved to nothing and rendered as plain words. This chapter alone carries
+ * 89 of them.
+ */
+test("opens a card from a chapter that deals it", async ({ page }) => {
+  await page.goto("/sources/cos/the-tarokka-deck");
+  await expectHydrated(page);
+
+  const link = page.locator('a[href^="/compendium/cards/"]').first();
+  await expect(link).toBeVisible();
+
+  const name = (await link.textContent())?.trim() ?? "";
+  await link.scrollIntoViewIfNeeded();
+  await link.click();
+
+  await expect(page.locator(`${ASIDE} h1`)).toHaveText(new RegExp(name, "i"));
 });
 
 /**

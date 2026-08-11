@@ -1,12 +1,16 @@
 import { ChakraProvider } from "@chakra-ui/react";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Entries } from "@/components/entry";
 import { coverageReport, resetCoverage } from "@/components/entry/coverage";
 import { system } from "@/theme";
 import type { GenericEntity } from "@/server/db/queries/generic";
+import { DeckContents } from "./deck-contents";
 import { GenericAside } from "./generic-aside";
 import { ObjectActions } from "./object-actions";
 import { RecipeBody } from "./recipe-body";
+import { VehicleStatblock } from "./vehicle-statblock";
 
 /**
  * Every entity of every generic type the aside can open, through the panel that
@@ -53,6 +57,11 @@ const TYPES = {
   reward: 235,
   cult: 29,
   boon: 12,
+  card: 656,
+  deck: 31,
+  vehicle: 35,
+  vehicleUpgrade: 31,
+  table: 7,
 } as const;
 
 /**
@@ -70,12 +79,58 @@ const TYPED_TABLES = {
 /**
  * Tags no renderer in this codebase handles yet.
  *
- * `{@vehupgrade}` is 23 occurrences, all in the ship and airship variant rules,
- * and it addresses `vehicleUpgrade` — a type with no view and no aside case, so
- * there is nothing for the tag to open. It closes when that type is built, not
- * before, and this list is what stops it being forgotten.
+ * Empty, for the first time. `{@vehupgrade}` was the last entry — 34
+ * occurrences addressing a type with no view and no aside case — and it closed
+ * when the vehicle upgrades were built, which is exactly what the list is for.
  */
-const KNOWN_TAG_GAPS: readonly string[] = ["vehupgrade"];
+const KNOWN_TAG_GAPS: readonly string[] = [];
+
+/**
+ * What a type keeps *outside* `entries`, handed to the panel the way the loader
+ * hands it in production — see `GENERIC_ASIDE_TYPES` in `aside-actions`.
+ *
+ * This is the half of the sweep that keeps finding things, and it has to be
+ * kept honest by hand: the panel renders what it is given, so a type whose
+ * content lives beside `entries` would otherwise be swept over the half of
+ * itself that renders and report nothing. Six of the twenty-two types here are
+ * in that position, and four of them have no `entries` at all.
+ */
+function extraFor(
+  type: string,
+  data: unknown,
+  naturalKey: string,
+  name: string,
+): ReactNode {
+  const blob = data as Record<string, unknown>;
+  const ctx = { refs: {}, selfKey: naturalKey, context: name };
+
+  switch (type) {
+    // 13 of the 20 objects keep their attacks in `actionEntries`, and the
+    // `attack` entry type they use appears nowhere else in the data.
+    case "object":
+      return <ObjectActions actions={blob["actionEntries"]} {...ctx} />;
+
+    // No `entries` at all: ingredients and instructions, and the `{@unit}` tag
+    // only they use.
+    case "recipe":
+      return <RecipeBody data={blob} {...ctx} />;
+
+    // A deck's cards are stored as bare addresses rather than as tags.
+    case "deck":
+      return <DeckContents data={blob} {...ctx} />;
+
+    // 33 of the 35 vehicles have no prose whatever — this is all of them.
+    case "vehicle":
+      return <VehicleStatblock data={blob} {...ctx} />;
+
+    // The blob is the renderer's own `table` entry with its type left off.
+    case "table":
+      return <Entries entries={[{ ...blob, type: "table" }]} {...ctx} />;
+
+    default:
+      return null;
+  }
+}
 
 describeDb("the generic panel over every entity it serves", () => {
   let gaps: { kind: string; name: string }[];
@@ -144,36 +199,7 @@ describeDb("the generic panel over every entity it serves", () => {
       renderToStaticMarkup(
         <ChakraProvider value={system}>
           <GenericAside entity={entity} refs={{}}>
-            {/*
-              Objects keep their attacks outside `entries`, and the panel is
-              handed them the same way in production. Without this the 13 that
-              have any would be swept for coverage over the half of themselves
-              that renders — and the `attack` entry type, which only they use,
-              would never be exercised at all.
-            */}
-            {row.entityType === "object" ? (
-              <ObjectActions
-                actions={(row.data as Record<string, unknown>)["actionEntries"]}
-                refs={{}}
-                selfKey={row.naturalKey}
-                context={row.name}
-              />
-            ) : null}
-
-            {/*
-              A recipe has no `entries` at all, so sweeping it through the panel
-              alone would render nothing and report nothing. This is where its
-              ingredients and instructions — and the `{@unit}` tag that only
-              they use — are actually exercised.
-            */}
-            {row.entityType === "recipe" ? (
-              <RecipeBody
-                data={row.data as Record<string, unknown>}
-                refs={{}}
-                selfKey={row.naturalKey}
-                context={row.name}
-              />
-            ) : null}
+            {extraFor(row.entityType, row.data, row.naturalKey, row.name)}
           </GenericAside>
         </ChakraProvider>,
       );

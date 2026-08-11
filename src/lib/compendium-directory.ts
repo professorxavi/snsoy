@@ -20,7 +20,27 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   still keep their own URL segment for the entities themselves — which is the
  *   same rule the route map follows: blend types in the list, never in the
  *   segment.
+ *
+ * One type has no card at all — see `WITHOUT_A_CARD`.
  */
+
+/**
+ * Browsable types the index deliberately does not list.
+ *
+ * `table` is the only one, and it is dropped rather than deferred. The seven
+ * `table` entities are not where the ~351 `{@table}` references in book text
+ * point: a real roll table lives inside the chapter that uses it and renders
+ * there, and a chapter's table belongs to that chapter. A `/compendium/tables`
+ * route would be a near-empty index for a type whose content is already
+ * reachable where it is used.
+ *
+ * Dropping the card drops the browse view, not the type. `table` keeps its URL
+ * segment so `hrefFor` still addresses those seven, and it opens in the aside
+ * like any other entity.
+ */
+export const WITHOUT_A_CARD: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
+  "table",
+]);
 
 export interface DirectoryEntry {
   /** The type this card browses, when it browses a whole one. */
@@ -45,8 +65,12 @@ export interface DirectoryGroup {
 }
 
 /**
- * Types with a browse view built. Everything else is listed but rendered inert
- * rather than as a link that 404s. Add a type here when its browse view lands.
+ * Types with a browse view built.
+ *
+ * Now every type the index lists, which is what the last batch was for — the
+ * "not yet built" card the index used to render has gone with it. Kept as a set
+ * rather than folded away because a type added to `routes.ts` before its view
+ * exists must still be listed inert rather than linking to a 404.
  */
 export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "spell",
@@ -74,6 +98,10 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "reward",
   "cult",
   "boon",
+  "card",
+  "deck",
+  "vehicle",
+  "vehicleUpgrade",
 ]);
 
 export const DIRECTORY: DirectoryGroup[] = [
@@ -200,11 +228,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         label: "Languages",
         blurb: "Scripts, and who you can talk to.",
       },
-      {
-        type: "table",
-        label: "Tables",
-        blurb: "Roll tables lifted out of the books.",
-      },
     ],
   },
   {
@@ -272,6 +295,12 @@ export const DIRECTORY: DirectoryGroup[] = [
         label: "Vehicle Upgrades",
         blurb: "Components and modifications.",
       },
+      /*
+       * Two cards and two lists, not one blended list. A deck and a card answer
+       * different questions — "which deck is this" against "what does this card
+       * do" — and 31 decks alphabetised among 656 cards would file the Deck of
+       * Many Things twenty rows away from the cards it deals.
+       */
       {
         type: "deck",
         label: "Decks",

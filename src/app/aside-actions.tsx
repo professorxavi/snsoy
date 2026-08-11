@@ -3,7 +3,9 @@
 import { Box, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
+import { CardFace } from "@/components/compendium/card-face";
 import { ClassAside } from "@/components/compendium/class-aside";
+import { DeckContents } from "@/components/compendium/deck-contents";
 import { GenericAside } from "@/components/compendium/generic-aside";
 import { ItemDetail } from "@/components/compendium/item-detail";
 import { LanguageAside } from "@/components/compendium/language-aside";
@@ -13,8 +15,11 @@ import { ObjectActions } from "@/components/compendium/object-actions";
 import { RecipeBody } from "@/components/compendium/recipe-body";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
+import { VehicleStatblock } from "@/components/compendium/vehicle-statblock";
+import { Entries } from "@/components/entry";
 import { ASIDE_IGNORE_ATTR, isAsideType, type AsideType } from "@/lib/aside";
 import { actionTimeLabel } from "@/lib/content/actions";
+import { cardSubtitle, deckCardTags } from "@/lib/content/cards";
 import { characterOptionSummary } from "@/lib/content/character-options";
 import {
   deityAlignment,
@@ -32,6 +37,7 @@ import {
 } from "@/lib/content/optional-features";
 import { checkName } from "@/lib/content/skills";
 import { ruleTypeLabel } from "@/lib/content/variant-rules";
+import { upgradeKind, vehicleLine } from "@/lib/content/vehicles";
 import {
   collectReferences,
   type ReferenceIndex,
@@ -71,6 +77,11 @@ type GenericAsideType = Extract<
   | "reward"
   | "cult"
   | "boon"
+  | "card"
+  | "deck"
+  | "vehicle"
+  | "vehicleUpgrade"
+  | "table"
 >;
 type GenericAsideConfig = {
   noun: string;
@@ -85,6 +96,12 @@ type GenericAsideConfig = {
     entity: { naturalKey: string; name: string },
     refs: ReferenceIndex,
   ) => ReactNode;
+  /**
+   * References the blob does not spell out as tags. Only the decks have any:
+   * they list their cards as bare `name|set|source` addresses, so without this
+   * every card in every deck would print as dead text.
+   */
+  references?: (data: Record<string, unknown>) => unknown;
 };
 
 const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
@@ -208,6 +225,66 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
       />
     ),
   },
+
+  /*
+   * The odd shapes. A card is mostly its picture, a deck is mostly its list of
+   * cards, a vehicle is a stat block with no prose at all, and a table is a
+   * table — none of which is `entries`, which is why all four need the slot.
+   */
+  card: {
+    noun: "card",
+    subtitle: (data: Record<string, unknown>) => cardSubtitle(data) || null,
+    extra: (data, entity) => <CardFace face={data["face"]} name={entity.name} />,
+  },
+  deck: {
+    noun: "deck",
+    references: (data) => deckCardTags(data),
+    extra: (data, entity, refs) => (
+      <DeckContents
+        data={data}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
+  vehicle: {
+    noun: "vehicle",
+    subtitle: (data: Record<string, unknown>) => vehicleLine(data) || null,
+    extra: (data, entity, refs) => (
+      <VehicleStatblock
+        data={data}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
+  vehicleUpgrade: {
+    noun: "vehicle upgrade",
+    subtitle: (data: Record<string, unknown>) =>
+      nullable(upgradeKind(data["upgradeType"])),
+  },
+  /*
+   * A roll table. It has no browse view on purpose — a table in a chapter
+   * belongs to that chapter, and these seven rows are not where the ~351
+   * `{@table}` references point — but the four that do reach one open here
+   * rather than falling through to plain text.
+   *
+   * The blob is the renderer's own `table` entry with its `type` left off, so
+   * it is handed back with the type restated rather than rendered a second way.
+   */
+  table: {
+    noun: "table",
+    extra: (data, entity, refs) => (
+      <Entries
+        entries={[{ ...data, type: "table" }]}
+        refs={refs}
+        selfKey={entity.naturalKey}
+        context={entity.name}
+      />
+    ),
+  },
 };
 
 /** A blob field that is a string, or nothing. */
@@ -246,6 +323,11 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   hazard: (source, slug) => genericAside("hazard", source, slug),
   disease: (source, slug) => genericAside("disease", source, slug),
   object: (source, slug) => genericAside("object", source, slug),
+  card: (source, slug) => genericAside("card", source, slug),
+  deck: (source, slug) => genericAside("deck", source, slug),
+  vehicle: (source, slug) => genericAside("vehicle", source, slug),
+  vehicleUpgrade: (source, slug) => genericAside("vehicleUpgrade", source, slug),
+  table: (source, slug) => genericAside("table", source, slug),
   background: backgroundAside,
   feat: featAside,
   optionalfeature: optionalFeatureAside,
@@ -411,11 +493,13 @@ async function genericAside(
   source: string,
   slug: string,
 ): Promise<ReactNode> {
-  const { noun, subtitle, extra } = GENERIC_ASIDE_TYPES[type];
+  const { noun, subtitle, extra, references } = GENERIC_ASIDE_TYPES[type];
   const entity = await getGeneric(type, source, slug, {});
   if (!entity) return <AsideMessage>No such {noun}.</AsideMessage>;
 
-  const refs = await resolveReferences(collectReferences(entity.data));
+  const refs = await resolveReferences(
+    collectReferences([entity.data, references?.(entity.data)]),
+  );
 
   return (
     <GenericAside

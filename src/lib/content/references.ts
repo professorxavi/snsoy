@@ -41,13 +41,13 @@ const REFERENCE_TAGS = {
   object: { type: "object", defaultSource: "dmg" },
   trap: { type: "trap", defaultSource: "dmg" },
   vehicle: { type: "vehicle", defaultSource: "gos" },
+  vehupgrade: { type: "vehicleUpgrade", defaultSource: "gos" },
   psionic: { type: "psionic", defaultSource: "utwbtw" },
   language: { type: "language", defaultSource: "phb" },
   variantrule: { type: "variantrule", defaultSource: "dmg" },
   table: { type: "table", defaultSource: "dmg" },
   boon: { type: "boon", defaultSource: "dmg" },
   cult: { type: "cult", defaultSource: "mtf" },
-  card: { type: "card", defaultSource: "dmg" },
   deck: { type: "deck", defaultSource: "dmg" },
   recipe: { type: "recipe", defaultSource: "hf" },
   charoption: { type: "charoption", defaultSource: "mot" },
@@ -61,6 +61,7 @@ const STRUCTURAL_REFERENCE_TAGS = new Set([
   "classFeature",
   "subclassFeature",
   "deity",
+  "card",
   "book",
   "adventure",
 ]);
@@ -91,8 +92,12 @@ const ROLL_TAGS = new Set([
  * renderer: `{@atk}` and `{@h}` occur 11,496 times across the bestiary and
  * nowhere else, so until now every monster attack rendered two unsupported-tag
  * markers.
+ *
+ * `{@m}` is the opposite extreme at two occurrences, both a spelljammer's
+ * ramming attack, and it was found by sweeping the vehicles through the panel
+ * — nothing cheaper would have met it.
  */
-const CUE_TAGS = new Set(["atk", "h", "hom"]);
+const CUE_TAGS = new Set(["atk", "h", "m", "hom"]);
 
 /** Tag name to the HTML emphasis it stands for. */
 export const FORMAT_TAGS = {
@@ -288,6 +293,18 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
       return [`deity|${name}|${pantheon}|${sourceOr(part(tag, 2), "phb")}`];
     }
 
+    /*
+     * `{@card name|deck|source|display}`. The deck is part of the address, not
+     * decoration: five decks deal a card called Jester and only the set tells
+     * them apart. Every one of the 677 tags in the books names its deck, so
+     * there is no keyless form to fall back to.
+     */
+    case "card": {
+      const set = part(tag, 1).toLowerCase();
+      if (!name || !set) return [];
+      return [`card|${name}|${set}|${sourceOr(part(tag, 2), "dmg")}`];
+    }
+
     default:
       return [];
   }
@@ -380,6 +397,7 @@ const LABEL_PART: Record<string, number> = {
   classFeature: 5,
   subclassFeature: 7,
   deity: 3,
+  card: 3,
   damage: 1,
   dice: 1,
   hit: 1,
@@ -515,6 +533,13 @@ export function labelForTag(tag: TagSegment): string {
      */
     case "h":
       return "Hit: ";
+
+    /**
+     * The other half of `{@h}`, and rare: two occurrences, both the ramming
+     * attack of a spelljammer, where a miss does something rather than nothing.
+     */
+    case "m":
+      return "Miss: ";
 
     /** A save that does something either way, so the text follows both. */
     case "hom":

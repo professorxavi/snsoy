@@ -60,6 +60,17 @@ export function asideKey(
  * that proved most of what a type knows may sit outside `entries` — a deity's
  * domains and symbol, a cult's goal, and a recipe, which has no `entries` at
  * all and is ingredients and instructions instead.
+ *
+ * The last five close the list. Cards were not a renderer problem at all: all
+ * 545 of their tags resolved to nothing because a card's key carries its deck
+ * and `{@card}` was read as though the deck were a source. Vehicles are the
+ * only type here that needed a stat block of its own, and `table` earns a place
+ * without earning a browse view — see `DIRECTORY`.
+ *
+ * With those, every browsable type has a renderer, so nothing in the books
+ * links to a panel that cannot open. The guards that check this list are kept:
+ * a type added to `routes.ts` without one must go on navigating, not open an
+ * empty panel over the page.
  */
 export const ASIDE_TYPE_LIST = [
   "spell",
@@ -89,6 +100,11 @@ export const ASIDE_TYPE_LIST = [
   "reward",
   "cult",
   "boon",
+  "card",
+  "deck",
+  "vehicle",
+  "vehicleUpgrade",
+  "table",
 ] as const satisfies readonly BrowsableType[];
 
 export type AsideType = (typeof ASIDE_TYPE_LIST)[number];

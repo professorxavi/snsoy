@@ -105,9 +105,28 @@ describe("candidateKeysForTag", () => {
     ]);
   });
 
+  /**
+   * A card is addressed by its deck as well as its name. Five decks deal a
+   * Jester and the key is the only thing that separates them, so a tag read as
+   * `card|jester|dmg` — deck mistaken for source — matches nothing at all.
+   */
+  it("carries a card's deck in its key", () => {
+    expect(candidateKeysForTag(tag("{@card Talons|Deck of Many Things|DMG}"))).toEqual(
+      ["card|talons|deck of many things|dmg"],
+    );
+    expect(candidateKeysForTag(tag("{@card Jester|Deck of Many Things}"))).toEqual([
+      "card|jester|deck of many things|dmg",
+    ]);
+    expect(
+      candidateKeysForTag(tag("{@card +1 Shield|Magic Item Cards|DIP|card}")),
+    ).toEqual(["card|+1 shield|magic item cards|dip"]);
+  });
+
   it("yields nothing for tags that address no entity", () => {
     expect(candidateKeysForTag(tag("{@damage 8d6}"))).toEqual([]);
     expect(candidateKeysForTag(tag("{@filter fey|bestiary|type=fey}"))).toEqual([]);
+    // A card with no deck names nothing addressable; none occur in the books.
+    expect(candidateKeysForTag(tag("{@card Balance}"))).toEqual([]);
   });
 });
 

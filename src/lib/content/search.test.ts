@@ -95,14 +95,13 @@ describe("the open parameter", () => {
 
   /**
    * The value reaches `openEntityAside`, so it is validated rather than
-   * trusted. A type the aside cannot render would open a panel by itself and
-   * then say it has nothing to show.
+   * trusted.
+   *
+   * There used to be a case here for a browsable type the aside cannot render —
+   * a vehicle, then a card. Every browsable type has a renderer now, so no such
+   * value exists to write down; the guard stays in `parseOpenParam` and the
+   * invariant it depends on is pinned in `aside.test.ts`.
    */
-  it("refuses a type the aside cannot render", () => {
-    expect(parseOpenParam("vehicle:ggr:apparatus-of-kwalish")).toBeNull();
-    expect(parseOpenParam("card:dmg:the-fates")).toBeNull();
-  });
-
   it("refuses a type that is not a type at all", () => {
     expect(parseOpenParam("../../etc:phb:passwd")).toBeNull();
     expect(parseOpenParam("constructor:phb:x")).toBeNull();
@@ -160,20 +159,21 @@ describe("suggestionHref", () => {
   });
 
   /**
-   * Vehicles and cards still have no renderer and no route — they are the last
-   * batch left to build. The results page at least shows the row, its kind and
-   * its book.
+   * Every *browsable* type opens in the aside now, so what is left here is the
+   * types with no browse route at all — psionics, and a fragment whose parent
+   * could not be resolved. The results page at least shows the row, its kind
+   * and its book, which is more than a 404 would.
    */
   it("falls back to the results page for a type with nowhere to go", () => {
     expect(
       suggestionHref({
-        name: "Zephyr",
-        entityType: "vehicle",
-        sourceId: "GoS",
-        slug: "zephyr",
+        name: "Mantle of Awe",
+        entityType: "psionic",
+        sourceId: "UATheMysticClass",
+        slug: "mantle-of-awe",
         href: null,
       }),
-    ).toBe("/search?q=Zephyr");
+    ).toBe("/search?q=Mantle%20of%20Awe");
   });
 });
 

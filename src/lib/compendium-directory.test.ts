@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DIRECTORY, entryHref, IMPLEMENTED } from "./compendium-directory";
+import {
+  DIRECTORY,
+  entryHref,
+  IMPLEMENTED,
+  WITHOUT_A_CARD,
+} from "./compendium-directory";
 import { BROWSABLE_TYPES, listHrefFor, segmentFor } from "./routes";
 
 /**
@@ -16,9 +21,27 @@ const entries = DIRECTORY.flatMap((group) => group.entries);
 const typed = entries.flatMap((entry) => (entry.type ? [entry] : []));
 
 describe("the directory covers the route map", () => {
+  /**
+   * Every browsable type but the declared exceptions, and each exactly once.
+   * Naming the exceptions in a set rather than leaving a hole is what keeps the
+   * agreement provable: a type dropped from the index has to be dropped on
+   * purpose, in writing.
+   */
   it("lists every browsable type exactly once", () => {
     const listed = typed.map((entry) => entry.type).sort();
-    expect(listed).toEqual([...BROWSABLE_TYPES].sort());
+    const expected = BROWSABLE_TYPES.filter(
+      (type) => !WITHOUT_A_CARD.has(type),
+    ).sort();
+
+    expect(listed).toEqual(expected);
+  });
+
+  /** A type with no card must still be addressable, or its links go nowhere. */
+  it("keeps a segment for a type it does not list", () => {
+    for (const type of WITHOUT_A_CARD) {
+      expect(segmentFor(type)).not.toBeNull();
+      expect(typed.map((entry) => entry.type)).not.toContain(type);
+    }
   });
 
   it("has no duplicates across groups", () => {

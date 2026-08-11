@@ -189,9 +189,10 @@ export interface Suggestible {
  *    only place in the app where such an entity can be shown.
  * 2. **It has a page** — a chapter is the clearest case; the chapter *is* the
  *    thing being asked for, and there is nothing to preview.
- * 3. **Neither.** Deities, cards, feats and the rest still have no renderer and
- *    no route. The results page at least shows the row, its kind and its book,
- *    which is more than a 404 would.
+ * 3. **Neither.** Every browsable type reaches the first case now, so what is
+ *    left here is what has no browse route at all: a psionic, or a fragment
+ *    whose parent could not be resolved. The results page at least shows the
+ *    row, its kind and its book, which is more than a 404 would.
  */
 export function suggestionHref(suggestion: Suggestible): string {
   const query = `q=${encodeURIComponent(suggestion.name)}`;
