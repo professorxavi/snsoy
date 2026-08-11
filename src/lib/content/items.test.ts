@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyBaseName,
+  applyItemPlaceholders,
   attunementPhrase,
   baseItemName,
   bareCode,
@@ -10,11 +11,14 @@ import {
   formatItemValue,
   formatProperties,
   formatWeight,
+  itemEntryKey,
   itemTypeName,
+  parseItemEntryTag,
   rarityColumnLabel,
   rarityPhrase,
   rarityRank,
   RARITY_ORDER,
+  resolveItemEntries,
 } from "./items";
 
 /**
@@ -325,5 +329,145 @@ describe("formatItemArmorClass", () => {
 
   it("is null for anything that grants no armour class", () => {
     expect(formatItemArmorClass(null, "HA")).toBeNull();
+  });
+});
+
+/**
+ * The shared descriptions 170 items cite instead of repeating.
+ *
+ * Every fixture here is a real citation and a real template, trimmed. What
+ * makes them worth pinning is that the failure mode is silent: a citation that
+ * does not resolve prints `{#itemEntry Potion of Resistance}` where the whole
+ * description belongs, and nothing else about the item looks wrong.
+ */
+
+const RESISTANCE = ["You have resistance to {{item.resist}} damage while you wear this armor."];
+
+const TEMPLATES = new Map<string, unknown[]>([
+  ["armor of resistance|dmg", RESISTANCE],
+  ["absorbing tattoo|tce", [
+    "Produced by a special needle, this magic tattoo features designs that emphasize one color ({{item.detail1}}).",
+    {
+      name: "Damage Resistance",
+      type: "entries",
+      entries: ["While the tattoo is on your skin, you have resistance to {{item.resist}} damage."],
+    },
+  ]],
+]);
+
+describe("parseItemEntryTag", () => {
+  it("reads both forms the corpus writes", () => {
+    expect(parseItemEntryTag("{#itemEntry Potion of Resistance}")).toEqual({
+      name: "Potion of Resistance",
+      source: null,
+    });
+    expect(parseItemEntryTag("{#itemEntry Absorbing Tattoo|TCE}")).toEqual({
+      name: "Absorbing Tattoo",
+      source: "TCE",
+    });
+  });
+
+  /**
+   * All 170 citations are a whole element of `entries`, so a string that merely
+   * contains one is prose that happens to mention it, not a citation.
+   */
+  it("matches a whole string, never part of one", () => {
+    expect(parseItemEntryTag("See {#itemEntry Grenade|DMG} below.")).toBeNull();
+    expect(parseItemEntryTag("Ordinary prose.")).toBeNull();
+  });
+});
+
+describe("itemEntryKey", () => {
+  /** A citation with no source means the book it is written in. */
+  it("falls back to the citing item's own source", () => {
+    expect(itemEntryKey("Potion of Resistance", null, "DMG")).toBe(
+      "potion of resistance|dmg",
+    );
+    expect(itemEntryKey("Grenade", "DMG", "QftIS")).toBe("grenade|dmg");
+  });
+});
+
+describe("applyItemPlaceholders", () => {
+  it("fills a placeholder from the citing item", () => {
+    expect(
+      applyItemPlaceholders("resistance to {{item.resist}} damage", {
+        resist: ["fire"],
+      }),
+    ).toBe("resistance to fire damage");
+  });
+
+  it("substitutes nothing for a value the item does not carry", () => {
+    expect(applyItemPlaceholders("one color ({{item.detail1}})", {})).toBe(
+      "one color ()",
+    );
+  });
+
+  it("leaves text with no placeholder untouched", () => {
+    expect(applyItemPlaceholders("An ordinary sentence.", {})).toBe(
+      "An ordinary sentence.",
+    );
+  });
+});
+
+describe("resolveItemEntries", () => {
+  /** The 36 items whose citation is the whole of what they say. */
+  it("replaces a description that is nothing but a citation", () => {
+    expect(
+      resolveItemEntries(
+        ["{#itemEntry Armor of Resistance}"],
+        { source: "DMG", resist: ["fire"] },
+        TEMPLATES,
+      ),
+    ).toEqual(["You have resistance to fire damage while you wear this armor."]);
+  });
+
+  /** The 134 that keep their base item's paragraph and cite the second. */
+  it("replaces one paragraph and leaves the other standing", () => {
+    expect(
+      resolveItemEntries(
+        ["Plate consists of shaped, interlocking metal plates.", "{#itemEntry Armor of Resistance}"],
+        { source: "DMG", resist: ["acid"] },
+        TEMPLATES,
+      ),
+    ).toEqual([
+      "Plate consists of shaped, interlocking metal plates.",
+      "You have resistance to acid damage while you wear this armor.",
+    ]);
+  });
+
+  /** A template is a list of entries, so it is spliced in, not nested. */
+  it("splices a multi-entry template, filling it throughout", () => {
+    expect(
+      resolveItemEntries(
+        ["{#itemEntry Absorbing Tattoo|TCE}"],
+        { source: "TCE", resist: ["acid"], detail1: "green" },
+        TEMPLATES,
+      ),
+    ).toEqual([
+      "Produced by a special needle, this magic tattoo features designs that emphasize one color (green).",
+      {
+        name: "Damage Resistance",
+        type: "entries",
+        entries: ["While the tattoo is on your skin, you have resistance to acid damage."],
+      },
+    ]);
+  });
+
+  /** Printing the markup is the thing this exists to stop. */
+  it("drops a citation naming a template that does not exist", () => {
+    expect(
+      resolveItemEntries(["{#itemEntry No Such Thing}"], { source: "DMG" }, TEMPLATES),
+    ).toEqual([]);
+  });
+
+  it("leaves entries with no citation exactly as they were", () => {
+    const entries = ["Ordinary prose.", { type: "entries", entries: ["More."] }];
+
+    expect(resolveItemEntries(entries, { source: "DMG" }, TEMPLATES)).toEqual(entries);
+  });
+
+  /** 1,562 items have no `entries` key at all. */
+  it("passes through anything that is not an array", () => {
+    expect(resolveItemEntries(undefined, { source: "DMG" }, TEMPLATES)).toBeUndefined();
   });
 });

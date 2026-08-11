@@ -7,39 +7,39 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * top-level segment (`/compendium/spells`, `/compendium/traps`), because the
  * URL scheme requires one segment to name exactly one entity type.
  *
- * Most cards browse a whole type and take their route from it. Two kinds do
- * not, and both name their own `route`:
+ * Most cards browse a whole type and take their route from it. One kind does
+ * not and names its own `route`: **a slice of a type**. Sidekicks are `class`
+ * rows that happen to carry `isSidekick`, and they get a card because a player
+ * looking for one is not looking for a class. Such a card names no type at all.
  *
- * - **A slice of a type.** Sidekicks are `class` rows that happen to carry
- *   `isSidekick`, and they get a card because a player looking for one is not
- *   looking for a class. Such a card names no type at all.
- * - **A type that shares a list.** `baseitem` and `itemGroup` are browsed from
- *   `/compendium/items` with its category filter set, because nobody looking
- *   for a longsword knows the mundane one and the +1 are filed apart. They
- *   still name their type, so the index is still provably complete, and they
- *   still keep their own URL segment for the entities themselves — which is the
- *   same rule the route map follows: blend types in the list, never in the
- *   segment.
- *
- * One type has no card at all — see `WITHOUT_A_CARD`.
+ * Three types have no card — see `WITHOUT_A_CARD`.
  */
 
 /**
  * Browsable types the index deliberately does not list.
  *
- * `table` is the only one, and it is dropped rather than deferred. The seven
- * `table` entities are not where the ~351 `{@table}` references in book text
- * point: a real roll table lives inside the chapter that uses it and renders
- * there, and a chapter's table belongs to that chapter. A `/compendium/tables`
- * route would be a near-empty index for a type whose content is already
- * reachable where it is used.
+ * Each is dropped rather than deferred, and dropping a card drops the browse
+ * view, not the type: all three keep their URL segment so `hrefFor` still
+ * addresses their entities, and all three still open in the aside.
  *
- * Dropping the card drops the browse view, not the type. `table` keeps its URL
- * segment so `hrefFor` still addresses those seven, and it opens in the aside
- * like any other entity.
+ * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
+ *   references in book text point: a real roll table lives inside the chapter
+ *   that uses it and renders there, and a chapter's table belongs to that
+ *   chapter. A `/compendium/tables` route would be a near-empty index for a
+ *   type whose content is already reachable where it is used.
+ * - **`baseitem` and `itemGroup`.** Both are ingest artifacts rather than
+ *   distinctions a reader makes. `baseitem` is only the 124 PHB core rows —
+ *   567 of the 3,448 `item` rows are non-magic too, so the split is not magic
+ *   against mundane, which is what `isMagic` answers and what the rail already
+ *   asks. And a group is a heading over items that exist in their own right:
+ *   372 of 402 member references resolve to real rows, and 66 of the 73 groups
+ *   are reached from book text, which is where a group belongs — in the aside,
+ *   under the `{@item}` tag that cites it.
  */
 export const WITHOUT_A_CARD: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "table",
+  "baseitem",
+  "itemGroup",
 ]);
 
 export interface DirectoryEntry {
@@ -162,30 +162,15 @@ export const DIRECTORY: DirectoryGroup[] = [
         blurb: "Statblocks by challenge rating, type and size.",
       },
       /*
-       * Three cards, one list. `item`, `baseitem` and `itemGroup` are separate
-       * entity types and keep separate URL segments, but nobody browsing for a
-       * longsword knows that the mundane one and the +1 are filed apart — so
-       * the two narrower cards arrive at the same route with its category
-       * filter already set, the way the sidekicks card names its own route.
+       * One card, not three. `baseitem` and `itemGroup` used to have their own,
+       * pointing at this same list with its category filter set — but the split
+       * they advertised is not one a reader makes, and not one the data backs
+       * either: see `WITHOUT_A_CARD`.
        */
       {
         type: "item",
-        label: "Magic Items",
-        blurb: "By rarity, attunement and what carries them.",
-      },
-      {
-        type: "baseitem",
-        label: "Equipment",
-        blurb: "Weapons, armour and everything bought with gold.",
-        route: "/compendium/items?category=baseitem",
-        ready: true,
-      },
-      {
-        type: "itemGroup",
-        label: "Item Groups",
-        blurb: "Items that arrive as a set or a random table.",
-        route: "/compendium/items?category=itemGroup",
-        ready: true,
+        label: "Items",
+        blurb: "Weapons, armour, treasure and gear, by rarity and attunement.",
       },
     ],
   },

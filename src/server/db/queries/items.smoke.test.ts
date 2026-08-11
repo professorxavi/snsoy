@@ -26,11 +26,18 @@ import type * as ItemQueries from "./items";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
-/** Items in the published-material seed, across the three entity types. */
-const ITEM_COUNT = 3645;
+/**
+ * The `items` table holds 3,645 rows across three entity types, but the browse
+ * list covers two of them: a group is a heading over items that exist in their
+ * own right, and is read one at a time rather than listed.
+ */
+const ITEM_COUNT = 3572;
 const MAGIC_ITEM_COUNT = 3448;
 const BASE_ITEM_COUNT = 124;
 const ITEM_GROUP_COUNT = 73;
+
+/** Every row in the table, groups included — what the formatters run over. */
+const TABLE_ROW_COUNT = MAGIC_ITEM_COUNT + BASE_ITEM_COUNT + ITEM_GROUP_COUNT;
 
 describeDb("item queries against the seed", () => {
   let queries: typeof ItemQueries;
@@ -51,16 +58,30 @@ describeDb("item queries against the seed", () => {
 
   describe("listItems", () => {
     /**
-     * The whole point of the blend: one list covers all three entity types, so
+     * The whole point of the blend: one list covers both browsable types, so
      * someone looking for a longsword finds it without knowing that the mundane
      * one is a `baseitem` and the +1 is an `item`.
      */
-    it("lists all three item types as one corpus", async () => {
+    it("lists both browsable item types as one corpus", async () => {
       const list = await queries.listItems();
 
       expect(list.total).toBe(ITEM_COUNT);
+      expect(list.total).toBe(MAGIC_ITEM_COUNT + BASE_ITEM_COUNT);
       expect(list.rows).toHaveLength(50);
       expect(list.pageCount).toBe(Math.ceil(ITEM_COUNT / 50));
+    });
+
+    /**
+     * The line between browsed and addressable, which is the whole of what the
+     * `ITEM_TYPES` / `BROWSED_ITEM_TYPES` split buys. Dropping groups from the
+     * list must not drop them from the 386 references that reach one.
+     */
+    it("lists no item group, and still opens one", async () => {
+      const list = await queries.listItems({ perPage: ITEM_COUNT });
+      const group = await queries.getItem("itemGroup", "dmg", "bag-of-tricks");
+
+      expect(list.rows.some((row) => row.entityType === "itemGroup")).toBe(false);
+      expect(group?.name).toBe("Bag of Tricks");
     });
 
     it("orders by name by default", async () => {
@@ -102,7 +123,7 @@ describeDb("item queries against the seed", () => {
     it("filters by rarity", async () => {
       const list = await queries.listItems({ rarities: ["legendary"] });
 
-      expect(list.total).toBe(302);
+      expect(list.total).toBe(290);
       expect(list.rows.every((row) => row.rarity === "legendary")).toBe(true);
     });
 
@@ -110,12 +131,12 @@ describeDb("item queries against the seed", () => {
      * A category is an entity type, which is what keeps each row linking to its
      * own URL segment while they share one list.
      */
-    it("filters to one of the three categories", async () => {
+    it("filters to one of the two categories", async () => {
       const equipment = await queries.listItems({ categories: ["baseitem"] });
-      const groups = await queries.listItems({ categories: ["itemGroup"] });
+      const magic = await queries.listItems({ categories: ["item"] });
 
       expect(equipment.total).toBe(BASE_ITEM_COUNT);
-      expect(groups.total).toBe(ITEM_GROUP_COUNT);
+      expect(magic.total).toBe(MAGIC_ITEM_COUNT);
       expect(equipment.rows.every((row) => row.entityType === "baseitem")).toBe(true);
     });
 
@@ -127,7 +148,7 @@ describeDb("item queries against the seed", () => {
     it("filters by a synthetic type the corpus only flags", async () => {
       const list = await queries.listItems({ types: ["WON"] });
 
-      expect(list.total).toBe(670);
+      expect(list.total).toBe(637);
       expect(list.rows.every((row) => row.typeName === "Wondrous Item")).toBe(true);
     });
 
@@ -177,9 +198,14 @@ describeDb("item queries against the seed", () => {
       const facets = await queries.itemFacets();
 
       expect(facets.rarities).toHaveLength(10);
-      // 33 abbreviations the corpus uses, plus the three synthetic codes.
-      expect(facets.types).toHaveLength(36);
-      expect(facets.categories).toHaveLength(3);
+      /*
+       * 32 abbreviations the corpus uses, plus the three synthetic codes. One
+       * fewer than the table holds: `GV`, Generic Variant, is carried only by
+       * the two groups that stand for a family of variants — Armor of
+       * Resistance and Dragon's Wrath Weapon — so it leaves the rail with them.
+       */
+      expect(facets.types).toHaveLength(35);
+      expect(facets.categories).toHaveLength(2);
     });
 
     it("orders rarity by power rather than alphabetically", async () => {
@@ -212,13 +238,12 @@ describeDb("item queries against the seed", () => {
       );
     });
 
-    it("names the three categories for a player rather than a schema", async () => {
+    it("names the categories for a player rather than a schema", async () => {
       const facets = await queries.itemFacets();
 
       expect(facets.categories.map((facet) => facet.label)).toEqual([
         "Magic items",
         "Equipment",
-        "Groups",
       ]);
       expect(facets.categories.find((f) => f.value === "item")!.count).toBe(
         MAGIC_ITEM_COUNT,
@@ -276,8 +301,8 @@ describeDb("item queries against the seed", () => {
     it("counts the flag facets", async () => {
       const facets = await queries.itemFacets();
 
-      expect(facets.attunement.count).toBe(1622);
-      expect(facets.magic.count).toBe(2947);
+      expect(facets.attunement.count).toBe(1579);
+      expect(facets.magic.count).toBe(2882);
     });
   });
 
@@ -367,6 +392,43 @@ describeDb("item queries against the seed", () => {
       expect(sword!.data.dmg1).toBe("1d8");
       expect(sword!.weightLb).toBe(3);
     });
+
+    /**
+     * The 36 items whose whole description is a `{#itemEntry}` citation. Until
+     * the templates were read, this potion's panel printed the markup and
+     * nothing else — the citation *is* the description.
+     */
+    it("resolves a description that is nothing but a shared citation", async () => {
+      const potion = await queries.getItem("item", "dmg", "potion-of-fire-resistance");
+      const entries = potion!.data.entries as string[];
+
+      expect(entries).toEqual([
+        "When you drink this potion, you gain resistance to fire damage for 1 hour.",
+      ]);
+    });
+
+    /** The 134 that keep their base item's paragraph and cite the second. */
+    it("keeps the paragraph beside a citation and fills the placeholders", async () => {
+      const armor = await queries.getItem("item", "dmg", "plate-armor-of-fire-resistance");
+      const entries = armor!.data.entries as string[];
+
+      expect(entries).toHaveLength(2);
+      expect(entries[0]).toMatch(/^Plate consists of shaped/);
+      expect(entries[1]).toBe(
+        "You have resistance to fire damage while you wear this armor.",
+      );
+    });
+
+    /** A citation naming another book resolves there, not in the citing one. */
+    it("resolves a citation that names its own source", async () => {
+      const tattoo = await queries.getItem("item", "tce", "acid-absorbing-tattoo");
+      const text = JSON.stringify(tattoo!.data.entries);
+
+      expect(text).not.toContain("{#itemEntry");
+      expect(text).not.toContain("{{item.");
+      expect(text).toContain("one color (green)");
+      expect(text).toContain("resistance to acid damage");
+    });
   });
 
   /**
@@ -404,8 +466,10 @@ describeDb("item queries against the seed", () => {
       types = (await queries.itemVocabulary()).types;
     });
 
+    /** Every row in the table, not just the browsable ones: a group's line is
+     * printed in the aside like any other item's. */
     it("has the expected number of items", () => {
-      expect(all).toHaveLength(ITEM_COUNT);
+      expect(all).toHaveLength(TABLE_ROW_COUNT);
     });
 
     /**

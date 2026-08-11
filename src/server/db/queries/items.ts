@@ -14,6 +14,7 @@ import {
   itemTypeName,
   RARITY_ORDER,
   rarityRank,
+  resolveItemEntries,
 } from "@/lib/content/items";
 import { db } from "../client";
 import { items } from "../schema/content";
@@ -25,12 +26,19 @@ import { flagOption, toOptions, type FacetOption } from "./facets";
 /**
  * Item list and detail queries.
  *
- * **One list over three entity types.** `item`, `baseitem` and `itemGroup` all
- * live in the `items` table and all arrive under a single `{@item}` tag, and
- * someone looking for a longsword has no idea that the mundane one is a
- * `baseitem` and the +1 is an `item`. The URL scheme is untouched by that —
- * each row still links to its own segment, and the blend happens here in the
- * query, which is the one place the route map allows it.
+ * **One list over two of the three entity types.** `item`, `baseitem` and
+ * `itemGroup` all live in the `items` table and all arrive under a single
+ * `{@item}` tag, and someone looking for a longsword has no idea that the
+ * mundane one is a `baseitem` and the +1 is an `item` — so the list blends
+ * those two. The URL scheme is untouched by that: each row still links to its
+ * own segment, and the blend happens here in the query, which is the one place
+ * the route map allows it.
+ *
+ * `itemGroup` is read but not browsed. A group is a heading over items that
+ * exist in their own right, so listing the 73 of them beside their own members
+ * is a row for something nobody is looking for. They still open in the aside
+ * from the 66 groups book text cites — which is the difference `ITEM_TYPES` and
+ * `BROWSED_ITEM_TYPES` carry between them.
  *
  * The typed columns are for filtering and are lossy in the usual way, so
  * display values come out of `data`. One column is worse than lossy:
@@ -41,18 +49,30 @@ import { flagOption, toOptions, type FacetOption } from "./facets";
 
 export const ITEMS_PER_PAGE = 50;
 
-/** The three types the list blends. Order decides nothing; membership does. */
+/**
+ * Every type the `items` table holds. What `getItem` and the aside address,
+ * which is why `itemGroup` is here. Order decides nothing; membership does.
+ */
 export const ITEM_TYPES = ["item", "baseitem", "itemGroup"] as const;
 
 export type ItemEntityType = (typeof ITEM_TYPES)[number];
+
+/**
+ * The types the browse list covers, which is a narrower question — see the
+ * module comment. Everything scoping the list, the facets and the flag counts
+ * reads this; everything addressing a single entity reads `ITEM_TYPES`.
+ */
+export const BROWSED_ITEM_TYPES = ["item", "baseitem"] as const;
+
+export type ItemCategory = (typeof BROWSED_ITEM_TYPES)[number];
 
 export interface ItemFilters {
   /** "rare", "very rare", "none" — as stored, not as labelled. */
   rarities?: string[];
   /** Type abbreviations, including the synthetic `WON`, `STF` and `PSN`. */
   types?: string[];
-  /** Which of the three entity types: magic items, equipment or groups. */
-  categories?: ItemEntityType[];
+  /** Which side of the list: magic items or equipment. */
+  categories?: ItemCategory[];
   sources?: string[];
   attunement?: boolean;
   magic?: boolean;
@@ -108,9 +128,10 @@ const RARITY_RANK = sql<number>`
  */
 function buildWhere(f: ItemFilters, skip?: keyof ItemFilters): SQL | undefined {
   const clauses: (SQL | undefined)[] = [
-    // Not a filter: the three types are the whole of what this list covers, and
-    // the join is on `items`, whose rows are exactly those three.
-    inArray(entities.entityType, [...ITEM_TYPES]),
+    // Not a filter: these two types are the whole of what this list covers.
+    // The join is on `items`, whose rows are those two plus the groups, and the
+    // groups are read one at a time rather than browsed.
+    inArray(entities.entityType, [...BROWSED_ITEM_TYPES]),
   ];
 
   if (skip !== "rarities" && f.rarities?.length)
@@ -252,10 +273,24 @@ export async function getItem(
 
   if (!row) return null;
 
-  const { types } = await itemVocabulary();
+  const [{ types }, templates] = await Promise.all([
+    itemVocabulary(),
+    itemEntryTemplates(),
+  ]);
+
+  /*
+   * Spliced here rather than in the panel, so that everything downstream sees
+   * prose — `collectReferences`, the renderer and `ItemDetail`'s own
+   * `applyBaseName` pass alike. See `resolveItemEntries`.
+   */
+  const data: Record<string, unknown> = {
+    ...row.data,
+    entries: resolveItemEntries(row.data["entries"], row.data, templates),
+  };
 
   return {
     ...row,
+    data,
     entityType: row.entityType as ItemEntityType,
     typeName: itemTypeName(row.typeCode, types),
   };
@@ -310,6 +345,37 @@ export const itemVocabulary = cache(async (): Promise<ItemVocabulary> => {
   return { types, properties };
 });
 
+/**
+ * The descriptions many items share, keyed as `name|source`.
+ *
+ * Six rows, cited by 170 items. The corpus writes a description that applies to
+ * a whole family once — every Armor of Resistance says the same sentence — and
+ * each member carries a `{#itemEntry}` citation where the paragraph belongs.
+ * Nothing read this kind of `support_data` until now, so all 170 printed the
+ * citation; see `resolveItemEntries`.
+ *
+ * Cached per request like the vocabulary, and for the same reason: every open
+ * item asks for the same six rows.
+ */
+export const itemEntryTemplates = cache(
+  async (): Promise<ReadonlyMap<string, unknown[]>> => {
+    const rows = await db
+      .select({
+        key: supportData.key,
+        template: sql<unknown[] | null>`${supportData.data}->'entriesTemplate'`,
+      })
+      .from(supportData)
+      .where(eq(supportData.kind, "itemEntry"));
+
+    const templates = new Map<string, unknown[]>();
+    for (const row of rows) {
+      if (Array.isArray(row.template)) templates.set(row.key.toLowerCase(), row.template);
+    }
+
+    return templates;
+  },
+);
+
 /* ------------------------------------------------------------------ *
  * Facets
  * ------------------------------------------------------------------ */
@@ -317,7 +383,7 @@ export const itemVocabulary = cache(async (): Promise<ItemVocabulary> => {
 export interface ItemFacetOptions {
   rarities: FacetOption<string>[];
   types: FacetOption<string>[];
-  categories: FacetOption<ItemEntityType>[];
+  categories: FacetOption<ItemCategory>[];
   attunement: FacetOption<"attunement">;
   magic: FacetOption<"magic">;
 }
@@ -335,7 +401,7 @@ async function facetCounts(
   skip: keyof ItemFilters,
 ): Promise<{ value: string; n: number }[]> {
   const where = buildWhere(filters, skip);
-  const scope = inArray(entities.entityType, [...ITEM_TYPES]);
+  const scope = inArray(entities.entityType, [...BROWSED_ITEM_TYPES]);
 
   const rows = await db
     .select({
@@ -351,11 +417,10 @@ async function facetCounts(
   return rows.map((row) => ({ value: row.value, n: Number(row.n) }));
 }
 
-/** Player-facing names for the three entity types the list blends. */
-const CATEGORY_LABELS: Record<ItemEntityType, string> = {
+/** Player-facing names for the two entity types the list blends. */
+const CATEGORY_LABELS: Record<ItemCategory, string> = {
   item: "Magic items",
   baseitem: "Equipment",
-  itemGroup: "Groups",
 };
 
 /** Every filter option, with the counts the rail shows beside them. */
@@ -374,7 +439,7 @@ export async function itemFacets(
       })
       .from(items)
       .innerJoin(entities, eq(entities.id, items.entityId))
-      .where(inArray(entities.entityType, [...ITEM_TYPES]));
+      .where(inArray(entities.entityType, [...BROWSED_ITEM_TYPES]));
     return Number(row?.n ?? 0);
   };
 
@@ -406,9 +471,9 @@ export async function itemFacets(
       nameFor,
     ),
     categories: toOptions(
-      categories as { value: ItemEntityType; n: number }[],
+      categories as { value: ItemCategory; n: number }[],
       filters.categories ?? [],
-      (a, b) => ITEM_TYPES.indexOf(a) - ITEM_TYPES.indexOf(b),
+      (a, b) => BROWSED_ITEM_TYPES.indexOf(a) - BROWSED_ITEM_TYPES.indexOf(b),
       (value) => CATEGORY_LABELS[value],
     ),
     attunement: flagOption("attunement", attuneCount, filters.attunement === true),

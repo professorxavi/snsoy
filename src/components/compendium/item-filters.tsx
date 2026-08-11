@@ -16,10 +16,11 @@ import type { ItemFacetOptions } from "@/server/db/queries/items";
  * appropriate to hand this party — and the rest narrows what rarity has already
  * answered.
  *
- * Category comes second and is the only facet that says anything about how the
- * corpus is organised. It earns the place because the three entity types answer
- * genuinely different questions: a magic item is treasure, equipment is
- * shopping, and a group is a table to roll on.
+ * Category comes second, and is the coarsest cut the list makes: treasure
+ * against shopping. It is not the magic question, which `isMagic` answers and
+ * which has its own control below — 567 of the 3,448 `item` rows are non-magic.
+ * Item groups used to be a third option here and are no longer browsed at all;
+ * see `BROWSED_ITEM_TYPES`.
  *
  * All 36 types are listed rather than banded into "weapons" and "armour". A
  * band is a judgement the data does not make, and someone looking for a

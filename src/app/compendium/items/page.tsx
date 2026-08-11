@@ -17,10 +17,10 @@ import {
   type QueryParams,
 } from "@/lib/query-params";
 import {
-  ITEM_TYPES,
+  BROWSED_ITEM_TYPES,
   itemFacets,
   listItems,
-  type ItemEntityType,
+  type ItemCategory,
   type ItemFilters as ItemFilterValues,
   type ItemSort,
 } from "@/server/db/queries/items";
@@ -28,7 +28,7 @@ import {
 export const metadata: Metadata = {
   title: "Items",
   description:
-    "Magic items, equipment and item groups, filtered by rarity, type and attunement.",
+    "Weapons, armour, treasure and gear, filtered by rarity, type and attunement.",
 };
 
 const BASE = "/compendium/items";
@@ -37,7 +37,7 @@ const BASE = "/compendium/items";
  * The item browse view. Filters, sort and page are read from the URL and
  * nowhere else, and resolved in the database rather than the browser.
  *
- * One list over three entity types — see `listItems`. The blend happens in the
+ * One list over two entity types — see `listItems`. The blend happens in the
  * query and nowhere near a URL: every row still links to its own segment.
  */
 export default async function ItemsPage({
@@ -85,13 +85,14 @@ export default async function ItemsPage({
 
 /**
  * URL keys are short and singular; the query's are spelled out. `category` is
- * validated against the three entity types rather than passed through, since it
- * reaches an `IN` clause on an enum column — an unknown value would be a
- * database error rather than an empty result.
+ * validated against the types the list actually covers rather than passed
+ * through, since it reaches an `IN` clause on an enum column — an unknown value
+ * would be a database error rather than an empty result, and `itemGroup` is a
+ * real enum value that this list no longer browses.
  */
 function readFilters(params: QueryParams): ItemFilterValues {
-  const categories = readList(params, "category").filter((value): value is ItemEntityType =>
-    (ITEM_TYPES as readonly string[]).includes(value),
+  const categories = readList(params, "category").filter((value): value is ItemCategory =>
+    (BROWSED_ITEM_TYPES as readonly string[]).includes(value),
   );
 
   return {

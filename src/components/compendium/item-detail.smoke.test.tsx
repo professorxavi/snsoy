@@ -35,13 +35,17 @@ const KNOWN_TAG_GAPS = ["color"] as const;
 describeDb("the item panel over the whole corpus", () => {
   let gaps: { kind: string; name: string }[];
   let rendered: number;
+  let markup: string[];
 
   beforeAll(async () => {
     const { eq } = await import("drizzle-orm");
     const { db } = await import("@/server/db/client");
     const { items } = await import("@/server/db/schema/content");
     const { entities } = await import("@/server/db/schema/entities");
-    const { itemVocabulary } = await import("@/server/db/queries/items");
+    const { itemEntryTemplates, itemVocabulary } = await import(
+      "@/server/db/queries/items"
+    );
+    const { resolveItemEntries } = await import("@/lib/content/items");
 
     const rows = await db
       .select({
@@ -60,9 +64,13 @@ describeDb("the item panel over the whole corpus", () => {
       .from(items)
       .innerJoin(entities, eq(entities.id, items.entityId));
 
-    const vocabulary = await itemVocabulary();
+    const [vocabulary, templates] = await Promise.all([
+      itemVocabulary(),
+      itemEntryTemplates(),
+    ]);
 
     rendered = rows.length;
+    markup = [];
     resetCoverage();
 
     for (const row of rows) {
@@ -71,14 +79,24 @@ describeDb("the item panel over the whole corpus", () => {
       // rendering rather than the lookup.
       const item = {
         ...row,
+        // This test reads the table directly rather than through `getItem`, so
+        // the shared descriptions have to be spliced here the way the query
+        // splices them — otherwise the 170 items that cite one would be swept
+        // over the markup they were meant to stop printing.
+        data: {
+          ...row.data,
+          entries: resolveItemEntries(row.data["entries"], row.data, templates),
+        },
         sourceName: row.sourceId,
         typeName: row.itemType,
       } as unknown as ItemDetailRow;
 
-      renderToStaticMarkup(
-        <ChakraProvider value={system}>
-          <ItemDetail item={item} refs={{}} vocabulary={vocabulary.properties} />
-        </ChakraProvider>,
+      markup.push(
+        renderToStaticMarkup(
+          <ChakraProvider value={system}>
+            <ItemDetail item={item} refs={{}} vocabulary={vocabulary.properties} />
+          </ChakraProvider>,
+        ),
       );
     }
 
@@ -105,6 +123,24 @@ describeDb("the item panel over the whole corpus", () => {
    */
   it("meets no entry type it cannot render", () => {
     expect(gaps.filter((gap) => gap.kind === "entry")).toEqual([]);
+  });
+
+  /**
+   * The ratchet on the shared descriptions.
+   *
+   * `{#itemEntry}` is not a tag the renderer knows about and never will — it
+   * falls through `splitByTags` as ordinary text, so it reports no coverage gap
+   * and shows up only as markup printed in the middle of a panel. 170 items did
+   * exactly that, 36 of them with nothing else to show. The only way to catch it
+   * is to read the rendered output.
+   */
+  it("prints no unresolved citation or placeholder in any panel", () => {
+    const leaked = markup
+      .map((html, index) => ({ html, index }))
+      .filter(({ html }) => html.includes("{#itemEntry") || html.includes("{{item."))
+      .map(({ index }) => index);
+
+    expect(leaked).toEqual([]);
   });
 
   it("meets no tag outside the known gaps", () => {

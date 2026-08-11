@@ -16,9 +16,10 @@ import type { ItemRow, ItemSort } from "@/server/db/queries/items";
  * itself is one click away in the aside, so a column here has to earn its width
  * against being read there instead.
  *
- * Rows come from three entity types at once and each links to its own segment,
- * which is what lets one list cover magic items, mundane gear and item groups
- * without merging them in a URL.
+ * Rows come from two entity types at once and each links to its own segment,
+ * which is what lets one list cover magic items and mundane gear without
+ * merging them in a URL. `hrefFor` reads the row's own type rather than the
+ * list's, so an `itemGroup` opened from book text still addresses correctly.
  *
  * Columns marked `optional` drop out when the aside opens, which leaves the
  * table around 500px.

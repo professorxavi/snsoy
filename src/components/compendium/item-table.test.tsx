@@ -107,7 +107,7 @@ describe("ItemTable", () => {
 
   describe("the name link", () => {
     /**
-     * The point of blending three entity types in one list: each row addresses
+     * The point of blending two entity types in one list: each row addresses
      * the segment for its own type, so the list can mix them while the URL
      * scheme keeps one segment to one type.
      */
@@ -123,13 +123,6 @@ describe("ItemTable", () => {
               sourceId: "DMG",
               entityType: "item",
             }),
-            row({
-              id: "3",
-              name: "Bag of Tricks",
-              slug: "bag-of-tricks",
-              sourceId: "DMG",
-              entityType: "itemGroup",
-            }),
           ]}
           params={{}}
           open={open()}
@@ -143,10 +136,6 @@ describe("ItemTable", () => {
       expect(screen.getByRole("link", { name: "+1 Longsword" })).toHaveAttribute(
         "href",
         "/compendium/items/dmg/1-longsword",
-      );
-      expect(screen.getByRole("link", { name: "Bag of Tricks" })).toHaveAttribute(
-        "href",
-        "/compendium/item-groups/dmg/bag-of-tricks",
       );
     });
   });

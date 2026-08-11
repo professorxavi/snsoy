@@ -56,7 +56,7 @@ describe("the directory covers the route map", () => {
     }
   });
 
-  /** The default, and what all but three cards do. */
+  /** The default, and what every typed card does now. */
   it("points a typed entry at its own list route unless it names another", () => {
     for (const entry of typed.filter((candidate) => !candidate.route)) {
       expect(entryHref(entry)).toBe(`/compendium/${segmentFor(entry.type!)}`);
@@ -65,28 +65,21 @@ describe("the directory covers the route map", () => {
   });
 
   /**
-   * Two kinds of card carry their own route: one that browses a slice of a type
-   * — sidekicks are `class` rows — and one whose type shares a list with
-   * another, as `baseitem` and `itemGroup` share `/compendium/items`. Neither
-   * can take its route from the route map, and neither can let `IMPLEMENTED`
-   * answer for whether that route exists.
+   * One kind of card carries its own route: one that browses a slice of a type
+   * — sidekicks are `class` rows. It cannot take its route from the route map,
+   * and it cannot let `IMPLEMENTED` answer for whether that route exists,
+   * because `IMPLEMENTED` answers for a type's own list and this is not one.
+   *
+   * There used to be a second kind — a type whose card pointed at a list it
+   * shared, as `baseitem` and `itemGroup` pointed at `/compendium/items` with a
+   * category set. Both are in `WITHOUT_A_CARD` now, so a typed card with its
+   * own route no longer exists; the shape is still allowed and still checked.
    */
   it("keeps a card's own route under the compendium, and says if it is live", () => {
     for (const entry of entries.filter((candidate) => candidate.route)) {
       // A query string is allowed: a shared list is reached with its filter set.
       expect(entry.route).toMatch(/^\/compendium\/[a-z-]+(\?[\w=&]+)?$/);
       expect(typeof entry.ready).toBe("boolean");
-    }
-  });
-
-  /**
-   * A card sharing a list must still leave its entities addressable under their
-   * own segment, or the blend has leaked out of the query and into the URL.
-   */
-  it("keeps a segment for a type whose card points at a shared list", () => {
-    for (const entry of typed.filter((candidate) => candidate.route)) {
-      expect(segmentFor(entry.type!)).not.toBeNull();
-      expect(entry.route).not.toBe(listHrefFor(entry.type!));
     }
   });
 

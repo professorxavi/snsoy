@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { FacetOption } from "@/server/db/queries/facets";
-import type { ItemEntityType, ItemFacetOptions } from "@/server/db/queries/items";
+import type { ItemCategory, ItemFacetOptions } from "@/server/db/queries/items";
 import { render, screen, within } from "@/test/render";
 import { ItemFilters } from "./item-filters";
 
@@ -31,9 +31,8 @@ const facets = (over: Partial<ItemFacetOptions> = {}): ItemFacetOptions => ({
     option("WON", { label: "Wondrous Item" }),
   ],
   categories: [
-    option<ItemEntityType>("item", { label: "Magic items" }),
-    option<ItemEntityType>("baseitem", { label: "Equipment" }),
-    option<ItemEntityType>("itemGroup", { label: "Groups" }),
+    option<ItemCategory>("item", { label: "Magic items" }),
+    option<ItemCategory>("baseitem", { label: "Equipment" }),
   ],
   attunement: option("attunement"),
   magic: option("magic"),

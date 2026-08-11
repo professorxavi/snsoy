@@ -16,6 +16,8 @@
  * many take each branch.
  */
 
+import { getPath, walkStrings } from "./walk";
+
 const EM_DASH = "—";
 
 /* ------------------------------------------------------------------ *
@@ -415,6 +417,125 @@ function indefiniteArticle(word: string): string {
 
 function titleCase(value: string): string {
   return value.replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+/* ------------------------------------------------------------------ *
+ * Shared entries
+ * ------------------------------------------------------------------ */
+
+/**
+ * `{#itemEntry Name}` citations, resolved against the shared description they
+ * name.
+ *
+ * The corpus writes a description that many items share exactly once and cites
+ * it from each of them, as a literal string standing where a paragraph belongs.
+ * `splitByTags` opens a tag only on `{@` or `{=`, so `{#…}` falls through as
+ * text and 170 items print the citation instead of the prose: for 36 of them —
+ * Potion of Fire Resistance, Acid Absorbing Tattoo, Red Chromatic Rose — the
+ * citation is the *whole* description.
+ *
+ * The referent is already ingested, as six `support_data` rows of kind
+ * `itemEntry`, so this is a lookup the app was never performing rather than
+ * anything missing from the data.
+ *
+ * All 170 occurrences are a whole top-level element of `entries` (measured), so
+ * a citation is matched as an entire string rather than scanned for inside one.
+ */
+const ITEM_ENTRY_PATTERN = /^\{#itemEntry\s+([^}|]+?)\s*(?:\|\s*([^}|]+?)\s*)?\}$/;
+
+export interface ItemEntryTag {
+  name: string;
+  /** Absent on the DMG citations, which mean "the book I am in". */
+  source: string | null;
+}
+
+export function parseItemEntryTag(text: string): ItemEntryTag | null {
+  const match = ITEM_ENTRY_PATTERN.exec(text.trim());
+  if (!match) return null;
+
+  return { name: match[1]!, source: match[2] ?? null };
+}
+
+/**
+ * How a citation addresses a template: `name|source`, lowercased, which is how
+ * `support_data` keys them.
+ *
+ * A citation with no source means the book it is written in. The three
+ * sourceless forms — Potion, Ring and Armor of Resistance — are all cited from
+ * DMG items and all resolve to DMG templates; the grenades name `Grenade|DMG`
+ * explicitly because two of the five are in QftIS. All 170 resolve under this
+ * rule.
+ */
+export function itemEntryKey(
+  name: string,
+  source: string | null,
+  itemSource: string,
+): string {
+  return `${name.toLowerCase()}|${(source ?? itemSource).toLowerCase()}`;
+}
+
+/**
+ * `{{item.resist}}` and `{{item.detail1}}`, filled from the citing item.
+ *
+ * A template is written once for every item that shares it, so the two facts
+ * that differ between them are read off the item rather than written into the
+ * prose — which is what lets one paragraph serve 130 Armor of Resistance
+ * variants. Both are the corpus's own placeholders and both are the only ones
+ * it uses.
+ *
+ * An array joins with commas (`resist` is length 1 on every item carrying one),
+ * and a value the item does not have substitutes nothing rather than leaving
+ * the placeholder standing.
+ */
+const ITEM_PLACEHOLDER_PATTERN = /\{\{item\.([\w.]+)\}\}/g;
+
+export function applyItemPlaceholders(
+  text: string,
+  data: Record<string, unknown>,
+): string {
+  if (!text.includes("{{item.")) return text;
+
+  return text.replace(ITEM_PLACEHOLDER_PATTERN, (_match, path: string) => {
+    const value = getPath(data, path.split("."));
+    if (value == null) return "";
+    return Array.isArray(value) ? value.join(", ") : String(value);
+  });
+}
+
+/**
+ * An item's entries with every citation replaced by the description it names.
+ *
+ * Spliced rather than nested: a template is an array of entries and the
+ * citation is one element, so the template's entries take its place in the
+ * list. A citation naming a template that does not exist is dropped — printing
+ * the markup is what this exists to stop.
+ *
+ * Done in the query rather than the renderer, so that everything downstream is
+ * handed prose: the panel sets the `{@dc}` and `{@damage}` tags a template
+ * carries as it sets any others, `applyBaseName` runs over the spliced text
+ * too, and a reference a template gains later resolves in the same pass as the
+ * item's own rather than needing a second one.
+ */
+export function resolveItemEntries(
+  entries: unknown,
+  data: Record<string, unknown>,
+  templates: ReadonlyMap<string, unknown[]>,
+): unknown {
+  if (!Array.isArray(entries)) return entries;
+
+  const itemSource = typeof data["source"] === "string" ? data["source"] : "";
+
+  return entries.flatMap((entry) => {
+    if (typeof entry !== "string") return [entry];
+
+    const tag = parseItemEntryTag(entry);
+    if (!tag) return [entry];
+
+    const template = templates.get(itemEntryKey(tag.name, tag.source, itemSource));
+    if (!template) return [];
+
+    return walkStrings(template, (text) => applyItemPlaceholders(text, data));
+  });
 }
 
 /* ------------------------------------------------------------------ *
