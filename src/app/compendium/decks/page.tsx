@@ -35,10 +35,9 @@ const BASE = listHrefFor("deck");
 /**
  * The decks browse view.
  *
- * 31 rows, and deliberately kept apart from the 656 cards at
- * `/compendium/cards`: a deck and a card answer different questions, and one
- * alphabetical list of both would file the Deck of Many Things twenty rows from
- * the cards it deals.
+ * 31 rows, and the only way into the 656 cards: a card is met through its deck,
+ * so the panel this list opens is where the cards are. There was a second list
+ * at `/compendium/cards` and it is gone — see `WITHOUT_A_CARD`.
  */
 export default async function DecksPage({
   searchParams,

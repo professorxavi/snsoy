@@ -15,11 +15,13 @@ export const metadata: Metadata = {
 };
 
 /**
- * The compendium index: 31 content types in five groups, every one of them a
- * live link.
+ * The compendium index: 20 cards in five groups, every one of them a live link.
+ *
+ * Fewer cards than there are browse views, on purpose — nine types keep their
+ * list route without being advertised here; see `BUILT_BUT_UNLISTED`.
  *
  * For most of this project's life the page was mostly dashed "Not yet built"
- * cards; `IMPLEMENTED` and `DIRECTORY` now agree completely, so that branch
+ * cards; every type `DIRECTORY` lists is now implemented, so that branch
  * renders nothing. It is kept anyway. It is the only thing standing between a
  * type added to `routes.ts` ahead of its browse view and a card that links
  * confidently to a 404 — and a guard that has stopped firing is not the same

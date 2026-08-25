@@ -12,15 +12,16 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * rows that happen to carry `isSidekick`, and they get a card because a player
  * looking for one is not looking for a class. Such a card names no type at all.
  *
- * Three types have no card — see `WITHOUT_A_CARD`.
+ * Thirteen types have no card, for two different reasons — see
+ * `WITHOUT_A_CARD`.
  */
 
 /**
- * Browsable types the index deliberately does not list.
+ * Browsable types with no browse view, and so nothing for a card to point at.
  *
  * Each is dropped rather than deferred, and dropping a card drops the browse
- * view, not the type: all three keep their URL segment so `hrefFor` still
- * addresses their entities, and all three still open in the aside.
+ * view, not the type: all four keep their URL segment so `hrefFor` still
+ * addresses their entities, and all four still open in the aside.
  *
  * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
  *   references in book text point: a real roll table lives inside the chapter
@@ -35,12 +36,48 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   372 of 402 member references resolve to real rows, and 66 of the 73 groups
  *   are reached from book text, which is where a group belongs — in the aside,
  *   under the `{@item}` tag that cites it.
+ * - **`card`.** A card is only ever met through its deck, and the deck panel
+ *   already lists every card it deals. A flat list of all 656 was the one place
+ *   in the app where that context had to be rebuilt with a facet — the rail's
+ *   sole filter was the deck — which is a list earning its keep by undoing its
+ *   own premise. `/compendium/decks` stays, and the aside still opens a card
+ *   from a deck's contents or from a `{@card}` tag in a chapter.
  */
-export const WITHOUT_A_CARD: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
-  "table",
-  "baseitem",
-  "itemGroup",
-]);
+export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
+  new Set<BrowsableType>(["table", "baseitem", "itemGroup", "card"]);
+
+/**
+ * Types whose browse view is built and kept, but which the index no longer
+ * advertises.
+ *
+ * Unlike the three above, these have a list route and it stays: a URL typed by
+ * hand still lands on the table, the aside and the entity page are untouched,
+ * and every `{@sense}` or `{@trap}` tag in book text resolves as before. Only
+ * the way in from the index is gone.
+ *
+ * They come off the index because a card is the scarcest thing on it. Some are
+ * small enough that a directory entry promises more than it delivers, and the
+ * rest are reached from the thing that cites them rather than looked up cold: a
+ * reader meets darkvision on a statblock and a pit trap in a room description,
+ * and follows the tag there. Nine cards spent that way crowd the twenty that
+ * answer a question somebody actually arrives with.
+ */
+export const BUILT_BUT_UNLISTED: ReadonlySet<BrowsableType> =
+  new Set<BrowsableType>([
+    "sense",
+    "status",
+    "boon",
+    "reward",
+    "recipe",
+    "cult",
+    "trap",
+    "hazard",
+    "object",
+  ]);
+
+/** Everything the index leaves out, whichever of the two reasons applies. */
+export const WITHOUT_A_CARD: ReadonlySet<BrowsableType> =
+  new Set<BrowsableType>([...WITHOUT_A_BROWSE_VIEW, ...BUILT_BUT_UNLISTED]);
 
 export interface DirectoryEntry {
   /** The type this card browses, when it browses a whole one. */
@@ -67,10 +104,11 @@ export interface DirectoryGroup {
 /**
  * Types with a browse view built.
  *
- * Now every type the index lists, which is what the last batch was for — the
- * "not yet built" card the index used to render has gone with it. Kept as a set
- * rather than folded away because a type added to `routes.ts` before its view
- * exists must still be listed inert rather than linking to a 404.
+ * Every type the index lists, plus the nine in `BUILT_BUT_UNLISTED` whose view
+ * outlived their card — so the "not yet built" card the index used to render
+ * has nothing left to render. Kept as a set rather than folded away because a
+ * type added to `routes.ts` before its view exists must still be listed inert
+ * rather than linking to a 404.
  */
 export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "spell",
@@ -98,7 +136,6 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "reward",
   "cult",
   "boon",
-  "card",
   "deck",
   "vehicle",
   "vehicleUpgrade",
@@ -184,11 +221,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         blurb: "Blinded, charmed, prone and the rest.",
       },
       {
-        type: "status",
-        label: "Statuses",
-        blurb: "Concentration, surprise and similar markers.",
-      },
-      {
         type: "action",
         label: "Actions",
         blurb: "What you can do on your turn.",
@@ -197,11 +229,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         type: "skill",
         label: "Skills",
         blurb: "What each skill actually covers.",
-      },
-      {
-        type: "sense",
-        label: "Senses",
-        blurb: "Darkvision, tremorsense and truesight.",
       },
       {
         type: "variantrule",
@@ -224,26 +251,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         label: "Deities",
         blurb: "Pantheons, domains and holy symbols.",
       },
-      {
-        type: "cult",
-        label: "Cults",
-        blurb: "Followings, and what they serve.",
-      },
-      {
-        type: "boon",
-        label: "Boons",
-        blurb: "Epic gifts for characters past 20th level.",
-      },
-      {
-        type: "reward",
-        label: "Rewards",
-        blurb: "Blessings, charms and supernatural favours.",
-      },
-      {
-        type: "recipe",
-        label: "Recipes",
-        blurb: "Food and drink, with what they do.",
-      },
     ],
   },
   {
@@ -251,24 +258,9 @@ export const DIRECTORY: DirectoryGroup[] = [
     label: "DM Tools",
     entries: [
       {
-        type: "trap",
-        label: "Traps",
-        blurb: "A trigger, an effect and a way to beat it.",
-      },
-      {
-        type: "hazard",
-        label: "Hazards",
-        blurb: "Dangers that come with the terrain.",
-      },
-      {
         type: "disease",
         label: "Diseases",
         blurb: "Afflictions and how they worsen.",
-      },
-      {
-        type: "object",
-        label: "Objects",
-        blurb: "Breakable things, with armour class and hit points.",
       },
       {
         type: "vehicle",
@@ -281,20 +273,14 @@ export const DIRECTORY: DirectoryGroup[] = [
         blurb: "Components and modifications.",
       },
       /*
-       * Two cards and two lists, not one blended list. A deck and a card answer
-       * different questions — "which deck is this" against "what does this card
-       * do" — and 31 decks alphabetised among 656 cards would file the Deck of
-       * Many Things twenty rows away from the cards it deals.
+       * One card for the pair. Cards used to have their own, next to this one:
+       * a deck and a card do answer different questions, but only the deck's is
+       * asked from an index — see `WITHOUT_A_CARD`.
        */
       {
         type: "deck",
         label: "Decks",
-        blurb: "Decks of many things, and their relatives.",
-      },
-      {
-        type: "card",
-        label: "Cards",
-        blurb: "The individual cards those decks deal.",
+        blurb: "Decks of many things, and the cards they deal.",
       },
     ],
   },
