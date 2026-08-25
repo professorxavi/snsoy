@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { AsideProvider } from "@/components/compendium/aside-context";
 import { render, screen, within } from "@/test/render";
 import type { ClassDetail } from "@/server/db/queries/classes";
 import ClassPage, { generateMetadata } from "./page";
@@ -104,8 +105,17 @@ const fighter = (over: Partial<ClassDetail> = {}): ClassDetail =>
 /** The id the page anchors its subclass section on. */
 const SUBCLASSES_ID = "subclasses";
 
+/**
+ * Wrapped in the aside's provider: a class's features cite spells, conditions
+ * and creatures, and those open beside the page rather than leaving it, through
+ * a wrapper that reads context.
+ */
 const renderPage = async (source = "phb", slug = "fighter") =>
-  render(await ClassPage({ params: Promise.resolve({ source, slug }) }));
+  render(
+    <AsideProvider>
+      {await ClassPage({ params: Promise.resolve({ source, slug }) })}
+    </AsideProvider>,
+  );
 
 /**
  * The outline is a wide-viewport element and jsdom never evaluates the media

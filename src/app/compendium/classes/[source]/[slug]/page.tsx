@@ -2,6 +2,8 @@ import { Box, Stack, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import { notFound } from "next/navigation";
+import { openEntityAside } from "@/app/aside-actions";
+import { AsideLinks } from "@/components/compendium/aside-links";
 import { ClassTable } from "@/components/compendium/class-table";
 import {
   fluffImages,
@@ -291,7 +293,13 @@ export default async function ClassPage({ params }: RouteParams) {
       }
       plateSide={plateSide}
     >
-      <Box>
+      {/*
+        Wrapped so cross-references open beside the page instead of leaving it.
+        Class features are the densest prose in the app for them — 1,441 tags
+        across the thirteen classes — and following one used to cost the reader
+        the class they were reading.
+      */}
+      <AsideLinks load={openEntityAside}>
         <Box as="header" mb="6">
           <Text
             fontFamily="ui"
@@ -558,7 +566,7 @@ export default async function ClassPage({ params }: RouteParams) {
             </Text>
           </Box>
         ) : null}
-      </Box>
+      </AsideLinks>
     </ReadingColumn>
   );
 }

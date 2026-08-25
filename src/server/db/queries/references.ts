@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import {
   EMPTY_REFERENCES,
   parentKeyFor,
@@ -8,7 +8,7 @@ import {
 import { hrefFor, isFragmentType } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
 import { db } from "../client";
-import { entities, entityLinks } from "../schema/entities";
+import { entities } from "../schema/entities";
 
 /**
  * Resolves inline cross-references to URLs.
@@ -84,46 +84,4 @@ export async function resolveReferences(
   }
 
   return index;
-}
-
-export interface InboundReference {
-  id: string;
-  name: string;
-  entityType: EntityType;
-  sourceId: string;
-  href: string | null;
-}
-
-/**
- * What refers to this entity, read from `entity_links`. Fireball has 224
- * inbound references across ten entity types.
- *
- * Fragments are skipped: they need a parent to be addressable, and an
- * unclickable row is no use in a "referenced by" list.
- */
-export async function inboundReferences(
-  entityId: string,
-): Promise<InboundReference[]> {
-  const rows = await db
-    .selectDistinct({
-      id: entities.id,
-      name: entities.name,
-      entityType: entities.entityType,
-      sourceId: entities.sourceId,
-      slug: entities.slug,
-    })
-    .from(entityLinks)
-    .innerJoin(entities, eq(entities.id, entityLinks.fromId))
-    .where(and(eq(entityLinks.toId, entityId), ne(entityLinks.fromId, entityId)))
-    .orderBy(asc(entities.entityType), asc(entities.name));
-
-  return rows
-    .filter((row) => !isFragmentType(row.entityType))
-    .map((row) => ({
-      id: row.id,
-      name: row.name,
-      entityType: row.entityType,
-      sourceId: row.sourceId,
-      href: hrefFor(row),
-    }));
 }

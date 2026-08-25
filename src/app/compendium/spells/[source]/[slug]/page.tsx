@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { openEntityAside } from "@/app/aside-actions";
+import { AsideLinks } from "@/components/compendium/aside-links";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { ReadingColumn } from "@/components/layout";
 import { collectReferences } from "@/lib/content/references";
 import { spellSubtitle } from "@/lib/content/spells";
-import {
-  inboundReferences,
-  resolveReferences,
-} from "@/server/db/queries/references";
+import { resolveReferences } from "@/server/db/queries/references";
 import { getSpell } from "@/server/db/queries/spells";
 
 /**
  * The full page for one spell, and the target every inline `{@spell}` tag
- * resolves to. The browse aside intercepts this route rather than replacing it,
- * so this must stand alone for anyone arriving from a link or a search result.
+ * resolves to. Reached cold from a link or a search result as often as from the
+ * browse list, so it stands alone and shares nothing with the list's layout.
  */
 
 interface RouteParams {
@@ -42,15 +41,19 @@ export default async function SpellPage({ params }: RouteParams) {
 
   if (!spell) notFound();
 
-  // Independent queries, so they overlap rather than queue.
-  const [refs, inbound] = await Promise.all([
-    resolveReferences(collectReferences(spell.data)),
-    inboundReferences(spell.id),
-  ]);
+  const refs = await resolveReferences(collectReferences(spell.data));
 
   return (
     <ReadingColumn>
-      <SpellDetail spell={spell} refs={refs} inbound={inbound} />
+      {/*
+        A spell's text cites conditions, creatures and other spells — ~380 tags
+        across 250 spells — and following one used to cost the reader the spell
+        they were reading. They open beside it instead, in the drawer this
+        route's own layout provides.
+      */}
+      <AsideLinks load={openEntityAside}>
+        <SpellDetail spell={spell} refs={refs} />
+      </AsideLinks>
     </ReadingColumn>
   );
 }

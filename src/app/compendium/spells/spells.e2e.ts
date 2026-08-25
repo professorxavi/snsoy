@@ -33,6 +33,9 @@ const SPELLS = "/compendium/spells";
 /** Narrow enough that the result is a single page, so paging cannot interfere. */
 const NINTH_LEVEL = `${SPELLS}?level=9`;
 
+/** Seven condition tags in its own text — the densest spell for references. */
+const AURA_OF_PURITY = `${SPELLS}/phb/aura-of-purity`;
+
 test("opens a spell over the list without unmounting it", async ({ page }) => {
   await page.goto(SPELLS);
   await expectHydrated(page);
@@ -255,4 +258,34 @@ test("a second search replaces the first rather than joining it", async ({
   await expect(page).toHaveURL(new RegExp(`${SPELLS}\\?q=acid$`));
   await expect(page.locator(`${ROWS} a`).first()).not.toHaveText(first ?? "");
   await expect(page.locator(`${ROWS} a`).first()).toHaveText(/acid/i);
+});
+
+/**
+ * A spell's own text cites conditions and creatures — Aura of Purity names
+ * seven conditions — and following one used to leave the spell. They open
+ * beside it instead.
+ *
+ * The spell page had an aside slot in its layout for months and never wrapped
+ * its body in `AsideLinks`, so every one of these navigated: to a 404 for a
+ * type with no page, and to a lost place for a type with one. The URL assertion
+ * is the half that catches a regression, since a link that navigates correctly
+ * still looks right on screen.
+ */
+test("opens a condition cited by a spell without leaving the spell", async ({
+  page,
+}) => {
+  await page.goto(AURA_OF_PURITY);
+  await expectHydrated(page);
+
+  const link = page.locator('a[href^="/compendium/conditions/"]').first();
+  const name = (await link.textContent())?.trim();
+  await link.click();
+
+  // Matched loosely on case: book text writes "{@condition blinded}" in the
+  // middle of a sentence, so the link reads "blinded" and the entity is
+  // "Blinded".
+  await expect(page.locator(ASIDE).locator("h1")).toHaveText(
+    new RegExp(`^${name}$`, "i"),
+  );
+  await expect(page).toHaveURL(new RegExp(`${AURA_OF_PURITY}$`));
 });

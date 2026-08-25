@@ -13,26 +13,23 @@ import {
   spellSubtitle,
 } from "@/lib/content/spells";
 import type { Entry } from "@/components/entry";
-import type { InboundReference } from "@/server/db/queries/references";
 import type { SpellDetail as SpellDetailData } from "@/server/db/queries/spells";
 
 /**
  * A spell, rendered in full. Used by both the spell page and the browse aside,
  * which share a URL and so must not drift.
  *
- * `density` changes measurements, and one thing beyond them: the aside prints
- * the spell and stops, while the page also says what refers to it. Everything
- * the book prints about a spell appears in both.
+ * `density` changes measurements and nothing else: the two render the same
+ * document at different sizes. Everything the book prints about a spell appears
+ * in both, and nothing that isn't about the spell appears in either.
  */
 export function SpellDetail({
   spell,
   refs,
-  inbound,
   density = "page",
 }: {
   spell: SpellDetailData;
   refs: ReferenceIndex;
-  inbound?: InboundReference[];
   /** "aside" is the 400px column; "page" is the full-width route. */
   density?: "page" | "aside";
 }) {
@@ -116,15 +113,6 @@ export function SpellDetail({
           <MetaRow label="Classes">{formatClassList(spell.classes)}</MetaRow>
         </Box>
       ) : null}
-
-      {/*
-        Page only, and the rule is general: an aside carries the entity and
-        nothing about the entity's place in the corpus. Someone who opened a
-        spell mid-sentence wants the spell — a list of the two hundred things
-        that happen to mention it is a different question, asked on the page
-        that has room for the answer.
-      */}
-      {!isAside && inbound?.length ? <ReferencedBy items={inbound} /> : null}
     </Stack>
   );
 }
@@ -187,93 +175,3 @@ function MetaRow({ label, children }: { label: string; children: ReactNode }) {
     </Box>
   );
 }
-
-/**
- * What else mentions this spell. Grouped by entity type and shown as links
- * rather than a count — Fireball alone has 224 inbound references.
- */
-function ReferencedBy({ items }: { items: InboundReference[] }) {
-  const groups = new Map<string, InboundReference[]>();
-  for (const item of items) {
-    const existing = groups.get(item.entityType);
-    if (existing) existing.push(item);
-    else groups.set(item.entityType, [item]);
-  }
-
-  return (
-    <Box borderTopWidth="1px" borderColor="border" pt="4">
-      <Text
-        fontFamily="ui"
-        fontSize="2xs"
-        fontWeight="semibold"
-        letterSpacing="widest"
-        textTransform="uppercase"
-        color="fg.subtle"
-        mb="2"
-      >
-        Referenced by
-      </Text>
-
-      <Stack gap="2.5">
-        {[...groups].map(([type, group]) => (
-          <Box key={type}>
-            <Text fontFamily="ui" fontSize="2xs" color="fg.subtle" mb="1">
-              {GROUP_LABELS[type] ?? type}
-            </Text>
-            <Text fontFamily="body" fontSize="sm" lineHeight="1.7">
-              {group.map((item, index) => (
-                <Box as="span" key={item.id}>
-                  {index > 0 ? ", " : null}
-                  {item.href ? (
-                    <Box
-                      asChild
-                      color="reference"
-                      textDecoration="underline"
-                      textDecorationColor="reference.line"
-                      textUnderlineOffset="2px"
-                      _hover={{ textDecorationColor: "reference" }}
-                    >
-                      <NextLink href={item.href}>{item.name}</NextLink>
-                    </Box>
-                  ) : (
-                    item.name
-                  )}
-                </Box>
-              ))}
-            </Text>
-          </Box>
-        ))}
-      </Stack>
-    </Box>
-  );
-}
-
-/** Plural, reader-facing names for the entity types that cite a spell. */
-const GROUP_LABELS: Record<string, string> = {
-  spell: "Spells",
-  monster: "Creatures",
-  item: "Items",
-  baseitem: "Equipment",
-  itemGroup: "Item groups",
-  class: "Classes",
-  subclass: "Subclasses",
-  race: "Races",
-  background: "Backgrounds",
-  feat: "Feats",
-  optionalfeature: "Options",
-  bookSection: "Chapters",
-  deity: "Deities",
-  variantrule: "Rules",
-  condition: "Conditions",
-  reward: "Rewards",
-  vehicle: "Vehicles",
-  object: "Objects",
-  trap: "Traps",
-  hazard: "Hazards",
-  charoption: "Character options",
-  recipe: "Recipes",
-  boon: "Boons",
-  cult: "Cults",
-  deck: "Decks",
-  card: "Cards",
-};
