@@ -4,10 +4,10 @@ import type * as FeatQueries from "./feats";
 import type * as OptionalFeatureQueries from "./optional-features";
 
 /**
- * Smoke test: the three player-option query modules against the seeded data.
+ * Smoke test: the player-option query modules against the seeded data.
  *
- * One file for three modules, because what is under test is the same thing
- * three times: a facet counted over a `text[]` column with a LATERAL unnest.
+ * One file for three modules, because what is under test is largely the same
+ * thing twice: a facet counted over a `text[]` column with a LATERAL unnest.
  * That is the shape a unit test cannot check — a facet that counted the array
  * itself would report `{insight,religion}` as a value and still typecheck,
  * still return rows, and still look plausible in a rail.
@@ -26,7 +26,7 @@ const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
 const BACKGROUNDS = 96;
 const FEATS = 105;
-const OPTIONS = 151;
+const INVOCATIONS = 54;
 
 describeDb("player option queries against the seed", () => {
   let backgrounds: typeof BackgroundQueries;
@@ -140,38 +140,24 @@ describeDb("player option queries against the seed", () => {
     });
   });
 
+  /**
+   * Two readers, not the three there used to be: the browse list was cut on
+   * 2026-08-25, so an option is met on a class page or in the aside and never
+   * looked up cold. `classes.smoke.test.ts` covers the by-key reader against a
+   * real progression; what is left here is the kind reader and the aside's.
+   */
   describe("optional features", () => {
-    it("returns every option", async () => {
-      expect(await options.listOptionalFeatures()).toHaveLength(OPTIONS);
-    });
+    it("returns every option of a kind", async () => {
+      const rows = await options.listOptionalFeaturesByType(["EI"]);
 
-    /**
-     * The kinds are ours — no support data names them — so this is also the
-     * check that the label map still covers what the seed holds.
-     */
-    it("counts options per kind, invocations first", async () => {
-      const { kinds } = await options.optionalFeatureFacets();
-
-      expect(kinds[0]?.value).toBe("EI");
-      expect(kinds[0]?.label).toBe("Eldritch Invocation");
-      expect(kinds.every((facet) => facet.label !== facet.value)).toBe(true);
-    });
-
-    it("narrows to the kind asked for", async () => {
-      const rows = await options.listOptionalFeatures({ kinds: ["EI"] });
-
-      expect(rows).not.toHaveLength(0);
+      expect(rows).toHaveLength(INVOCATIONS);
       expect(rows.every((row) => row.featureTypes?.includes("EI"))).toBe(true);
     });
 
-    it("finds one by source and slug", async () => {
-      const [first] = await options.listOptionalFeatures({ q: "agonizing" });
-      const found = await options.getOptionalFeature(
-        first!.sourceId.toLowerCase(),
-        first!.slug,
-      );
+    it("finds one by source and slug, which is how the aside opens it", async () => {
+      const found = await options.getOptionalFeature("phb", "agonizing-blast");
 
-      expect(found?.name).toBe(first!.name);
+      expect(found?.name).toBe("Agonizing Blast");
       expect(found?.featureTypes).toContain("EI");
     });
   });

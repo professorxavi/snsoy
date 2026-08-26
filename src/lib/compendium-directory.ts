@@ -12,7 +12,7 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * rows that happen to carry `isSidekick`, and they get a card because a player
  * looking for one is not looking for a class. Such a card names no type at all.
  *
- * Thirteen types have no card, for two different reasons — see
+ * Fifteen types have no card, for two different reasons — see
  * `WITHOUT_A_CARD`.
  */
 
@@ -20,8 +20,8 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * Browsable types with no browse view, and so nothing for a card to point at.
  *
  * Each is dropped rather than deferred, and dropping a card drops the browse
- * view, not the type: all four keep their URL segment so `hrefFor` still
- * addresses their entities, and all four still open in the aside.
+ * view, not the type: all six keep their URL segment so `hrefFor` still
+ * addresses their entities, and all six still open in the aside.
  *
  * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
  *   references in book text point: a real roll table lives inside the chapter
@@ -42,9 +42,23 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   sole filter was the deck — which is a list earning its keep by undoing its
  *   own premise. `/compendium/decks` stays, and the aside still opens a card
  *   from a deck's contents or from a `{@card}` tag in a chapter.
+ * - **`optionalfeature` and `charoption`.** Both are choices something else
+ *   offers, and both already render where the choice is made: a warlock's 54
+ *   invocations sit on the class page under the feature that grants them, and
+ *   each of the 44 character options belongs to one setting. Listing all 151
+ *   options flat asks a question about the data rather than about a character,
+ *   and the answer is only legible next to the feature it qualifies. Both still
+ *   open in the aside, from a class page or from the tag that cites them.
  */
 export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
-  new Set<BrowsableType>(["table", "baseitem", "itemGroup", "card"]);
+  new Set<BrowsableType>([
+    "table",
+    "baseitem",
+    "itemGroup",
+    "card",
+    "optionalfeature",
+    "charoption",
+  ]);
 
 /**
  * Types whose browse view is built and kept, but which the index no longer
@@ -59,7 +73,7 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
  * small enough that a directory entry promises more than it delivers, and the
  * rest are reached from the thing that cites them rather than looked up cold: a
  * reader meets darkvision on a statblock and a pit trap in a room description,
- * and follows the tag there. Nine cards spent that way crowd the twenty that
+ * and follows the tag there. Nine cards spent that way crowd the eighteen that
  * answer a question somebody actually arrives with.
  */
 export const BUILT_BUT_UNLISTED: ReadonlySet<BrowsableType> =
@@ -125,8 +139,6 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "language",
   "background",
   "feat",
-  "optionalfeature",
-  "charoption",
   "trap",
   "hazard",
   "disease",
@@ -176,16 +188,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         type: "feat",
         label: "Feats",
         blurb: "Talents taken in place of an ability score increase.",
-      },
-      {
-        type: "optionalfeature",
-        label: "Optional Features",
-        blurb: "Invocations, maneuvers, metamagic and fighting styles.",
-      },
-      {
-        type: "charoption",
-        label: "Character Options",
-        blurb: "Extra choices a book adds at character creation.",
       },
     ],
   },
