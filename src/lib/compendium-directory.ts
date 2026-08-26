@@ -12,7 +12,7 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * rows that happen to carry `isSidekick`, and they get a card because a player
  * looking for one is not looking for a class. Such a card names no type at all.
  *
- * Fifteen types have no card, for two different reasons — see
+ * Sixteen types have no card, for two different reasons — see
  * `WITHOUT_A_CARD`.
  */
 
@@ -20,8 +20,8 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * Browsable types with no browse view, and so nothing for a card to point at.
  *
  * Each is dropped rather than deferred, and dropping a card drops the browse
- * view, not the type: all six keep their URL segment so `hrefFor` still
- * addresses their entities, and all six still open in the aside.
+ * view, not the type: all seven keep their URL segment so `hrefFor` still
+ * addresses their entities, and all seven still open in the aside.
  *
  * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
  *   references in book text point: a real roll table lives inside the chapter
@@ -49,6 +49,12 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   options flat asks a question about the data rather than about a character,
  *   and the answer is only legible next to the feature it qualifies. Both still
  *   open in the aside, from a class page or from the tag that cites them.
+ * - **`vehicleUpgrade`.** 31 rows in two families that never mix — a ship's
+ *   hulls and sails, an infernal war machine's armour and gadgets — and an
+ *   upgrade only means anything next to the thing it is bolted to. Nobody
+ *   shops for one cold. `/compendium/vehicles` stays, and the 34
+ *   `{@vehupgrade}` references in book text still open one in the aside, which
+ *   is the whole reason the type was built.
  */
 export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
   new Set<BrowsableType>([
@@ -58,6 +64,7 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
     "card",
     "optionalfeature",
     "charoption",
+    "vehicleUpgrade",
   ]);
 
 /**
@@ -73,7 +80,7 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
  * small enough that a directory entry promises more than it delivers, and the
  * rest are reached from the thing that cites them rather than looked up cold: a
  * reader meets darkvision on a statblock and a pit trap in a room description,
- * and follows the tag there. Nine cards spent that way crowd the eighteen that
+ * and follows the tag there. Nine cards spent that way crowd the seventeen that
  * answer a question somebody actually arrives with.
  */
 export const BUILT_BUT_UNLISTED: ReadonlySet<BrowsableType> =
@@ -150,7 +157,6 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "boon",
   "deck",
   "vehicle",
-  "vehicleUpgrade",
 ]);
 
 export const DIRECTORY: DirectoryGroup[] = [
@@ -268,11 +274,6 @@ export const DIRECTORY: DirectoryGroup[] = [
         type: "vehicle",
         label: "Vehicles",
         blurb: "Ships, mounts and war machines.",
-      },
-      {
-        type: "vehicleUpgrade",
-        label: "Vehicle Upgrades",
-        blurb: "Components and modifications.",
       },
       /*
        * One card for the pair. Cards used to have their own, next to this one:
