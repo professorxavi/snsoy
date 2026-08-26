@@ -26,6 +26,12 @@ export interface ListEntry {
 export interface ItemEntry {
   type: "item" | "itemSpell" | "itemSub";
   name?: string;
+  /**
+   * Whether the renderer supplies the period after the run-in label. Absent
+   * means it does; the few entries that set it false run the name straight on
+   * into the sentence — "Abjuration spells are protective in nature".
+   */
+  nameDot?: boolean;
   entry?: Entry;
   entries?: Entry[];
 }

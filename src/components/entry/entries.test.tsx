@@ -528,3 +528,50 @@ describe("an inline block", () => {
     expect(coverageReport().filter((gap) => gap.kind === "entry")).toEqual([]);
   });
 });
+
+/**
+ * A trait's run-in label — "Amphibious." before the sentence it heads.
+ *
+ * The period belongs to the renderer, not to the data: nearly 24,000 labels
+ * carry only the word, which read as "Amphibious The dragon can breathe air
+ * and water" until this was supplied. The two exceptions are a name that
+ * punctuates itself and `nameDot: false`, which is how a label says it runs
+ * straight on into the sentence.
+ */
+describe("a run-in label", () => {
+  const label = (entry: Entry) =>
+    render(<Entries entries={[entry]} />).container.textContent;
+
+  it("gains the period the data leaves to the renderer", () => {
+    expect(
+      label({
+        type: "item",
+        name: "Amphibious",
+        entries: ["The dragon can breathe air and water."],
+      }),
+    ).toBe("Amphibious. The dragon can breathe air and water.");
+  });
+
+  it("does not punctuate a name that punctuates itself", () => {
+    expect(
+      label({ type: "item", name: "Who Goes There?", entries: ["Roll a d6."] }),
+    ).toBe("Who Goes There? Roll a d6.");
+  });
+
+  it("leaves a name that already ends in a period alone", () => {
+    expect(
+      label({ type: "item", name: "Fire Breath.", entries: ["Roll a d6."] }),
+    ).toBe("Fire Breath. Roll a d6.");
+  });
+
+  it("adds nothing when the name runs on into the sentence", () => {
+    expect(
+      label({
+        type: "item",
+        name: "Abjuration",
+        nameDot: false,
+        entries: ["spells are protective in nature."],
+      }),
+    ).toBe("Abjuration spells are protective in nature.");
+  });
+});

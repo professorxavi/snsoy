@@ -135,7 +135,7 @@ describe("the creature page", () => {
     expect(screen.getByText("Armor Class")).toBeInTheDocument();
     expect(screen.getByText("Hit Points")).toBeInTheDocument();
     expect(screen.getByText("Speed")).toBeInTheDocument();
-    expect(screen.getByText("Scimitar")).toBeInTheDocument();
+    expect(screen.getByText("Scimitar.")).toBeInTheDocument();
   });
 
   /** The lore, which renders nowhere else in the app. */

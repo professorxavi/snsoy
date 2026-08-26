@@ -156,7 +156,7 @@ describe("MonsterStatblock", () => {
     ).toBeInTheDocument();
 
     // Traits are unheaded in print — they are simply what the creature is.
-    expect(screen.getByText("Legendary Resistance (3/Day)")).toBeInTheDocument();
+    expect(screen.getByText("Legendary Resistance (3/Day).")).toBeInTheDocument();
   });
 
   /** A heading with nothing under it reads as content that failed to load. */

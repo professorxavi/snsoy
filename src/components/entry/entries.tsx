@@ -621,6 +621,16 @@ export function OptionBody({
   );
 }
 
+/**
+ * The period that closes a run-in label, which the data leaves to the renderer:
+ * a label says `nameDot: false` when its name runs on into the sentence, and a
+ * couple of thousand names carry their own punctuation already.
+ */
+function labelDot(name: string, nameDot?: boolean): string {
+  if (nameDot === false) return "";
+  return /[.!?:]$/.test(name.trimEnd()) ? "" : ".";
+}
+
 /** A labelled item: "Name. description" — the data's definition-list shape. */
 function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
   const body = entry.entries ?? (entry.entry != null ? [entry.entry] : []);
@@ -629,7 +639,8 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
     <Box>
       {entry.name ? (
         <Text as="span" fontFamily="body" fontWeight="semibold">
-          {inline(entry.name, ctx)}{" "}
+          {inline(entry.name, ctx)}
+          {labelDot(entry.name, entry.nameDot)}{" "}
         </Text>
       ) : null}
       {body.map((child, index) =>
