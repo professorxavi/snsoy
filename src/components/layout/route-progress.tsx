@@ -17,7 +17,7 @@ import { ASIDE_OPEN_ATTR } from "@/lib/aside";
  * costs the page nothing while it waits.
  *
  * Drawn in the chrome's own ink rather than the cross-reference cyan: this is
- * the app speaking about itself, not a link into the corpus.
+ * the app speaking about itself, not a link into the books.
  */
 
 /** How long a navigation may take before it is worth mentioning. */

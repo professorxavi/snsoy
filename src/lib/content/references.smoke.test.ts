@@ -88,7 +88,7 @@ describeDb("the reference resolver against the seed", () => {
     await pool?.end();
   });
 
-  it("reads every spell in the corpus", () => {
+  it("reads every spell in the books", () => {
     expect(loaded.spellCount).toBe(525);
     expect(loaded.ingested.size).toBeGreaterThan(0);
   });

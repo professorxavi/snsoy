@@ -10,8 +10,8 @@ import { SearchResults } from "./search-results";
  * The results list.
  *
  * What is worth asserting here is how a row behaves when the entity behind it
- * is awkward, because search is the one view where every awkward case in the
- * corpus arrives in the same list. Three of them decide whether a row is usable
+ * is awkward, because search is the one view where every awkward case in
+ * the books arrives in the same list. Three of them decide whether a row is usable
  * at all: a fragment whose name means nothing without its parent, a type with
  * no renderer that must navigate rather than open, and a type with no page at
  * all that must not pretend to be a link.
@@ -60,7 +60,7 @@ describe("SearchResults", () => {
     expect(screen.getByRole("listitem")).toHaveTextContent("PHB");
   });
 
-  /** The corpus's word is `monster`; the rules' word — and the badge — is Creature. */
+  /** The books' word is `monster`; the rules' word — and the badge — is Creature. */
   it("badges a type in the player's vocabulary", () => {
     renderList(
       <SearchResults
@@ -136,7 +136,7 @@ describe("SearchResults", () => {
     });
 
     /**
-     * Much of the corpus still has no page and no renderer. Those rows print as
+     * Much of the data still has no page and no renderer. Those rows print as
      * text rather than as a link that would 404 — the same rule the reader's
      * cross-references follow.
      */
@@ -200,7 +200,7 @@ describe("SearchResults", () => {
     });
 
     /** Nothing the database returns is ever inserted as markup. */
-    it("prints angle brackets from the corpus as text", () => {
+    it("prints angle brackets from the books as text", () => {
       renderList(
         <SearchResults
           rows={[result({ tier: 1, snippet: "a <b>bold</b> claim" })]}

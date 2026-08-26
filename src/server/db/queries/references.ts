@@ -105,7 +105,7 @@ export async function resolveReferences(
  * href is a bare fragment when the target is on this page and a path when it is
  * not.
  *
- * Ids are only unique within a section — three tags in the whole corpus address
+ * Ids are only unique within a section — three tags in every address the books hold
  * one that repeats — so a duplicate resolves to whichever row comes back first
  * rather than being dropped.
  */

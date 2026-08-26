@@ -31,7 +31,7 @@ export type SubjectSide = "left" | "center" | "right";
 /**
  * Where the subject stands in the frame.
  *
- * Nothing upstream records this: the corpus knows an image's size and nothing
+ * Nothing upstream records this: the books know an image's size and nothing
  * about what is in it. It only matters for art that is cropped rather than
  * scaled, and only for the horizontal axis — every figure in the class art
  * stands with its head near the top edge, so the vertical crop is always the

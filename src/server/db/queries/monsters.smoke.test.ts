@@ -10,7 +10,7 @@ import type * as MonsterQueries from "./monsters";
 
 /**
  * Smoke test: run the monster query against the seeded database, and check the
- * formatters against the corpus rather than against fixtures.
+ * formatters against the books rather than against fixtures.
  *
  * `monsters.test.ts` proves each shape formats correctly, but it proves it
  * against shapes written by hand. This is the tier that catches the shape
@@ -50,7 +50,7 @@ describeDb("monster queries against the seed", () => {
   });
 
   describe("listMonsters", () => {
-    it("pages, and reports the whole corpus as the total", async () => {
+    it("pages, and reports the full count as the total", async () => {
       const list = await queries.listMonsters();
 
       expect(list.total).toBe(MONSTER_COUNT);
@@ -136,10 +136,10 @@ describeDb("monster queries against the seed", () => {
   });
 
   describe("monsterFacets", () => {
-    it("offers every value in the corpus", async () => {
+    it("offers every value in the books", async () => {
       const facets = await queries.monsterFacets();
 
-      // 33 numeric ratings, plus "Unknown" — the one creature the corpus
+      // 33 numeric ratings, plus "Unknown" — the one creature the books
       // itself declines to rate.
       expect(facets.crs).toHaveLength(34);
       expect(facets.types).toHaveLength(14);
@@ -185,7 +185,7 @@ describeDb("monster queries against the seed", () => {
       ]);
     });
 
-    /** Unfiltered, a facet's counts have to add up to the corpus. */
+    /** Unfiltered, a facet's counts have to add up to the books. */
     it("counts every creature across the type facet", async () => {
       const facets = await queries.monsterFacets();
       const total = facets.types.reduce((sum, facet) => sum + facet.count, 0);
@@ -264,7 +264,7 @@ describeDb("monster queries against the seed", () => {
     });
 
     /**
-     * Ingest resolves the `_copy` templates the corpus ships, so a creature
+     * Ingest resolves the `_copy` templates the books ship, so a creature
      * defined as a variant of another arrives with the parent's statistics
      * merged in. Unresolved, its stat block would be a name and nothing else.
      */
@@ -278,7 +278,7 @@ describeDb("monster queries against the seed", () => {
   });
 
   /**
-   * The formatters over every creature in the corpus.
+   * The formatters over every creature in the books.
    *
    * Each of these is a line printed on every stat block, so an empty result is
    * a visibly broken panel — and the shapes that produce one are exactly the
@@ -375,16 +375,16 @@ describeDb("monster queries against the seed", () => {
 
     /**
      * A rating the experience table does not know prints as a bare number with
-     * no award beside it — survivable, but it means the corpus uses a rating
+     * no award beside it — survivable, but it means the books use a rating
      * this code has never seen.
      */
-    it("awards experience for every rating in the corpus", () => {
+    it("awards experience for every rating in the books", () => {
       const unpriced = all
         .filter((row) => row.data.cr != null)
         .filter((row) => !/\(.*XP\)/.test(formatChallenge(row.data.cr)))
         .map((row) => `${row.name}: ${JSON.stringify(row.data.cr)}`);
 
-      // The one creature the corpus itself rates "Unknown".
+      // The one creature the books themselves rate "Unknown".
       expect(unpriced).toEqual(['Mechanical Bird: "Unknown"']);
     });
   });

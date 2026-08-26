@@ -42,7 +42,7 @@ export function ItemDetail({
 }: {
   item: ItemDetailRow;
   refs: ReferenceIndex;
-  /** Property abbreviation to name, from the corpus's own vocabulary. */
+  /** Property abbreviation to name, from the books' own vocabulary. */
   vocabulary: ReadonlyMap<string, string>;
 }) {
   const data = item.data as ItemData;
@@ -54,7 +54,7 @@ export function ItemDetail({
   /*
    * Range is normally spoken for by a property — thrown and ammunition both
    * name it — so it gets a line of its own only where no property carried it.
-   * Three items in the corpus are in that position.
+   * Three items in the books are in that position.
    */
   const carriedRange = /\(range /.test(properties);
 

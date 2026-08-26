@@ -13,7 +13,7 @@ import { MonsterFilters } from "./monster-filters";
  * rail already covers against the same components; repeating them here would
  * duplicate the assertion without covering anything new.
  *
- * What is genuinely this rail's own is the translation: the corpus stores a
+ * What is genuinely this rail's own is the translation: the books store a
  * size as "G" and an environment as "underdark", and neither is what anyone
  * browses by.
  */

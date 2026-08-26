@@ -103,7 +103,7 @@ function SkillRowView({
           <AsideLink
             /*
              * The skill's canonical URL, which is the one every `{@skill}` tag
-             * in the corpus already points at — even though nothing serves it:
+             * in the books already points at — even though nothing serves it:
              * a skill renders in the aside and has no page of its own. Kept
              * because it is the entity's identity and what "copy link address"
              * should yield, not because it resolves.

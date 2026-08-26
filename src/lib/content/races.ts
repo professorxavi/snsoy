@@ -180,7 +180,7 @@ export function isNpcRace(traitTags: string[] | null | undefined): boolean {
  * ------------------------------------------------------------------ */
 
 /**
- * A race's descriptive prose, wherever the corpus happens to keep it.
+ * A race's descriptive prose, wherever the books happen to keep it.
  *
  * Fluff first, because that is where nearly all of it is: of the 134 races,
  * 98 carry prose only in fluff, 5 carry it in `data.entries`, and 31 have none

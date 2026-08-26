@@ -240,7 +240,7 @@ async function facetCounts(
     n: Number(row.n),
     /*
      * No sort key means the value has no place on the scale, so it goes to the
-     * end. The corpus has exactly one: the creature rated "Unknown", whose
+     * end. The books have exactly one: the creature rated "Unknown", whose
      * `min(cr)` is null — read as a zero it would sort ahead of CR 0 and head
      * the whole rail.
      */

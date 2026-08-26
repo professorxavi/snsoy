@@ -16,7 +16,7 @@ import type { SearchResult } from "@/server/db/queries/search";
  * thing it is, and where it came from.
  *
  * Each row carries at most two lines: the name, and the passage that matched.
- * That second line is the whole reason a corpus-wide search is worth having
+ * That second line is the whole reason a search across the books is worth having
  * over a per-type filter box — it is what answers "which of these nine
  * identically-named things did I mean".
  *
@@ -148,7 +148,7 @@ function ResultRow({
 }) {
   /*
    * Three ways a name can behave, in descending order of how good they are.
-   * Much of the corpus still has no renderer and no page — a deity, a card, a
+   * Much of the data still has no renderer and no page — a deity, a card, a
    * vehicle — and those rows print as plain text rather than as a link that
    * would 404, which is the same rule the reader's cross-references follow.
    */
@@ -308,8 +308,8 @@ function NoMatches({ query }: { query: string }) {
         Nothing matches “{query}”.
       </Text>
       <Text mt="2" fontFamily="ui" fontSize="xs" color="fg.subtle">
-        Misspellings are forgiven, so this is more likely a gap in the corpus
-        than a typo.
+        Misspellings are forgiven, so this is more likely something the books
+        do not name than a typo.
       </Text>
     </Box>
   );

@@ -12,7 +12,7 @@
  * it ("with {@spell mage armor}", 197 of them) and its armour cites the item it
  * wears. Escaping those to plain text would break links the book itself makes.
  *
- * Shapes were measured over all 3,628 creatures in the corpus; the counts in
+ * Shapes were measured over all 3,628 creatures in the books; the counts in
  * the comments below say how many of them take each branch, so a branch with no
  * count is one the data does not currently exercise.
  */
@@ -151,7 +151,7 @@ export function formatCreatureType(
 
   if (type.swarmSize) {
     const size = SIZES[type.swarmSize] ?? type.swarmSize;
-    // "beast" pluralises to "beasts"; the corpus has no irregular creature type.
+    // "beast" pluralises to "beasts"; the books have no irregular creature type.
     return `swarm of ${size} ${base}s`;
   }
 
@@ -173,7 +173,7 @@ export function formatCreatureType(
  *
  * `NX` is the neutral point of the law axis and `NY` the neutral point of the
  * morality axis; plain `N` is both at once. Deriving the phrasing from which
- * codes are present covers all 27 arrays the corpus uses without a table.
+ * codes are present covers all 27 arrays the books use without a table.
  */
 const LAW_AXIS = ["L", "NX", "C"];
 const MORAL_AXIS = ["G", "NY", "E"];
@@ -413,7 +413,7 @@ export function formatDefences(
     const nested = entry[key];
     if (!nested?.length) continue;
 
-    // Nested groups do not nest further in the corpus, but the type allows it.
+    // Nested groups do not nest further in the books, but the type allows it.
     const types = nested
       .map((inner) => (typeof inner === "string" ? inner : formatDefences([inner], key)))
       .filter(Boolean)
@@ -620,7 +620,7 @@ function groupDigits(value: number): string {
  * The paragraph above a creature's legendary actions, explaining how many it
  * gets and when.
  *
- * Synthesised, because the corpus does not store it: 351 creatures have
+ * Synthesised, because the books do not store it: 351 creatures have
  * legendary actions and only ten carry a `legendaryHeader` of their own. The
  * sentence is fixed apart from the creature's name and the number it may take,
  * so the ten that differ override it and the rest get this.
@@ -639,7 +639,7 @@ export function legendaryIntro(data: {
   const subject = monsterShortName(data, { titleCase: true });
 
   /*
-   * "its turn" for a creature, "their turn" for a named one. The corpus records
+   * "its turn" for a creature, "their turn" for a named one. The books records
    * no gender, and a named creature referred to as "it" reads as a mistake —
    * so the one that is right either way is used where the answer is unknown.
    */
@@ -660,7 +660,7 @@ export function legendaryIntro(data: {
 /**
  * The heading above one group of innate spells.
  *
- * The corpus keys these groups by a count with an optional `e` suffix: `"1e"`
+ * The books keys these groups by a count with an optional `e` suffix: `"1e"`
  * is one casting of each spell in the group, `"2"` two castings shared between
  * them. `period` is the recovery it counts against.
  */

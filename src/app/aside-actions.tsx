@@ -448,7 +448,7 @@ async function monsterAside(source: string, slug: string): Promise<ReactNode> {
  * creature, an item has no page behind it, so this is the whole of what is
  * shown rather than a preview of somewhere else.
  *
- * The vocabulary is fetched alongside the item because the corpus stores an
+ * The vocabulary is fetched alongside the item because the books store an
  * item's type and properties as abbreviations and the column meant to hold the
  * resolved names was never populated — see `itemVocabulary`.
  */

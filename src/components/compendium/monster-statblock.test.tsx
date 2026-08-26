@@ -168,7 +168,7 @@ describe("MonsterStatblock", () => {
   });
 
   /** 341 of the 351 legendary creatures store no header of their own. */
-  it("supplies the legendary preamble the corpus leaves out", () => {
+  it("supplies the legendary preamble the books leave out", () => {
     render(<MonsterStatblock monster={monster(DRAGON)} refs={REFS} />);
 
     expect(

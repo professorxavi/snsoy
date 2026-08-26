@@ -1,7 +1,7 @@
 /**
  * Reading a table's upstream layout hints.
  *
- * Every table in the corpus carries a `colStyles` array of CSS class names
+ * Every table in the books carries a `colStyles` array of CSS class names
  * borrowed from a twelve-column grid: `["col-1", "col-4", "col-1 text-center"]`.
  * They are the only record of how a table was set on the printed page, and
  * without them a browser sizes columns by content alone — which puts a
@@ -37,7 +37,7 @@ export function parseColumnStyle(style: string | undefined): ColumnStyle {
 
     if (width) {
       const twelfths = Number(width[1]) + Number(width[2] ?? 0) / 10;
-      // `col-0` appears twice in the corpus and means nothing renderable.
+      // `col-0` appears twice in the books and means nothing renderable.
       if (twelfths > 0) parsed.width = `${((twelfths / 12) * 100).toFixed(4)}%`;
       continue;
     }

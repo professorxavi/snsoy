@@ -254,7 +254,7 @@ function ChapterRow({
 }
 
 /**
- * Shown for a source that is cited by entities but whose body text the corpus
+ * Shown for a source that is cited by entities but whose body text the books
  * never published. Reachable only from an entity's source link, so the page
  * says why it is empty rather than 404ing on a real book.
  */

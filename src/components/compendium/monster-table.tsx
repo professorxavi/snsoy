@@ -129,7 +129,7 @@ function MonsterRowView({
 }
 
 /**
- * How many environments the corpus uses in total. A creature tagged with more
+ * How many environments the books use in total. A creature tagged with more
  * than half of them is not a creature of those places, it is a creature of
  * anywhere — which is what most of the named NPCs are.
  */

@@ -144,14 +144,14 @@ export default async function ClassPage({ params }: RouteParams) {
   ];
 
   /*
-   * Features the corpus composes out of other features: an Alchemist's opening
+   * Features the books compose out of other features: an Alchemist's opening
    * feature grants three more, and Perfected Armor chooses between two armor
    * models. All of them are stored as siblings at the same level, so a page
    * that prints the list flat prints "Guardian" and "Infiltrator" as features
    * in their own right, with nothing to say what they are models of.
    *
    * Each one is printed inside the feature that introduces it, and dropped from
-   * the flat list so it is not printed twice. Every reference in the corpus
+   * the flat list so it is not printed twice. Every reference in the books
    * points at a feature of the same class, which is why this needs no query —
    * the page already holds all 343 of them.
    */
@@ -225,7 +225,7 @@ export default async function ClassPage({ params }: RouteParams) {
   /*
    * What is left of each progression once the features have had their say.
    *
-   * Ten of the thirteen progressions in the corpus are already printed in full
+   * Ten of the thirteen progressions in the books are already printed in full
    * by the feature that offers them — a Fighter's Fighting Style names all
    * eleven of its options inline — and printing them again under a heading of
    * their own would be the same list twice on one page. Three are not named

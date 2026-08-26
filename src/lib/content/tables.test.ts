@@ -33,7 +33,7 @@ describe("parseColumnStyle", () => {
   });
 
   /**
-   * The corpus carries a handful of typos — `text-enter`, `-text-right` — and
+   * The books carry a handful of typos — `text-enter`, `-text-right` — and
    * two columns declared `col-0`. A hint that cannot be honoured is no hint.
    */
   it("drops class names it does not recognise", () => {

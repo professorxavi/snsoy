@@ -102,7 +102,7 @@ describe("the compendium index", () => {
 
   /**
    * The index is a way in, not a database report. A card that reads "Spells
-   * 525" turns the product into a corpus browser, and the count would be a
+   * 525" turns the product into a data browser, and the count would be a
    * query per card on a page that currently makes none.
    */
   it("puts nothing on a card but the directory's own words", () => {

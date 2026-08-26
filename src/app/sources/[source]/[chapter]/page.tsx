@@ -61,7 +61,7 @@ export default async function ChapterPage({ params }: RouteParams) {
   const { intro, sections } = splitSections<Entry>(data.entries);
 
   // One resolve for the whole chapter. Body text is dense with references —
-  // 37,000 creature tags across the corpus — so this is by far the largest
+  // 37,000 creature tags across the books — so this is by far the largest
   // reference set any page builds, and it must stay a single round trip.
   const refs = await resolveReferences(collectReferences(found.data));
 

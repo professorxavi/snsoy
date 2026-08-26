@@ -594,7 +594,7 @@ export function labelForTag(tag: TagSegment): string {
       return part(tag, 1) || `${first} percent`;
 
     /*
-     * Parenthesised, because the corpus writes the tag where the parentheses
+     * Parenthesised, because the books write the tag where the parentheses
      * go: an action named `Fire Breath {@recharge 5}` is printed "Fire Breath
      * (Recharge 5–6)".
      */
@@ -605,7 +605,7 @@ export function labelForTag(tag: TagSegment): string {
       return attackLabel(first);
 
     /*
-     * These two carry their trailing space. The corpus writes `{@h}19` with
+     * These two carry their trailing space. The books write `{@h}19` with
      * nothing between the tag and the damage, expecting the tag to supply the
      * separator — without it the line reads "Hit:19".
      */

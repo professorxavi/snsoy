@@ -12,7 +12,7 @@ import { ItemFilters } from "./item-filters";
  * options and the fixed option count belong to `filter-rail`, which the spell
  * rail already covers against the same components.
  *
- * What is genuinely this rail's own is the translation: the corpus stores a
+ * What is genuinely this rail's own is the translation: the books store a
  * type as "HA" and a category as an entity type, and neither is what anyone
  * browses by. The URL keeps the stored value so a filtered link survives a
  * change of wording — which only holds if the label and the value can differ,

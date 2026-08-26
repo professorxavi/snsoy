@@ -11,7 +11,7 @@ import type * as ItemQueries from "./items";
 
 /**
  * Smoke test: run the item queries against the seeded database, and check the
- * formatters against the corpus rather than against fixtures.
+ * formatters against the books rather than against fixtures.
  *
  * `items.test.ts` proves each shape formats correctly against shapes written by
  * hand. This is the tier that catches the shape nobody wrote down — an item
@@ -62,7 +62,7 @@ describeDb("item queries against the seed", () => {
      * someone looking for a longsword finds it without knowing that the mundane
      * one is a `baseitem` and the +1 is an `item`.
      */
-    it("lists both browsable item types as one corpus", async () => {
+    it("lists both browsable item types as one list", async () => {
       const list = await queries.listItems();
 
       expect(list.total).toBe(ITEM_COUNT);
@@ -141,11 +141,11 @@ describeDb("item queries against the seed", () => {
     });
 
     /**
-     * `WON` is ours, not the corpus's: 776 items are typed by a `wondrous` flag
+     * `WON` is ours, not the books': 776 items are typed by a `wondrous` flag
      * and nothing else, and without the synthetic code they would be
      * unreachable from the rail.
      */
-    it("filters by a synthetic type the corpus only flags", async () => {
+    it("filters by a synthetic type the books only flag", async () => {
       const list = await queries.listItems({ types: ["WON"] });
 
       expect(list.total).toBe(635);
@@ -181,7 +181,7 @@ describeDb("item queries against the seed", () => {
 
     /**
      * The column the schema projected and ingest never filled. Every row's type
-     * name comes from the corpus's own vocabulary instead, so a null here means
+     * name comes from the books' own vocabulary instead, so a null here means
      * the resolution broke rather than that the item has no type.
      */
     it("resolves a type name for every typed row", async () => {
@@ -194,12 +194,12 @@ describeDb("item queries against the seed", () => {
   });
 
   describe("itemFacets", () => {
-    it("offers every value in the corpus", async () => {
+    it("offers every value in the books", async () => {
       const facets = await queries.itemFacets();
 
       expect(facets.rarities).toHaveLength(10);
       /*
-       * 32 abbreviations the corpus uses, plus the three synthetic codes. One
+       * 32 abbreviations the books use, plus the three synthetic codes. One
        * fewer than the table holds: `GV`, Generic Variant, is carried only by
        * the two groups that stand for a family of variants — Armor of
        * Resistance and Dragon's Wrath Weapon — so it leaves the rail with them.
@@ -250,7 +250,7 @@ describeDb("item queries against the seed", () => {
       );
     });
 
-    /** Unfiltered, a facet's counts have to add up to the corpus. */
+    /** Unfiltered, a facet's counts have to add up to the books. */
     it("counts every item across the category facet", async () => {
       const facets = await queries.itemFacets();
       const total = facets.categories.reduce((sum, facet) => sum + facet.count, 0);
@@ -307,7 +307,7 @@ describeDb("item queries against the seed", () => {
   });
 
   describe("itemVocabulary", () => {
-    it("reads the corpus's own names for its codes", async () => {
+    it("reads the books' own names for its codes", async () => {
       const { types, properties } = await queries.itemVocabulary();
 
       expect(types.get("HA")).toBe("Heavy Armor");
@@ -338,7 +338,7 @@ describeDb("item queries against the seed", () => {
       expect(staff!.name).toBe("Staff of Fire");
       expect(staff!.sourceName).toBe("Dungeon Master's Guide");
       expect(staff!.rarity).toBe("very rare");
-      // Typeless in the corpus, and typed by its `staff` flag here.
+      // Typeless in the books, and typed by its `staff` flag here.
       expect(staff!.typeName).toBe("Staff");
       expect(attunementPhrase(staff!.data.reqAttune as string)).toBe(
         "requires attunement by a druid, sorcerer, warlock, or wizard",
@@ -381,7 +381,7 @@ describeDb("item queries against the seed", () => {
     });
 
     /**
-     * The 1,852 generated variants are the corpus's magic-variant templates
+     * The 1,852 generated variants are the books' magic-variant templates
      * applied to a base item. Unresolved, "+1 Longsword" would carry no damage,
      * no weight and no price of its own.
      */
@@ -432,13 +432,13 @@ describeDb("item queries against the seed", () => {
   });
 
   /**
-   * The formatters over every item in the corpus.
+   * The formatters over every item in the books.
    *
    * The printed line under an item's name is the one thing every panel shows,
    * so an empty one is a visibly broken panel — and the rows that produce one
    * are exactly the rows no fixture thought to include.
    */
-  describe("the formatters over the whole corpus", () => {
+  describe("the formatters over every item", () => {
     let all: {
       name: string;
       rarity: string | null;
@@ -474,9 +474,9 @@ describeDb("item queries against the seed", () => {
 
     /**
      * A code with no name would print as the abbreviation — "HA" where "Heavy
-     * Armor" belongs — which is the corpus using a type this code has not seen.
+     * Armor" belongs — which is the books using a type this code has not seen.
      */
-    it("names every type code the corpus uses", () => {
+    it("names every type code the books use", () => {
       const unnamed = all
         .filter((row) => row.type_code != null)
         .filter((row) => itemTypeName(row.type_code, types) === row.type_code)

@@ -118,7 +118,7 @@ export function ClassTable({
                     {/*
                      * Rendered, not printed. A cell is usually a number, but
                      * the Warlock's Slot Level column is twenty spell-list
-                     * links — the one column in the corpus whose values are
+                     * links — the one column in the books whose values are
                      * tags rather than values.
                      */}
                     <Inline

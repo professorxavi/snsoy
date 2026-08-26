@@ -83,7 +83,7 @@ describe("Inline", () => {
     /**
      * With no index every tag is unresolved, which is what a page renders
      * before its references load. It must degrade to readable prose rather
-     * than leaking corpus markup.
+     * than leaking book markup.
      */
     it("falls back to the label when nothing resolves", () => {
       render(<Inline text="A {@spell fireball} erupts." />);
@@ -129,7 +129,7 @@ describe("Inline", () => {
     });
 
     /**
-     * The corpus writes the tag where the parentheses go — an action named
+     * The books write the tag where the parentheses go — an action named
      * "Fire Breath {@recharge 5}" is printed "Fire Breath (Recharge 5–6)" —
      * so the tag supplies them.
      */
@@ -202,7 +202,7 @@ describe("Inline", () => {
     });
 
     /**
-     * The corpus writes `{@h}19` with nothing between the tag and the number,
+     * The books write `{@h}19` with nothing between the tag and the number,
      * so the separator has to come from the tag or the line reads "Hit:19".
      */
     it("introduces the damage, separator included", () => {

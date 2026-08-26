@@ -26,14 +26,15 @@ import {
  *
  * Every expectation here is a line someone can look up in an equipment table or
  * a magic item entry, which is what makes them worth pinning: these are not our
- * wording, they are the corpus's, and a change that makes one of them read
+ * wording, they are the books', and a change that makes one of them read
  * differently is a regression rather than a preference.
  *
- * The corpus-wide runs — every branch exercised over all 3,645 items — live in
+ * The runs over the whole of the books — every branch exercised over all
+ * 3,645 items — live in
  * `items.smoke.test.ts`, which needs the database.
  */
 
-/** The corpus's own `itemType` vocabulary, in miniature. */
+/** The books' own `itemType` vocabulary, in miniature. */
 const TYPES = new Map([
   ["M", "Melee Weapon"],
   ["LA", "Light Armor"],
@@ -54,7 +55,7 @@ const PROPERTIES = new Map([
 ]);
 
 describe("itemTypeName", () => {
-  it("resolves an abbreviation through the corpus vocabulary", () => {
+  it("resolves an abbreviation through the books' vocabulary", () => {
     expect(itemTypeName("M", TYPES)).toBe("Melee Weapon");
   });
 
@@ -186,7 +187,7 @@ describe("formatItemTypeLine", () => {
     expect(formatItemTypeLine({ rarity: "legendary" })).toBe("legendary");
   });
 
-  /** Eight items in the corpus have neither a type nor a printable rarity. */
+  /** Eight items in the books have neither a type nor a printable rarity. */
   it("is empty when the item states nothing about itself", () => {
     expect(formatItemTypeLine({ rarity: "unknown (magic)" })).toBe("rarity unknown");
     expect(formatItemTypeLine({})).toBe("");
@@ -276,7 +277,7 @@ describe("formatProperties", () => {
 
 describe("applyBaseName", () => {
   /**
-   * The exact sentence four items in the corpus reach the renderer with. It is
+   * The exact sentence four items in the books reach the renderer with. It is
    * one paragraph shared by every weapon the slaying variant applies to, which
    * is why it is written in placeholders rather than words.
    */
@@ -289,7 +290,7 @@ describe("applyBaseName", () => {
     ).toBe("An arrow of slaying is a magic weapon.");
   });
 
-  it("applies each modifier the corpus uses", () => {
+  it("applies each modifier the books use", () => {
     expect(applyBaseName("{=baseName/l}", "Crossbow Bolt")).toBe("crossbow bolt");
     expect(applyBaseName("{=baseName/u}", "Arrow")).toBe("ARROW");
     expect(applyBaseName("{=baseName/t}", "crossbow bolt")).toBe("Crossbow Bolt");
@@ -356,7 +357,7 @@ const TEMPLATES = new Map<string, unknown[]>([
 ]);
 
 describe("parseItemEntryTag", () => {
-  it("reads both forms the corpus writes", () => {
+  it("reads both forms the books write", () => {
     expect(parseItemEntryTag("{#itemEntry Potion of Resistance}")).toEqual({
       name: "Potion of Resistance",
       source: null,

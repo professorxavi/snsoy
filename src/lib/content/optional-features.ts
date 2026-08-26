@@ -138,7 +138,7 @@ interface Prerequisite {
  *
  * The level is printed as a level alone, not "Warlock 5" — an option is only
  * ever listed under the class that grants it, so naming that class again is
- * noise. Where a spell prerequisite offers alternatives the corpus writes them
+ * noise. Where a spell prerequisite offers alternatives the books write them
  * with slashes ("hex/curse"); they are joined with "or" rather than reproducing
  * upstream's hand-written phrasing for the two cases that exist.
  */

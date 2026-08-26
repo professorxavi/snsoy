@@ -18,7 +18,7 @@ import {
  * invisible to markup assertions: the same elements, the same classes, the same
  * text, all present and correct.
  *
- * One page carries it. Every table in the corpus goes through one renderer, and
+ * One page carries it. Every table in the books goes through one renderer, and
  * the class table is the hard case — six columns, two of them prose — on the
  * layout that grants a table room beyond the reading measure.
  */
@@ -115,7 +115,7 @@ test("leaves an over-wide table scrollable rather than clipped", async ({
 /**
  * Opening an entity from the prose.
  *
- * A chapter is dense with cross-references — 36,000 across the corpus — and
+ * A chapter is dense with cross-references — 36,000 across the books — and
  * following one used to cost the page you were reading. Now it opens beside the
  * text instead. None of this is visible to a markup assertion: whether the
  * click was intercepted at all depends on the capture phase beating
@@ -236,7 +236,7 @@ test("opens a card from a chapter that deals it", async ({ page }) => {
  * Races, the third type the aside can render.
  *
  * Written against whatever race the chapter links to first rather than a named
- * one, so it survives the corpus shifting underneath it. What is being asserted
+ * one, so it survives the books shifting underneath it. What is being asserted
  * is the wiring, not which race MPMM happens to list first.
  */
 test("opens a race from the chapter, summarised", async ({ page }) => {

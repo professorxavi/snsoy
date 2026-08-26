@@ -149,7 +149,7 @@ describe("SearchBox", () => {
     /**
      * Below the minimum the server refuses to answer, so asking would be a
      * round trip for a guaranteed empty list — and, on the server, a scan of
-     * every name in the corpus.
+     * every name in the books.
      */
     it("does not ask for a query too short to answer", async () => {
       const fetchMock = mockFetch(() => []);

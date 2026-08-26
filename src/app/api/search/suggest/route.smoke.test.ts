@@ -5,7 +5,7 @@ import type * as SuggestRoute from "./route";
  * Smoke test: the typeahead endpoint, against the seeded database.
  *
  * A smoke test rather than a plain one because the handler's whole job is to
- * put a query in one end and rows from the corpus out of the other; stubbing
+ * put a query in one end and rows from the books out of the other; stubbing
  * the query would leave only `Response.json`, which is not ours.
  *
  * What matters here is the contract the client depends on and cannot see: that

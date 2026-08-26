@@ -4,7 +4,7 @@ import { abilityName, abilityPhrase } from "./dnd";
 /**
  * Naming an ability in a sentence.
  *
- * The corpus stores abilities as three-letter codes, which is right for a stat
+ * The books store abilities as three-letter codes, which is right for a stat
  * block and wrong everywhere a feature spells out a formula: "your cha
  * modifier" is not a sentence. Two cases beyond the plain one — a formula that
  * offers a choice, and one whose ability the class's own feature decides.
@@ -37,7 +37,7 @@ describe("abilityPhrase", () => {
 
   /**
    * A Sidekick's casting ability is whatever its spellcasting feature granted,
-   * so the corpus names no ability at all.
+   * so the books name no ability at all.
    */
   it("leaves an unfixed ability unnamed", () => {
     expect(abilityPhrase(["spellcasting"])).toBe("spellcasting ability");

@@ -34,7 +34,7 @@ import {
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
-/** Every `class` row in the corpus, sidekicks included. */
+/** Every `class` row in the books, sidekicks included. */
 const CLASSES = 16;
 /** What the class list shows: the twelve, plus the Artificer. */
 const LISTED = 13;
@@ -153,7 +153,7 @@ describeDb("class queries against the seed", () => {
   /**
    * The options a class chooses between, which reach the page two ways.
    *
-   * Ten of the thirteen progressions in the corpus are already named inline by
+   * Ten of the thirteen progressions in the books are already named inline by
    * the feature that offers them; three are named nowhere at all. Both numbers
    * matter: lose the first route and a Fighter's fighting styles vanish from
    * the feature that introduces them, lose the second and a Warlock's page
@@ -207,7 +207,7 @@ describeDb("class queries against the seed", () => {
       expect(await listOptionalFeaturesByType(progression!.featureTypes)).toHaveLength(23);
     });
 
-    it("resolves every option the corpus names, from every class", async () => {
+    it("resolves every option the books name, from every class", async () => {
       const classes = await queries.listClassesBySource();
       const keys = new Set<string>();
 
@@ -235,7 +235,7 @@ describeDb("class queries against the seed", () => {
   /**
    * A feature composed out of other features resolves them against what the
    * page already holds, with no second query. That only works because every
-   * reference in the corpus points at a feature of the same class — 334 of
+   * reference in the books points at a feature of the same class — 334 of
    * them, all resolved from the three lists a class page loads. One that
    * pointed elsewhere would render as nothing, and the feature it names would
    * be gone from the page entirely: referenced features are dropped from the
@@ -292,7 +292,7 @@ describeDb("class queries against the seed", () => {
     ).toEqual(["Bard", "Ranger", "Sorcerer", "Warlock"]);
   });
 
-  it("addresses every class in the corpus", async () => {
+  it("addresses every class in the books", async () => {
     const params = await queries.allClassParams();
 
     expect(params).toHaveLength(CLASSES);

@@ -49,7 +49,7 @@ describeDb("spell queries against the seed", () => {
   });
 
   describe("listSpells", () => {
-    it("pages the whole corpus", async () => {
+    it("pages every spell", async () => {
       const list = await queries.listSpells();
 
       expect(list.total).toBe(TOTAL);
@@ -170,7 +170,7 @@ describeDb("spell queries against the seed", () => {
   });
 
   describe("spellFacets", () => {
-    it("offers every level, school, casting time and class in the corpus", async () => {
+    it("offers every level, school, casting time and class in the books", async () => {
       const facets = await queries.spellFacets();
 
       expect(facets.levels.map((o) => o.value)).toEqual([
@@ -194,7 +194,7 @@ describeDb("spell queries against the seed", () => {
       expect(times).toEqual(["action", "bonus", "reaction", "minute", "hour"]);
     });
 
-    it("counts each option against an unfiltered corpus", async () => {
+    it("counts each option against an unfiltered list", async () => {
       const facets = await queries.spellFacets();
       const sum = (options: { count: number }[]) =>
         options.reduce((n, o) => n + o.count, 0);
@@ -287,13 +287,13 @@ describeDb("spell queries against the seed", () => {
    * Every formatter over every spell.
    *
    * The unit tests in `lib/content/spells.test.ts` cover the shapes someone
-   * thought to write down. This covers the shapes the corpus actually holds,
+   * thought to write down. This covers the shapes the books actually holds,
    * which is where the surprises are — a range with no distance, a duration
    * that is only `special`, a spell granted to no class at all. A formatter
    * that returns an empty string leaves a blank cell in the table, and a blank
    * cell reads as missing data rather than as "not applicable".
    */
-  describe("formatters over the whole corpus", () => {
+  describe("formatters over every spell", () => {
     const FORMATTERS = [
       ["schoolName", (r: SpellQueries.SpellRow) => schoolName(r.school)],
       ["levelShort", (r: SpellQueries.SpellRow) => levelShort(r.level)],

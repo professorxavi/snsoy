@@ -19,12 +19,12 @@ import type { EntityType } from "@/server/db/schema/enums";
 /**
  * Two characters. A single character matches nothing useful through the
  * trigram index — a trigram needs three — while still costing a scan of every
- * name in the corpus, so it is refused rather than answered slowly and badly.
+ * name in the books, so it is refused rather than answered slowly and badly.
  */
 export const MIN_QUERY_LENGTH = 2;
 
 /**
- * Long enough for the longest entity name in the corpus with room to spare, and
+ * Long enough for the longest entity name in the books with room to spare, and
  * short enough that a pasted paragraph cannot turn into a tsquery with hundreds
  * of terms.
  */
@@ -53,7 +53,7 @@ export function normalizeQuery(raw: string | undefined): string | null {
 
 /**
  * What to call each entity type in a result badge — singular, and in the
- * player's vocabulary rather than the corpus's. A `monster` is a Creature and an
+ * player's vocabulary rather than the books'. A `monster` is a Creature and an
  * `optionalfeature` is an Invocation or a Maneuver depending on the book, so it
  * gets the general word the rules use for the category.
  *
@@ -125,8 +125,8 @@ export const OPEN_PARAM = "open";
 
 /**
  * `type:source:slug`. All three alphabets exclude the colon — types are
- * alphanumeric, source ids are alphanumeric with hyphens, and every slug in the
- * corpus matches `^[a-z0-9]+(-[a-z0-9]+)*$` — so no escaping is needed and the
+ * alphanumeric, source ids are alphanumeric with hyphens, and every slug in
+ * the books matches `^[a-z0-9]+(-[a-z0-9]+)*$` — so no escaping is needed and the
  * parameter stays readable in a shared link.
  */
 export function encodeOpenParam(
@@ -225,7 +225,7 @@ export function resultsHref(query: string): string {
  * The delimiters `ts_headline` wraps a matched word in.
  *
  * Control characters, not `<b>` or `<<`: the body they surround is arbitrary
- * prose from the corpus, and any delimiter made of printable characters is one
+ * prose from the books, and any delimiter made of printable characters is one
  * a book could contain. STX and ETX cannot occur in the text — ingest strips
  * markup to plain words — so splitting on them can never cut a real sentence in
  * half and the snippet never has to be trusted as markup.

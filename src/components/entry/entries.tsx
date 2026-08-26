@@ -68,7 +68,7 @@ interface RenderContext {
   refs?: ReferenceIndex;
   /**
    * Bodies for the optional features a feature offers as a choice. Only class
-   * pages load these; nothing else in the corpus contains an option list.
+   * pages load these; nothing else in the books contains an option list.
    */
   options?: OptionalFeatureIndex;
   /** Bodies for the features one feature builds another out of. Class pages only. */
@@ -568,7 +568,7 @@ function ListBlock({ entry, ctx }: { entry: ListEntry; ctx: RenderContext }) {
 /**
  * A feature printed inside the feature that introduces it.
  *
- * This is how the corpus composes features: an Alchemist's opening feature
+ * This is how the books compose features: an Alchemist's opening feature
  * references the three it grants, and Perfected Armor references the two armor
  * models it chooses between. The pieces are stored as siblings at the same
  * level, so a page that lists them flat prints "Guardian" and "Infiltrator" as
@@ -618,7 +618,7 @@ function FeatureReference({
  *
  * Stored as a type rather than as text because the ability differs by class,
  * and in two cases is not fixed at all — a Sidekick's is whatever its
- * spellcasting feature granted, which the corpus writes as `spellcasting`.
+ * spellcasting feature granted, which the books write as `spellcasting`.
  *
  * Set apart from the prose above it: this is a formula to be read once and
  * copied onto a character sheet, not a sentence.
@@ -652,7 +652,7 @@ function AbilityFormula({
  * than deriving it: the PHB's passive check total, "10 + all modifiers that
  * normally apply to the check".
  *
- * One occurrence in the whole corpus, and it shares the box with the other two
+ * One occurrence in all the books, and it shares the box with the other two
  * because it is the same kind of thing — a line to copy onto a sheet, set apart
  * from the paragraph that introduces it.
  */
@@ -723,7 +723,7 @@ function OptionsBlock({
  *
  * The bodies arrive through the render context because a page loads all of them
  * in one query — a Warlock's page resolves 54 invocations. Without them the
- * option still prints its name, which is what the corpus itself gives: a page
+ * option still prints its name, which is what the books themselves give: a page
  * that silently drops the name would leave a feature saying "choose one of the
  * following" above nothing at all.
  */
@@ -1320,7 +1320,7 @@ function QuoteBlock({ entry, ctx }: { entry: QuoteEntry; ctx: RenderContext }) {
 }
 
 /**
- * A creature's spellcasting, which the corpus stores as structure rather than
+ * A creature's spellcasting, which the books store as structure rather than
  * as the sentence the book prints.
  *
  * Rendered as the trait it is: the name run in bold, the header sentence that

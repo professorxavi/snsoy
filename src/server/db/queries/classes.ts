@@ -28,7 +28,7 @@ const GROUP_RANK = sql<number>`
 `;
 
 /**
- * Sidekicks are `class` rows, and the corpus says so itself. They are kept out
+ * Sidekicks are `class` rows, and the books says so itself. They are kept out
  * of the class list and given one of their own: a sidekick is a companion a
  * small party adopts, not something a player rolls up, and three of them among
  * the twelve is a category error on the page that matters most.

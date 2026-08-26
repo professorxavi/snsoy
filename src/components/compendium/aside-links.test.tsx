@@ -71,7 +71,7 @@ describe("AsideLinks", () => {
   });
 
   /**
-   * The largest class of link in the corpus by some way: 15,887 `{@creature}`
+   * The largest class of link in the books by some way: 15,887 `{@creature}`
    * tags, more than spells, items and conditions together. Every one of them
    * navigated to a 404 until the stat block gave the aside something to show.
    */

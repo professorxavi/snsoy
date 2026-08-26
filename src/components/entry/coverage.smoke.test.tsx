@@ -8,7 +8,7 @@ import { coverageReport, resetCoverage } from "./coverage";
 /**
  * Renderer coverage across every book and adventure section.
  *
- * A ratchet, not a target. The corpus holds entry types and tags the renderer
+ * A ratchet, not a target. The books hold entry types and tags the renderer
  * does not handle yet, and that is a known state rather than a bug — an
  * unhandled entry renders as a conspicuous block, which is the correct
  * behaviour for something nobody has written a treatment for. What must not
@@ -105,7 +105,7 @@ describeDb("renderer coverage over every book section", () => {
       ),
       tag: new Set(report.filter((g) => g.kind === "tag").map((g) => g.name)),
     };
-    // Rendering every chapter body in the corpus takes longer than the default
+    // Rendering every chapter body in the books takes longer than the default
     // hook budget allows.
   }, 120_000);
 
@@ -116,7 +116,7 @@ describeDb("renderer coverage over every book section", () => {
     await pool?.end();
   });
 
-  it("renders every section in the corpus", () => {
+  it("renders every section in the books", () => {
     expect(sectionCount).toBe(829);
   });
 

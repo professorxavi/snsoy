@@ -35,7 +35,7 @@ yarn-error.log*
 .env*
 !.env.example
 
-# Content corpus — never commit it; ingest reads it from CONTENT_SOURCE_DIR
+# Book content — never commit it; ingest reads it from CONTENT_SOURCE_DIR
 /content/full/
 /data/
 
@@ -47,7 +47,7 @@ yarn-error.log*
 
 # Ingest and data-validation tooling.
 #
-# Ingest runs once, ever. Once the corpus is loaded and dumped to a seed, this
+# Ingest runs once, ever. Once the books are loaded and dumped to a seed, this
 # code is obsolete — every instance thereafter is built by restoring the seed.
 # The repo carries only what the app runs long term.
 #
@@ -61,10 +61,10 @@ yarn-error.log*
 
 # Seed dumps.
 #
-# Ignored wholesale by default because the full-corpus seed is the entire
+# Ignored wholesale by default because the full-content seed is the entire
 # licensed dataset. Only the SRD-only seed is ever committable, and it must be
 # allowlisted explicitly once it exists — an ignore rule that lets seeds
-# through by default would leak the full corpus on the first careless `git add`.
+# through by default would leak everything on the first careless `git add`.
 /seed/*
 !/seed/.gitkeep
 !/seed/README.md
@@ -77,7 +77,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Playwright run artefacts. The report embeds page HTML, which for this app
-# means corpus text, so it must never be committed.
+# means book text, so it must never be committed.
 /test-results/
 /playwright-report/
 /blob-report/

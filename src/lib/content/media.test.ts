@@ -92,7 +92,7 @@ describe("imageUrl", () => {
 
 /**
  * Art that is placed rather than flowed has to be cropped, and a crop that
- * guesses wrong takes the subject's head off. The corpus records nothing about
+ * guesses wrong takes the subject's head off. The books records nothing about
  * what is in a picture, so this is the one place that knowledge lives — and a
  * path that stops matching fails silently back to a centre crop, which is why
  * `classes.smoke.test.ts` checks these paths against the real images.

@@ -251,7 +251,7 @@ describeDb("source queries against the seed", () => {
    * Every book cover the index renders, checked against the disk it renders
    * from.
    *
-   * Ingest copied these paths out of the corpus; nothing has confirmed they
+   * Ingest copied these paths out of the books; nothing has confirmed they
    * point at files. A path that does not resolve is a broken cover on the
    * index, and the page renders perfectly around it — so no amount of looking
    * at the markup finds this.

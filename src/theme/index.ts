@@ -127,8 +127,18 @@ const config = defineConfig({
           DEFAULT: { value: { _light: "{colors.ink.light}", _dark: "{colors.ink.dark}" } },
           /** Secondary prose, table cell text. */
           muted: { value: { _light: "{colors.slate.700}", _dark: "{colors.slate.500}" } },
-          /** Labels, counts, metadata — the quietest readable step. */
-          subtle: { value: { _light: "{colors.slate.600}", _dark: "{colors.slate.600}" } },
+          /**
+           * Labels, counts, metadata — the quietest readable step.
+           *
+           * Not `slate.600`, which this used to be. The role carries uppercase
+           * labels at 10px, so it is never "large text" and owes the full
+           * 4.5:1 — and `slate.600` measured 3.5:1 on the light ground and
+           * 4.4:1 on a dark panel. The binding surface is `bg.muted`, not the
+           * page ground: table column headers and the ability-score chips both
+           * sit on it, and it is the lightest ground in dark mode.
+           * `contrast.test.ts` measures every pair.
+           */
+          subtle: { value: { _light: "#5F6C71", _dark: "#94A3AA" } },
         },
 
         border: {

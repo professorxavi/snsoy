@@ -43,7 +43,7 @@ import { flagOption, toOptions, type FacetOption } from "./facets";
  * The typed columns are for filtering and are lossy in the usual way, so
  * display values come out of `data`. One column is worse than lossy:
  * `item_type_name` was projected by the schema and never populated by ingest,
- * so the human-readable type is resolved from the corpus's own `itemType`
+ * so the human-readable type is resolved from the books' own `itemType`
  * support data instead — see `itemVocabulary`.
  */
 
@@ -92,9 +92,9 @@ export interface ItemListParams extends ItemFilters {
  * The type an item is filtered and grouped by.
  *
  * `item_type` covers 2,935 of the 3,645 rows. The rest are typed only by a
- * flag — 776 are wondrous, 29 are staffs the corpus gives no type at all, and
+ * flag — 776 are wondrous, 29 are staffs the books give no type at all, and
  * 21 are poisons — and without this they would group under NULL, which
- * `toOptions` drops, leaving a fifth of the corpus unreachable from the rail.
+ * `toOptions` drops, leaving a fifth of the books unreachable from the rail.
  * The three synthetic codes are ours and are named in `lib/content/items`.
  */
 const TYPE_CODE = sql<string | null>`
@@ -308,7 +308,7 @@ export interface ItemVocabulary {
 }
 
 /**
- * The corpus's own names for the codes items are stored with.
+ * The books' own names for the codes items are stored with.
  *
  * Read from `support_data` rather than transcribed into a constant: these 48
  * rows were ingested from the same files as the items that cite them, and a
@@ -348,7 +348,7 @@ export const itemVocabulary = cache(async (): Promise<ItemVocabulary> => {
 /**
  * The descriptions many items share, keyed as `name|source`.
  *
- * Six rows, cited by 170 items. The corpus writes a description that applies to
+ * Six rows, cited by 170 items. The books write a description that applies to
  * a whole family once — every Armor of Resistance says the same sentence — and
  * each member carries a `{#itemEntry}` citation where the paragraph belongs.
  * Nothing read this kind of `support_data` until now, so all 170 printed the

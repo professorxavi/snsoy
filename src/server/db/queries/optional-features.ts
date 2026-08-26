@@ -19,7 +19,7 @@ import { sources } from "../schema/sources";
 /**
  * Loading the options a class's features tell you to choose between.
  *
- * Two ways in, because the corpus offers two. A feature that names its options
+ * Two ways in, because the books offers two. A feature that names its options
  * ("choose one of the following") is read by key; one that only says a list
  * exists — every invocation, maneuver and infusion — is read by the feature-type
  * codes on the class's progression. Both land in the same index, so the

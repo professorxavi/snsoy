@@ -169,7 +169,7 @@ describeDb("race queries against the seed", () => {
    * Every illustration a race page would render, checked against the disk it
    * would render from.
    *
-   * Ingest copied image paths out of the corpus; nothing has ever confirmed
+   * Ingest copied image paths out of the books; nothing has ever confirmed
    * they point at files. A path that does not resolve is a broken image on a
    * reading page, and the page itself renders perfectly — so this cannot be
    * caught by looking at the markup.

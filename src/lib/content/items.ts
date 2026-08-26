@@ -4,14 +4,14 @@
  * Like the creature formatters, these read the raw `data` object rather than
  * the typed columns wherever the two disagree. The columns are for filtering:
  * `item_type_name` was projected by the schema but never populated by ingest,
- * so the human-readable type is resolved here from the corpus's own
+ * so the human-readable type is resolved here from the books' own
  * `itemType` vocabulary instead of being read off the row.
  *
  * **Strings returned here may contain `{@tag}` markup and must be rendered
  * through `Inline`.** An item's damage cites nothing, but the base item it was
  * built from and its prose both do.
  *
- * Shapes were measured over all 3,645 items in the corpus — 3,448 `item`, 124
+ * Shapes were measured over all 3,645 items in the books — 3,448 `item`, 124
  * `baseitem` and 73 `itemGroup` rows — and the counts in the comments say how
  * many take each branch.
  */
@@ -25,7 +25,7 @@ const EM_DASH = "—";
  * ------------------------------------------------------------------ */
 
 /**
- * Types the corpus does not name but flags.
+ * Types the books do not name but flag.
  *
  * 776 items are `wondrous`, 29 are typeless staffs and 21 are poisons, and none
  * of the three has an entry in the `itemType` vocabulary — an item with no type
@@ -41,7 +41,7 @@ export const SYNTHETIC_ITEM_TYPES: Record<string, string> = {
 /**
  * The display name for a type abbreviation.
  *
- * `vocabulary` is the corpus's own `itemType` support data, so the 34 real
+ * `vocabulary` is the books' own `itemType` support data, so the 34 real
  * abbreviations are never duplicated here — pass the map the query loaded. An
  * abbreviation neither side knows is returned unchanged rather than dropped,
  * which keeps a new book's type visible instead of silently blank.
@@ -71,7 +71,7 @@ export function bareCode(value: string): string {
  * The name of the item a magic one was built on, as it reads inside the type
  * line: "longsword", "plate armor".
  *
- * Two sources, because the corpus records it twice. 205 items point at their
+ * Two sources, because the books record it twice. 205 items point at their
  * base with `baseItem: "longsword|phb"`, and the 1,852 generated variants carry
  * `_baseName: "Longsword"` instead. Both are lowercased — the line reads
  * "Weapon (longsword)", never "Weapon (Longsword)".
@@ -208,7 +208,7 @@ function capitalise(value: string): string {
  * Value is stored in copper so that mixed denominations sort against each
  * other, and printed in the largest coin that divides it exactly — which is
  * how the equipment tables print it, and why a longsword is 15 gp rather than
- * 1,500 cp. The corpus holds values from 1 cp to 10,000 gp.
+ * 1,500 cp. The books hold values from 1 cp to 10,000 gp.
  */
 export function formatItemValue(valueCp: number | null | undefined): string {
   if (valueCp == null) return EM_DASH;
@@ -223,7 +223,7 @@ export function formatItemValue(valueCp: number | null | undefined): string {
  * "3 lb.", "1/2 lb.", "1 1/2 lb.".
  *
  * Halves and quarters are written as fractions, as the equipment tables do: a
- * potion weighs 1/2 lb., never 0.5 lb. The corpus also holds eleven other
+ * potion weighs 1/2 lb., never 0.5 lb. The books also hold eleven other
  * fractions — a coin is 0.02 lb. and a sling bullet 0.0625 — and those are
  * printed as the decimals they are rather than rounded into a fraction they do
  * not equal.
@@ -251,7 +251,7 @@ function groupDigits(value: number): string {
 /**
  * The same, for a value with a fractional part. The default of three decimal
  * places rounds a sling bullet's 0.0625 lb. to 0.063, so it is raised to four
- * — the most precision any weight in the corpus carries.
+ * — the most precision any weight in the books carries.
  */
 function decimal(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 4 });
@@ -262,7 +262,7 @@ function decimal(value: number): string {
  * ------------------------------------------------------------------ */
 
 /**
- * Damage type codes, as the corpus writes them. The full rules vocabulary is
+ * Damage type codes, as the books write them. The full rules vocabulary is
  * listed even though weapons exercise only seven of it — the map belongs to the
  * damage type, not to the subset of weapons that happen to deal it.
  */
@@ -341,7 +341,7 @@ export function formatProperties(
  * armour adds none. The type is passed in rather than inferred from the number,
  * because 12 is a valid base for both light and medium.
  *
- * `dexterityMax` is read with `in` rather than for a value, because the corpus
+ * `dexterityMax` is read with `in` rather than for a value, because the books
  * uses its presence and its null differently: Serpent Scale Armor is medium
  * armour that sets it explicitly to null, meaning the usual cap of 2 does not
  * apply to it at all.
@@ -380,10 +380,10 @@ export function formatItemArmorClass(
  * to reads correctly — "Arrow of Slaying" and "Crossbow Bolt of Slaying" share
  * one paragraph, which says `{=baseName/at} {=baseName/l} of slaying`. Ingest
  * expands the variant but leaves the placeholders standing, so four items in
- * the corpus reach the renderer with 40 of them between them and print
+ * the books reach the renderer with 40 of them between them and print
  * `{=baseName/l}` where a word belongs.
  *
- * The modifiers are the corpus's own, applied left to right: `l` lowercases,
+ * The modifiers are the books' own, applied left to right: `l` lowercases,
  * `t` title-cases, `u` uppercases, and `a` replaces the name with the
  * indefinite article it takes. So `/at` is "An" and `/a` is "an".
  */
@@ -407,7 +407,7 @@ export function applyBaseName(text: string, baseName: string): string {
 }
 
 /**
- * "an" before a vowel, "a" otherwise — which is what the corpus's `a` modifier
+ * "an" before a vowel, "a" otherwise — which is what the books' `a` modifier
  * means: it replaces the name rather than prefixing it, so the sentence writes
  * the article and the name as two separate placeholders.
  */
@@ -427,7 +427,7 @@ function titleCase(value: string): string {
  * `{#itemEntry Name}` citations, resolved against the shared description they
  * name.
  *
- * The corpus writes a description that many items share exactly once and cites
+ * The books write a description that many items share exactly once and cites
  * it from each of them, as a literal string standing where a paragraph belongs.
  * `splitByTags` opens a tag only on `{@` or `{=`, so `{#…}` falls through as
  * text and 170 items print the citation instead of the prose: for 36 of them —
@@ -480,7 +480,7 @@ export function itemEntryKey(
  * A template is written once for every item that shares it, so the two facts
  * that differ between them are read off the item rather than written into the
  * prose — which is what lets one paragraph serve 130 Armor of Resistance
- * variants. Both are the corpus's own placeholders and both are the only ones
+ * variants. Both are the books' own placeholders and both are the only ones
  * it uses.
  *
  * An array joins with commas (`resist` is length 1 on every item carrying one),
@@ -549,7 +549,7 @@ export function resolveItemEntries(
  * or `"Potion of Healing|DMG"` for the 244 that name a source. Written that way
  * they are invisible to `collectReferences`, which only sees `{@tag}` markup,
  * so a group would print its members as dead text. Wrapping them in the tag the
- * corpus would have used makes them resolve through the same path as every
+ * the books would have used makes them resolve through the same path as every
  * other cross-reference — and an unresolvable one renders as plain text, which
  * is exactly what it was before.
  */
@@ -561,7 +561,8 @@ export function itemGroupTags(data: { items?: string[] }): string[] {
  * "Str 15" — the minimum Strength heavy armour asks for.
  *
  * Stored as a string for 122 items and as an explicit null for 19 more, which
- * is the corpus saying "no requirement" rather than leaving the key out.
+ * is the books' way of saying "no requirement" rather than leaving the key
+ * out.
  */
 export function formatStrengthRequirement(
   strength: string | number | null | undefined,

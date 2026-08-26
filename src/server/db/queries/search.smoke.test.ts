@@ -92,7 +92,7 @@ describeDb("search against the seed", () => {
   });
 
   describe("recall", () => {
-    /** Stemming: the corpus writes "Fireballs" and the query says "fireball". */
+    /** Stemming: the books write "Fireballs" and the query says "fireball". */
     it("reaches plural names through the stemmer", async () => {
       const { rows } = await queries.searchEntities({ q: "fireball" });
 
@@ -101,7 +101,7 @@ describeDb("search against the seed", () => {
 
     /**
      * Trigram similarity, which is the only signal that survives a misspelling:
-     * "missle" matches no lexeme in the corpus at all.
+     * "missle" matches no lexeme in the books at all.
      */
     it("finds a misspelled name", async () => {
       const { rows } = await queries.searchEntities({ q: "magic missle" });

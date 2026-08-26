@@ -68,7 +68,7 @@ export default async function RacePage({ params }: RouteParams) {
   const { intro, sections } = splitSections<Entry>(data.entries);
 
   /*
-   * The book's flavour text, which the corpus keeps in fluff rather than in the
+   * The book's flavour text, which the books keep in fluff rather than in the
    * race's own entries: of the 134 races, 98 carry prose only there, and their
    * `data.entries` are nothing but named traits. Without this, most race pages
    * open straight into "Flight" with nothing to say what an aarakocra is — and

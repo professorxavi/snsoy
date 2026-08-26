@@ -4,13 +4,14 @@ import type { SourceListItem } from "@/server/db/queries/sources";
 import Home from "./page";
 
 /**
- * The landing page is a masthead, two doors and a shelf.
+ * The landing page is a masthead, a promise, two doors and a shelf.
  *
  * Worth a test only because the doors are the entry point to everything else:
- * a card that stops linking, or links somewhere that no longer exists, strands
+ * a row that stops linking, or links somewhere that no longer exists, strands
  * the whole product behind a URL the reader has to already know. A third card
  * pointed at `/characters` for months and 404'd — the builder is still Phase 7
- * and does not need a door before it has a room.
+ * and does not need a door before it has a room, which is why the line naming
+ * character and campaign tools is asserted to be prose rather than a link.
  *
  * The shelf reads the source list, so the query is mocked here exactly as the
  * source index's own test mocks it: what rows come back is that query's
@@ -62,14 +63,37 @@ describe("the landing page", () => {
     expect(door("Sources")).toHaveAttribute("href", "/sources");
   });
 
-  it("gives every card a title and a description", async () => {
+  it("states what the product is for", async () => {
+    await renderPage();
+
+    expect(screen.getByText(/The game you know, kept together\./)).toBeInTheDocument();
+  });
+
+  /**
+   * The one thing on this page that names an unbuilt feature. It has to stay a
+   * sentence: the moment it becomes a link it is the `/characters` card again,
+   * advertising a room that does not exist.
+   */
+  it("names the coming tools without offering a way in", async () => {
+    await renderPage();
+
+    const line = screen.getByText(/Character and campaign tools are coming/);
+
+    expect(line).toBeInTheDocument();
+    expect(line.closest("a")).toBeNull();
+  });
+
+  it("gives every door a title and a description", async () => {
     await renderPage();
 
     for (const title of ["Compendium", "Sources"]) {
-      const card = door(title);
-      expect(card).toBeInTheDocument();
-      // Title plus body — a card with no body is a card that says nothing.
-      expect(card.textContent!.length).toBeGreaterThan(title.length + 40);
+      const row = door(title);
+      expect(row).toBeInTheDocument();
+      // Title plus body — a door with no body is a door that says nothing.
+      // A floor for "a sentence", not a measure of the current copy: the
+      // shortest line here is 35 characters and the wording is expected to
+      // move, so this only has to be too long to be a label.
+      expect(row.textContent!.length).toBeGreaterThan(title.length + 20);
     }
   });
 });

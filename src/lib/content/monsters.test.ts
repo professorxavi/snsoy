@@ -24,7 +24,7 @@ import {
  * variation lives — the traits and actions below it are prose the shared entry
  * renderer already handles.
  *
- * Every fixture here is a shape taken from the corpus rather than invented, and
+ * Every fixture here is a shape taken from the books rather than invented, and
  * the counts in the test names are how many of the 3,628 creatures take that
  * branch. That is the point of the file: none of these are edge cases in the
  * sense of being unlikely, they are simply the less common of the shapes the
@@ -192,7 +192,7 @@ describe("formatArmorClass", () => {
   /**
    * 197 creatures have a spell-raised AC. `braces` is the whole difference
    * between "13 (16 with mage armor)" and "13, 16 with mage armor", and the
-   * corpus sets it per entry.
+   * the books set it per entry.
    */
   it("braces a conditional AC when the data says to", () => {
     expect(

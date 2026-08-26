@@ -27,7 +27,7 @@ describe("normalizeQuery", () => {
 
   /**
    * A single character reaches nothing through the trigram index — a trigram
-   * needs three — while still costing a scan of every name in the corpus.
+   * needs three — while still costing a scan of every name in the books.
    */
   it("refuses a query shorter than the minimum", () => {
     expect(normalizeQuery("f")).toBeNull();
@@ -59,7 +59,7 @@ describe("TYPE_LABELS", () => {
     }
   });
 
-  /** The player's vocabulary, not the corpus's. */
+  /** The player's vocabulary, not the books'. */
   it("calls a monster a Creature", () => {
     expect(TYPE_LABELS.monster).toBe("Creature");
     expect(TYPE_LABELS.bookSection).toBe("Chapter");
@@ -235,7 +235,7 @@ describe("parseSnippet", () => {
 
   /**
    * The delimiters are control characters precisely so that prose cannot forge
-   * them. Nothing that arrives from the corpus is ever treated as markup.
+   * them. Nothing that arrives from the books is ever treated as markup.
    */
   it("does not treat angle brackets as delimiters", () => {
     expect(parseSnippet("a <b>bold</b> claim")).toEqual([

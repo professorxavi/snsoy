@@ -164,7 +164,7 @@ export function MonsterStatblock({
       <Block
         heading="Legendary Actions"
         // Ten creatures state their own; the other 341 get the standard one,
-        // which the corpus expects its reader to supply.
+        // which the books expect its reader to supply.
         intro={asEntries(data.legendaryHeader) ?? [legendaryIntro(data)]}
         entries={data.legendary}
         ctx={context}
@@ -364,7 +364,7 @@ function Block({
         Each entry is given the `item` shape explicitly rather than passed as
         it is stored. A trait is `{name, entries}` with no `type` at all, which
         the renderer would otherwise treat as an unknown block and report as a
-        coverage gap on every creature in the corpus.
+        coverage gap on every creature in the books.
       */}
       <Entries
         entries={entries.map((entry) => asItem(entry))}

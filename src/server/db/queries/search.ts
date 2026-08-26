@@ -7,7 +7,7 @@ import { db } from "../client";
 import { toOptions, type FacetOption } from "./facets";
 
 /**
- * Corpus-wide search.
+ * Search across the books.
  *
  * Ranking is the whole difficulty here, and it is not what `ts_rank` measures.
  * `ts_rank` scores a document against a query; what a reader typing "fireball"
@@ -209,10 +209,10 @@ interface ScoredRow {
 /**
  * One page of results, ranked.
  *
- * A single statement, in four stages: reduce the corpus to candidates through
+ * A single statement, in four stages: reduce the books to candidates through
  * the two indexes, score them, take the page, and only then compute headlines.
  * The order matters — `ts_headline` re-parses the whole body, and the broadest
- * query in the corpus ("damage") reaches 6,726 rows. Running it before the
+ * query in the books ("damage") reaches 6,726 rows. Running it before the
  * limit would mean paying that 6,726 times to print twenty snippets.
  */
 export async function searchEntities(params: SearchParams): Promise<SearchPage> {

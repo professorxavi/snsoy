@@ -202,7 +202,7 @@ describe("the item detail", () => {
 
   /**
    * What makes an item group worth opening: it exists only to point at its
-   * members, and the corpus writes them as bare names that nothing would
+   * members, and the books write them as bare names that nothing would
    * otherwise turn into links.
    */
   it("leaves an item group's members as links", () => {

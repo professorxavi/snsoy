@@ -5,7 +5,7 @@ import { candidateKeysForTag } from "./references";
  * Shaping a class for display.
  *
  * The class table is the page. Everything a class does is indexed by level, and
- * the corpus stores that indexing in four different ways: a proficiency bonus
+ * the books store that indexing in four different ways: a proficiency bonus
  * that is a formula, a feature list that is an ordered array of references, a
  * per-level grid of arbitrary cells (`classTableGroups`), and a spell-slot grid
  * with its own key. This module turns all of it into one thing — columns of
@@ -13,7 +13,7 @@ import { candidateKeysForTag } from "./references";
  * looking at.
  */
 
-/** Every class runs 1–20. Nothing in the corpus is shorter or longer. */
+/** Every class runs 1–20. Nothing in the books is shorter or longer. */
 export const CLASS_LEVELS = Array.from({ length: 20 }, (_, i) => i + 1);
 
 /** +2 at 1st, rising by one every four levels. The one rule with no data behind it. */
@@ -106,7 +106,7 @@ export function progressionColumns(data: unknown): ProgressionColumn[] {
 }
 
 /**
- * One cell of a table group. Five shapes occur across the corpus: a number, a
+ * One cell of a table group. Five shapes occur across the books: a number, a
  * string ("Unlimited"), a bonus, a speed bonus, and a die.
  *
  * Zero is nothing rather than a quantity — an empty spell-slot column, a Monk's
@@ -375,10 +375,10 @@ export type FeatureIndex = Record<string, FeatureBody>;
 /**
  * The feature a `refClassFeature` or `refSubclassFeature` entry points at.
  *
- * These are how the corpus composes a feature out of others: an Alchemist's
+ * These are how the books compose a feature out of others: an Alchemist's
  * opening feature references the three it grants, and Perfected Armor
  * references the two armor models it chooses between. Every one of the 343 in
- * the corpus points at a feature of the same class, already loaded by the page
+ * the books points at a feature of the same class, already loaded by the page
  * that is rendering it — so this resolves against what is in hand rather than
  * going back to the database.
  *

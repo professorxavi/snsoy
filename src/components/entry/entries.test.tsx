@@ -188,7 +188,7 @@ describe("a save DC or attack modifier a feature grants", () => {
 });
 
 /**
- * A feature the corpus builds another feature out of. Both are stored as
+ * A feature the books build another feature out of. Both are stored as
  * siblings, so printing the reference is what tells the reader that "Guardian"
  * is a model of Arcane Armor rather than a feature of its own.
  */
@@ -367,7 +367,7 @@ describe("a structured attack", () => {
  * The adventure-shape diagram nine chapters open with.
  *
  * A container, which is what makes it worth its own test: one unhandled marker
- * used to drop all 115 blocks in the corpus, and a test that only checked the
+ * used to drop all 115 blocks in the books, and a test that only checked the
  * outer type would not have noticed the prose going missing.
  */
 describe("a flowchart", () => {
@@ -459,7 +459,7 @@ describe("a flowchart", () => {
 
 /**
  * The passive check total, which the PHB states in words rather than deriving
- * from an ability the way its two siblings do. One occurrence in the corpus.
+ * from an ability the way its two siblings do. One occurrence in the books.
  */
 describe("a stated formula", () => {
   const PASSIVE: Entry = {

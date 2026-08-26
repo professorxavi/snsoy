@@ -7,7 +7,7 @@ import type { ItemDetail as ItemDetailRow } from "@/server/db/queries/items";
 import { ItemDetail } from "./item-detail";
 
 /**
- * Every item in the corpus, through the panel that renders it.
+ * Every item in the books, through the panel that renders it.
  *
  * `item-detail.test.tsx` proves the panel handles the shapes someone wrote
  * down. This is the tier that catches the shape nobody did: an entry type the
@@ -32,7 +32,7 @@ const ITEM_COUNT = 3634;
  */
 const KNOWN_TAG_GAPS = ["color"] as const;
 
-describeDb("the item panel over the whole corpus", () => {
+describeDb("the item panel over every item", () => {
   let gaps: { kind: string; name: string }[];
   let rendered: number;
   let markup: string[];
@@ -101,7 +101,7 @@ describeDb("the item panel over the whole corpus", () => {
     }
 
     gaps = coverageReport();
-    // Rendering every item in the corpus takes longer than the default hook
+    // Rendering every item in the books takes longer than the default hook
     // budget allows.
   }, 120_000);
 
@@ -112,7 +112,7 @@ describeDb("the item panel over the whole corpus", () => {
     await pool?.end();
   });
 
-  it("renders every item in the corpus", () => {
+  it("renders every item in the books", () => {
     expect(rendered).toBe(ITEM_COUNT);
   });
 

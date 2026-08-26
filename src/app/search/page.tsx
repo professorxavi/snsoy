@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * Corpus-wide search.
+ * Search across the books.
  *
  * The one view that is not about a single content type: a query reaches spells,
  * chapters, class features and cards at once, and ranking them against each

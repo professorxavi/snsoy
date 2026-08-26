@@ -42,7 +42,7 @@ export function crToProficiencyBonus(cr: unknown): number {
 }
 
 /**
- * Ability names in full. The three-letter form is how the corpus stores them
+ * Ability names in full. The three-letter form is how the books store them
  * and how a stat block prints them; anything written as a sentence needs these.
  */
 const ABILITY_NAMES: Record<string, string> = {
@@ -62,7 +62,7 @@ export function abilityName(abbreviation: string): string {
  * The ability a formula draws on, as it reads mid-sentence: "Charisma",
  * "Strength or Dexterity", or "spellcasting ability" where the class's own
  * feature decides which — a Sidekick's casting ability is whatever its
- * spellcasting feature granted, so the corpus writes `spellcasting` rather
+ * spellcasting feature granted, so the books write `spellcasting` rather
  * than name one.
  */
 export function abilityPhrase(attributes: unknown): string | null {

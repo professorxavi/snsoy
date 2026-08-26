@@ -21,7 +21,7 @@ import { suggestEntities, type Suggestion } from "@/server/db/queries/search";
  *
  * The query is normalised with the same function the results page uses, so a
  * string too short to answer is refused identically in both places rather than
- * turning into a scan of every name in the corpus.
+ * turning into a scan of every name in the books.
  */
 
 export interface SuggestResponse {
@@ -42,7 +42,7 @@ export async function GET(request: Request): Promise<Response> {
 
   return Response.json({ q, suggestions } satisfies SuggestResponse, {
     /*
-     * The corpus does not change between deployments, so the same query always
+     * The books do not change between deployments, so the same query always
      * has the same answer and a repeated keystroke — backspacing over a word
      * and retyping it — should not reach the database twice. Private, because
      * entitlement gating will eventually make this per-reader.

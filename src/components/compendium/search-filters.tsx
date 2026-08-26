@@ -18,7 +18,7 @@ import type { SearchFacetOptions } from "@/server/db/queries/search";
  * separates them.
  *
  * There is deliberately no source facet. It would list around 120 books, which
- * is a picture of the corpus rather than a way to find a spell — and a reader
+ * is a picture of the books rather than a way to find a spell — and a reader
  * who knows which book a thing is in did not need to search for it.
  */
 

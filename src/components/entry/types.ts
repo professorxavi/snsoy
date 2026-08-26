@@ -197,7 +197,7 @@ export interface FlowBlockEntry {
  * what it is: something the DM may adopt, not part of the creature as printed.
  *
  * `variantInner` and `variantSub` are its named subdivisions, three of each in
- * the whole corpus.
+ * all the books.
  */
 export interface VariantEntry {
   type: "variant" | "variantInner" | "variantSub";
@@ -206,7 +206,7 @@ export interface VariantEntry {
 }
 
 /**
- * A creature's spellcasting, which the corpus stores as structure rather than
+ * A creature's spellcasting, which the books store as structure rather than
  * prose: prepared spells by level with their slot counts, innate spells by how
  * often they may be cast.
  *

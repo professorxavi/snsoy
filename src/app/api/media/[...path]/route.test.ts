@@ -14,7 +14,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
  * working and starts serving whatever else it is pointed at.
  *
  * The env module reads `CONTENT_IMAGE_DIR` at import time, so it is mocked to
- * a real temporary directory rather than the developer's corpus. That also
+ * a real temporary directory rather than the developer's own copy. That also
  * makes the traversal targets safe to assert on: the file the test tries to
  * escape to is one it created itself, one level above the root.
  */

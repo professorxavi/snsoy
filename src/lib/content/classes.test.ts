@@ -15,7 +15,7 @@ import {
 } from "./classes";
 
 /**
- * Reading a class out of the corpus.
+ * Reading a class out of the books.
  *
  * Nothing about a class is stored the way it is printed. The progression table
  * is a set of grids under two different keys with five cell shapes between
@@ -268,7 +268,7 @@ describe("startingEquipment", () => {
 });
 
 /**
- * The corpus composes features out of other features, which are stored as
+ * The books compose features out of other features, which are stored as
  * siblings rather than as children. Addressing one has to produce the key it is
  * stored under, or a page prints "Guardian" and "Infiltrator" as features in
  * their own right with nothing to say what they are models of.

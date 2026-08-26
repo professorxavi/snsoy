@@ -36,7 +36,7 @@ export function checkName(
 /**
  * One line on what each skill is for, in our words rather than the book's.
  *
- * The corpus opens a skill with a sentence far too long for a table cell —
+ * The books opens a skill with a sentence far too long for a table cell —
  * Acrobatics runs sixty words before it reaches an example — and a sentence
  * truncated mid-clause reads as a bug rather than as a summary. These exist so
  * that the list answers "which of these do I want" without opening eighteen
