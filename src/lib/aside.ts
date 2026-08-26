@@ -55,11 +55,10 @@ export function asideKey(
  * a room description saying the floor gives way to a {@trap pit trap} is a
  * link that used to go nowhere.
  *
- * The five lore types close the largest block of dead links left in book text
+ * The four lore types close the largest block of dead links left in book text
  * after the items: 535 references to deities alone. They are also the batch
  * that proved most of what a type knows may sit outside `entries` — a deity's
- * domains and symbol, a cult's goal, and a recipe, which has no `entries` at
- * all and is ingredients and instructions instead.
+ * domains and symbol, and a cult's goal.
  *
  * The last five close the list. Cards were not a renderer problem at all: all
  * 545 of their tags resolved to nothing because a card's key carries its deck
@@ -96,7 +95,6 @@ export const ASIDE_TYPE_LIST = [
   "disease",
   "object",
   "deity",
-  "recipe",
   "reward",
   "cult",
   "boon",

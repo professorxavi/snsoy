@@ -9,7 +9,6 @@ import type { GenericEntity } from "@/server/db/queries/generic";
 import { DeckContents } from "./deck-contents";
 import { GenericAside } from "./generic-aside";
 import { ObjectActions } from "./object-actions";
-import { RecipeBody } from "./recipe-body";
 import { VehicleStatblock } from "./vehicle-statblock";
 
 /**
@@ -53,12 +52,11 @@ const TYPES = {
   disease: 22,
   object: 20,
   deity: 494,
-  recipe: 241,
-  reward: 235,
+  reward: 234,
   cult: 29,
   boon: 12,
-  card: 656,
-  deck: 31,
+  card: 475,
+  deck: 22,
   vehicle: 35,
   vehicleUpgrade: 31,
   table: 7,
@@ -109,11 +107,6 @@ function extraFor(
     // `attack` entry type they use appears nowhere else in the data.
     case "object":
       return <ObjectActions actions={blob["actionEntries"]} {...ctx} />;
-
-    // No `entries` at all: ingredients and instructions, and the `{@unit}` tag
-    // only they use.
-    case "recipe":
-      return <RecipeBody data={blob} {...ctx} />;
 
     // A deck's cards are stored as bare addresses rather than as tags.
     case "deck":

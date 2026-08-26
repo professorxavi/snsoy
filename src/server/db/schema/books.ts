@@ -22,8 +22,8 @@ export const bookSections = pgTable(
      * rulebook keeps its own id ("MOT-NSS") while belonging to the containing
      * book's source ("MOT").
      *
-     * Chapter order is therefore `(book_id, ordinal)`, never `ordinal` alone —
-     * a source with two bodies restarts the count.
+     * A source with two bodies restarts the count, so `ordinal` alone never
+     * orders a chapter list — `sortOrder` does.
      */
     bookId: varchar({ length: 32 }).notNull(),
     /**
@@ -32,6 +32,17 @@ export const bookSections = pgTable(
      * the natural key is built from this.
      */
     ordinal: integer().notNull(),
+    /**
+     * Reading order across the whole source, 0-based, resolved by ingest.
+     *
+     * Stored rather than derived because the right order depends on how the
+     * bodies relate, which only ingest knows. An adventure printed inside a
+     * rulebook shares its pagination and interleaves — Krenko's Way is p160 of
+     * Ravnica's chapter 4 — while a boxed set's second booklet restarts at page
+     * one and has to follow the first entire. No expression over `(book_id,
+     * ordinal, page)` tells those two apart.
+     */
+    sortOrder: integer().notNull().default(0),
     /** "chapter", "appendix", "part", "level", "episode", or null for front matter. */
     ordinalType: varchar({ length: 16 }),
     /** Printed chapter number or appendix letter, as displayed. Some appendices are unnumbered. */

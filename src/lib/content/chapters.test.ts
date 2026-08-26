@@ -34,15 +34,32 @@ describe("groupByBook", () => {
   });
 
   /**
-   * The rows arrive ordered by `book_id`, so an inner work whose id sorts first
-   * would otherwise print above the book that contains it.
+   * An adventure printed as a chapter of the book is stored under its own id
+   * but reads in its place, so it is not a body of its own.
    */
-  it("puts the source's own body first however the rows arrived", () => {
-    const inverted = [...mot.slice(2), ...mot.slice(0, 2)];
+  it("keeps a body printed inside the book with it", () => {
+    const egw = [
+      { bookId: "EGW", slug: "adventures-in-wildemount" },
+      { bookId: "ToR", slug: "tide-of-retribution" },
+      { bookId: "EGW", slug: "wildemount-treasures" },
+    ];
 
-    expect(groupByBook(inverted, "MOT").map((body) => body.bookId)).toEqual([
-      "MOT",
-      "MOT-NSS",
+    expect(groupByBook(egw, "EGW")).toEqual([{ bookId: "EGW", chapters: egw }]);
+  });
+
+  /**
+   * An anthology the data ships as several printings has no body under its own
+   * id at all. Every chapter is foreign, and all of it is the book.
+   */
+  it("keeps an anthology with no body of its own in one piece", () => {
+    const tftyp = [
+      { bookId: "TftYP-ToH", slug: "introduction" },
+      { bookId: "TftYP-TSC", slug: "the-sunless-citadel" },
+      { bookId: "TftYP-ToH", slug: "tomb-of-horrors" },
+    ];
+
+    expect(groupByBook(tftyp, "TftYP")).toEqual([
+      { bookId: "TftYP-ToH", chapters: tftyp },
     ]);
   });
 

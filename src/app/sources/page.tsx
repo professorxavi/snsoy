@@ -21,6 +21,23 @@ export const metadata: Metadata = {
  * the grouped list the compendium types use.
  */
 
+/**
+ * The shelf is banded by `group`, in the order a reader would shelve them.
+ *
+ * The main band carries the books and adventures someone plays from. Odds and
+ * Ends collects the short promotional one-shots, the card decks and the
+ * Monstrous Compendium volumes — real content, worth reading, but not what the
+ * page is for. Errata and Rulings holds the Sage Advice Compendium alone, which
+ * is neither.
+ */
+const BANDS: { heading: string | null; groups: readonly string[] | null }[] = [
+  { heading: null, groups: null },
+  { heading: "Odds and Ends", groups: ["supplement-alt"] },
+  { heading: "Errata and Rulings", groups: ["errata"] },
+];
+
+const BANDED_GROUPS = new Set<string>(BANDS.flatMap((band) => band.groups ?? []));
+
 const KINDS = [
   { value: undefined, label: "All" },
   { value: "books", label: "Books" },
@@ -110,11 +127,43 @@ export default async function SourcesPage({
           })}
         </Box>
 
-        <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 6 }} gap={{ base: "4", md: "6" }}>
-          {shown.map((source) => (
-            <SourceCard key={source.id} source={source} />
-          ))}
-        </SimpleGrid>
+        {BANDS.map((band) => {
+          const inBand = shown.filter((source) =>
+            band.groups
+              ? band.groups.includes(source.group ?? "")
+              : !BANDED_GROUPS.has(source.group ?? ""),
+          );
+          if (!inBand.length) return null;
+
+          return (
+            <Box key={band.heading ?? "main"} mb={{ base: "10", md: "14" }}>
+              {band.heading ? (
+                <Heading
+                  as="h2"
+                  fontFamily="display"
+                  fontWeight="normal"
+                  fontSize={{ base: "xl", md: "2xl" }}
+                  letterSpacing="tight"
+                  pb="3"
+                  mb={{ base: "5", md: "6" }}
+                  borderBottomWidth="1px"
+                  borderColor="border"
+                >
+                  {band.heading}
+                </Heading>
+              ) : null}
+
+              <SimpleGrid
+                columns={{ base: 2, sm: 3, md: 4, lg: 6 }}
+                gap={{ base: "4", md: "6" }}
+              >
+                {inBand.map((source) => (
+                  <SourceCard key={source.id} source={source} />
+                ))}
+              </SimpleGrid>
+            </Box>
+          );
+        })}
       </Box>
     </Box>
   );

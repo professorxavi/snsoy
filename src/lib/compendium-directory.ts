@@ -55,8 +55,8 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   shops for one cold. `/compendium/vehicles` stays, and the 34
  *   `{@vehupgrade}` references in book text still open one in the aside, which
  *   is the whole reason the type was built.
- * - **`sense`, `status`, `boon`, `reward`, `recipe`, `cult`, `trap`, `hazard`
- *   and `object`.** These nine kept a list for a while after losing their card,
+ * - **`sense`, `status`, `boon`, `reward`, `cult`, `trap`, `hazard` and
+ *   `object`.** These eight kept a list for a while after losing their card,
  *   on the theory that a hidden route still served the reader who typed the URL.
  *   It served nobody: nothing linked to them but the 404 signpost, which is a
  *   thin reason for a route to exist. Every one of them is met through the thing
@@ -76,7 +76,6 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
     "status",
     "boon",
     "reward",
-    "recipe",
     "cult",
     "trap",
     "hazard",

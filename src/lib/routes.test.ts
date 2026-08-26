@@ -275,6 +275,6 @@ describe("hasDetailPage", () => {
     const withPage = BROWSABLE_TYPES.filter(hasDetailPage);
 
     expect(withPage.sort()).toEqual(["class", "monster", "race", "spell"]);
-    expect(BROWSABLE_TYPES.length - withPage.length).toBe(28);
+    expect(BROWSABLE_TYPES.length - withPage.length).toBe(27);
   });
 });

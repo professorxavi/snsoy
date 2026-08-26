@@ -12,7 +12,6 @@ import { LanguageAside } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { LabelledLines } from "@/components/compendium/labelled-lines";
 import { ObjectActions } from "@/components/compendium/object-actions";
-import { RecipeBody } from "@/components/compendium/recipe-body";
 import { RaceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { VehicleStatblock } from "@/components/compendium/vehicle-statblock";
@@ -28,7 +27,6 @@ import {
 } from "@/lib/content/deities";
 import { featPrerequisite } from "@/lib/content/feats";
 import { itemGroupTags } from "@/lib/content/items";
-import { recipeSubtitle } from "@/lib/content/recipes";
 import { objectSummary } from "@/lib/content/objects";
 import { trapKindLabel, trapThreat } from "@/lib/content/traps";
 import {
@@ -73,7 +71,6 @@ type GenericAsideType = Extract<
   | "disease"
   | "object"
   | "deity"
-  | "recipe"
   | "reward"
   | "cult"
   | "boon"
@@ -172,18 +169,6 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
           { label: "Province.", text: text(data["province"]) },
           { label: "Symbol.", text: text(data["symbol"]) },
         ]}
-        refs={refs}
-        selfKey={entity.naturalKey}
-        context={entity.name}
-      />
-    ),
-  },
-  recipe: {
-    noun: "recipe",
-    subtitle: (data: Record<string, unknown>) => recipeSubtitle(data),
-    extra: (data, entity, refs) => (
-      <RecipeBody
-        data={data}
         refs={refs}
         selfKey={entity.naturalKey}
         context={entity.name}
@@ -315,7 +300,6 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   variantrule: (source, slug) => genericAside("variantrule", source, slug),
   charoption: (source, slug) => genericAside("charoption", source, slug),
   deity: (source, slug) => genericAside("deity", source, slug),
-  recipe: (source, slug) => genericAside("recipe", source, slug),
   reward: (source, slug) => genericAside("reward", source, slug),
   cult: (source, slug) => genericAside("cult", source, slug),
   boon: (source, slug) => genericAside("boon", source, slug),

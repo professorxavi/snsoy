@@ -136,7 +136,10 @@ export default async function MonsterPage({ params }: RouteParams) {
    */
   const token = art
     ? undefined
-    : tokenPath("monster", monster.name, monster.sourceId);
+    : // Stored only when the creature was merged into a containing book, whose
+      // id is not the one its token is filed under.
+      (typeof data.token === "string" ? data.token : null) ??
+      tokenPath("monster", monster.name, monster.sourceId);
 
   const environment = formatEnvironmentList(data.environment);
 
@@ -298,6 +301,8 @@ interface CreatureData {
   alignmentPrefix?: string;
   cr?: ChallengeRating;
   environment?: unknown;
+  /** Set by ingest only for a creature merged into a containing book. */
+  token?: string;
 }
 
 /**

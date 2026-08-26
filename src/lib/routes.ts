@@ -35,7 +35,6 @@ const SEGMENTS = {
   hazard: "hazards",
   language: "languages",
   object: "objects",
-  recipe: "recipes",
   reward: "rewards",
   sense: "senses",
   skill: "skills",

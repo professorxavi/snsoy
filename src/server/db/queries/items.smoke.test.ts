@@ -31,8 +31,8 @@ const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
  * list covers two of them: a group is a heading over items that exist in their
  * own right, and is read one at a time rather than listed.
  */
-const ITEM_COUNT = 3572;
-const MAGIC_ITEM_COUNT = 3448;
+const ITEM_COUNT = 3561;
+const MAGIC_ITEM_COUNT = 3437;
 const BASE_ITEM_COUNT = 124;
 const ITEM_GROUP_COUNT = 73;
 
@@ -123,7 +123,7 @@ describeDb("item queries against the seed", () => {
     it("filters by rarity", async () => {
       const list = await queries.listItems({ rarities: ["legendary"] });
 
-      expect(list.total).toBe(290);
+      expect(list.total).toBe(285);
       expect(list.rows.every((row) => row.rarity === "legendary")).toBe(true);
     });
 
@@ -148,7 +148,7 @@ describeDb("item queries against the seed", () => {
     it("filters by a synthetic type the corpus only flags", async () => {
       const list = await queries.listItems({ types: ["WON"] });
 
-      expect(list.total).toBe(637);
+      expect(list.total).toBe(635);
       expect(list.rows.every((row) => row.typeName === "Wondrous Item")).toBe(true);
     });
 
@@ -263,7 +263,7 @@ describeDb("item queries against the seed", () => {
       const facets = await queries.itemFacets();
       const total = facets.types.reduce((sum, facet) => sum + facet.count, 0);
 
-      expect(total).toBe(ITEM_COUNT - 8);
+      expect(total).toBe(ITEM_COUNT - 2);
     });
 
     /**
@@ -301,8 +301,8 @@ describeDb("item queries against the seed", () => {
     it("counts the flag facets", async () => {
       const facets = await queries.itemFacets();
 
-      expect(facets.attunement.count).toBe(1579);
-      expect(facets.magic.count).toBe(2882);
+      expect(facets.attunement.count).toBe(1577);
+      expect(facets.magic.count).toBe(2871);
     });
   });
 

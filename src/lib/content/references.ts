@@ -49,7 +49,6 @@ const REFERENCE_TAGS = {
   boon: { type: "boon", defaultSource: "dmg" },
   cult: { type: "cult", defaultSource: "mtf" },
   deck: { type: "deck", defaultSource: "dmg" },
-  recipe: { type: "recipe", defaultSource: "hf" },
   charoption: { type: "charoption", defaultSource: "mot" },
 } as const satisfies Record<
   string,
@@ -140,6 +139,9 @@ const PLAIN_TAGS = new Set([
   "link",
   "itemProperty",
   "unit",
+  // Every recipe came from the cookbooks, which we do not carry. The tag is
+  // left rendering its own words, which is what the books print anyway.
+  "recipe",
 ]);
 
 export type TagKind =

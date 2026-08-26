@@ -27,7 +27,7 @@ import type * as MonsterQueries from "./monsters";
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
 /** Creatures in the published-material seed. */
-const MONSTER_COUNT = 3628;
+const MONSTER_COUNT = 3619;
 
 /** Of those, the ones with no illustration at all — every one has a token. */
 const ARTLESS_COUNT = 1125;
@@ -352,16 +352,16 @@ describeDb("monster queries against the seed", () => {
        * this block pay for a column it does not read.
        */
       const artless = (await db.execute(
-        sql`select e.name, e.source_id as "sourceId"
+        sql`select e.name, e.source_id as "sourceId", m.data ->> ${"token"} as "token"
             from monsters m
             join entities e on e.id = m.entity_id
             where e.fluff -> 'images' is null
                or jsonb_array_length(e.fluff -> 'images') = 0`,
-      )) as unknown as { name: string; sourceId: string }[];
+      )) as unknown as { name: string; sourceId: string; token: string | null }[];
 
       const missing: string[] = [];
       for (const row of artless) {
-        const path = tokenPath("monster", row.name, row.sourceId);
+        const path = row.token ?? tokenPath("monster", row.name, row.sourceId);
         try {
           await access(join(root, path));
         } catch {

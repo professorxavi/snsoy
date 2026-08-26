@@ -60,7 +60,6 @@ const KNOWN_TAG_GAPS = [
   "comicH3",
   "comicH4",
   "comicNote",
-  "crochet",
   "savingThrow",
 ] as const;
 
@@ -118,7 +117,7 @@ describeDb("renderer coverage over every book section", () => {
   });
 
   it("renders every section in the corpus", () => {
-    expect(sectionCount).toBe(952);
+    expect(sectionCount).toBe(833);
   });
 
   it("meets no entry type outside the known gaps", () => {

@@ -22,7 +22,7 @@ import { ItemDetail } from "./item-detail";
 
 const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 
-const ITEM_COUNT = 3645;
+const ITEM_COUNT = 3634;
 
 /**
  * Tags no item renderer can help with, and the same list the book sections

@@ -16,16 +16,16 @@ import { sources } from "../schema/sources";
  */
 
 /**
- * Chapter order within a source. Never `ordinal` alone: a source with two
- * bodies restarts the count, so MOT's ordinal 0 appears twice. The primary body
- * — the one whose `book_id` matches the source — comes first, and any inner
- * work follows it.
+ * Chapter order within a source, resolved by ingest and stored.
+ *
+ * Never `ordinal`: a source with two bodies restarts the count, so MOT's
+ * ordinal 0 appears twice. Nor any expression over `(book_id, ordinal, page)` —
+ * whether a second body interleaves with the book or follows it depends on
+ * whether the two share a pagination, which the rows cannot say. Krenko's Way
+ * is page 160 of Ravnica's chapter 4 and belongs there; the Rick and Morty
+ * adventure booklet restarts at page one and belongs after the rules booklet.
  */
-const CHAPTER_ORDER = [
-  sql`(${bookSections.bookId} = ${entities.sourceId}) DESC`,
-  asc(bookSections.bookId),
-  asc(bookSections.ordinal),
-];
+const CHAPTER_ORDER = [asc(bookSections.sortOrder)];
 
 /**
  * Sources the ingest synthesised because an entity cited a source id with no

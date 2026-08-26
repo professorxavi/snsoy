@@ -470,6 +470,9 @@ export async function suggestEntities(
           + ${prominenceCase()} AS score
       FROM search_index si, q
       WHERE si.tsv @@ q.tsq OR si.name % q.raw
+    ),
+    literal AS (
+      SELECT bool_or(tier > 0) AS any FROM scored
     )
     SELECT
       s.entity_id   AS "id",
@@ -480,9 +483,15 @@ export async function suggestEntities(
       e.natural_key AS "naturalKey"
     FROM scored s
     JOIN entities e ON e.id = s.entity_id
+    CROSS JOIN literal l
     -- The one clause that separates this from the results page: a row whose
     -- name says nothing about the query is a body match, and belongs there.
-    WHERE s.tier > 0 OR s.name_similar
+    --
+    -- A merely trigram-similar name is the typo fallback, so it is admitted
+    -- only when nothing matched literally. Otherwise a query with fewer hits
+    -- than the limit pads the list out with near-misses — six names carry
+    -- "fireball", and the last two rows would be "Fire" and "Wall of Fire".
+    WHERE s.tier > 0 OR (s.name_similar AND NOT l.any)
     ORDER BY s.tier DESC, s.score DESC, s.name, s.source_id
     LIMIT ${limit}
   `)) as unknown as {

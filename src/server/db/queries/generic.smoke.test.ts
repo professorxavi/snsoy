@@ -39,8 +39,7 @@ const COUNTS = {
   disease: 22,
   object: 20,
   deity: 494,
-  recipe: 241,
-  reward: 235,
+  reward: 234,
   cult: 29,
   boon: 12,
 } as const;

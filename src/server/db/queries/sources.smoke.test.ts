@@ -40,20 +40,24 @@ describeDb("source queries against the seed", () => {
     it("lists every source that has body text", async () => {
       const all = await queries.listSources();
 
-      expect(all).toHaveLength(117);
-      expect(all.filter((source) => !source.isAdventure)).toHaveLength(45);
-      expect(all.filter((source) => source.isAdventure)).toHaveLength(72);
+      expect(all).toHaveLength(87);
+      expect(all.filter((source) => !source.isAdventure)).toHaveLength(34);
+      expect(all.filter((source) => source.isAdventure)).toHaveLength(53);
     });
 
     /**
-     * The 14 sources ingest synthesised from citations have no name, cover or
+     * The 10 sources ingest synthesised from citations have no name, cover or
      * body. Their pages still resolve, but a card for one would be a dead end.
+     *
+     * Tales from the Yawning Portal is no longer among them: the anthology is
+     * cited by its own creatures and its seven bodies merge into it, so ingest
+     * gives that row the book`s name and cover.
      */
     it("hides synthesised sources", async () => {
       const all = await queries.listSources();
 
       expect(all.some((source) => source.group === "unlisted")).toBe(false);
-      expect(all.some((source) => source.id === "TftYP")).toBe(false);
+      expect(all.some((source) => source.id === "MFF")).toBe(false);
       expect(all.every((source) => source.chapterCount > 0)).toBe(true);
     });
 
@@ -101,9 +105,10 @@ describeDb("source queries against the seed", () => {
     /**
      * The ordering rule that cannot be expressed as `ORDER BY ordinal`: MOT
      * contains a second body whose ordinals restart at zero, so sorting by
-     * ordinal alone interleaves the two books.
+     * ordinal alone interleaves the two books wrongly. It reads at page 184,
+     * inside the book's own run, and belongs there rather than after it.
      */
-    it("keeps an inner work after the body that contains it", async () => {
+    it("reads an inner work at the page it was printed on", async () => {
       const mot = await queries.getSource("mot");
 
       expect(
@@ -114,28 +119,28 @@ describeDb("source queries against the seed", () => {
         "MOT:gods-of-theros",
         "MOT:realms-of-gods-and-mortals",
         "MOT:creating-theros-adventures",
+        "MOT-NSS:no-silent-secret",
         "MOT:treasures",
         "MOT:friends-and-foes",
-        "MOT:credits",
-        "MOT-NSS:no-silent-secret",
-        "MOT-NSS:credits-2",
+        "MOT-NSS:credits",
       ]);
     });
 
-    it("groups that source into two named bodies", async () => {
+    /** One book, however many bodies the data split its chapters across. */
+    it("groups that source into a single body", async () => {
       const mot = await queries.getSource("mot");
       const bodies = groupByBook(mot!.chapters, mot!.id);
 
-      expect(bodies.map((body) => body.bookId)).toEqual(["MOT", "MOT-NSS"]);
-      expect(bodies.map((body) => body.chapters.length)).toEqual([8, 2]);
+      expect(bodies.map((body) => body.bookId)).toEqual(["MOT"]);
+      expect(bodies.map((body) => body.chapters.length)).toEqual([9]);
     });
 
     /** Cited by entities, never published as a book — the page says so. */
     it("resolves a synthesised source with no chapters", async () => {
-      const tftyp = await queries.getSource("tftyp");
+      const mff = await queries.getSource("mff");
 
-      expect(tftyp).not.toBeNull();
-      expect(tftyp?.chapters).toEqual([]);
+      expect(mff).not.toBeNull();
+      expect(mff?.chapters).toEqual([]);
     });
 
     it("is null for a source that does not exist", async () => {
@@ -168,14 +173,17 @@ describeDb("source queries against the seed", () => {
       expect(last?.next).toBeNull();
     });
 
-    /** Stepping off MOT's last chapter has to land inside MOT-NSS. */
+    /** Walking through MOT crosses between its two bodies without noticing. */
     it("crosses the seam into an inner work in both directions", async () => {
-      const credits = await queries.getChapter("mot", "credits");
+      const before = await queries.getChapter(
+        "mot",
+        "creating-theros-adventures",
+      );
       const inner = await queries.getChapter("mot", "no-silent-secret");
 
-      expect(credits?.next?.slug).toBe("no-silent-secret");
-      expect(inner?.previous?.slug).toBe("credits");
-      expect(inner?.next?.slug).toBe("credits-2");
+      expect(before?.next?.slug).toBe("no-silent-secret");
+      expect(inner?.previous?.slug).toBe("creating-theros-adventures");
+      expect(inner?.next?.slug).toBe("treasures");
     });
 
     it("is null for a chapter that does not exist", async () => {
@@ -190,7 +198,7 @@ describeDb("source queries against the seed", () => {
 
   describe("allChapterParams", () => {
     it("covers every book section", async () => {
-      expect(await queries.allChapterParams()).toHaveLength(952);
+      expect(await queries.allChapterParams()).toHaveLength(833);
     });
 
     /**
