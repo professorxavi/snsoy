@@ -71,6 +71,20 @@ describeDb("source queries against the seed", () => {
       ]);
     });
 
+    /**
+     * The core three are the only books whose place is not their date — Lost
+     * Mine of Phandelver was printed a month before the Player's Handbook.
+     */
+    it("runs chronologically once past the core rulebooks", async () => {
+      const all = await queries.listSources();
+      const dates = all
+        .filter((source) => source.group !== "core")
+        .map((source) => source.published);
+
+      expect(dates).toEqual([...dates].sort());
+      expect(dates[0]!.startsWith("2014")).toBe(true);
+    });
+
     it("counts only chapters, not every entity in the source", async () => {
       const all = await queries.listSources();
       const phb = all.find((source) => source.id === "PHB");

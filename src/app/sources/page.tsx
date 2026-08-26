@@ -4,6 +4,7 @@ import Image from "next/image";
 import NextLink from "next/link";
 import { mediaUrl } from "@/lib/content/media";
 import { readString, withValue, type QueryParams } from "@/lib/query-params";
+import { BANDS, inBand } from "@/lib/content/shelf";
 import { sourceHref } from "@/lib/routes";
 import { listSources, type SourceListItem } from "@/server/db/queries/sources";
 
@@ -20,23 +21,6 @@ export const metadata: Metadata = {
  * Covers do the work of identifying a book, which is why this is a grid and not
  * the grouped list the compendium types use.
  */
-
-/**
- * The shelf is banded by `group`, in the order a reader would shelve them.
- *
- * The main band carries the books and adventures someone plays from. Odds and
- * Ends collects the short promotional one-shots, the card decks and the
- * Monstrous Compendium volumes — real content, worth reading, but not what the
- * page is for. Errata and Rulings holds the Sage Advice Compendium alone, which
- * is neither.
- */
-const BANDS: { heading: string | null; groups: readonly string[] | null }[] = [
-  { heading: null, groups: null },
-  { heading: "Odds and Ends", groups: ["supplement-alt"] },
-  { heading: "Errata and Rulings", groups: ["errata"] },
-];
-
-const BANDED_GROUPS = new Set<string>(BANDS.flatMap((band) => band.groups ?? []));
 
 const KINDS = [
   { value: undefined, label: "All" },
@@ -128,12 +112,8 @@ export default async function SourcesPage({
         </Box>
 
         {BANDS.map((band) => {
-          const inBand = shown.filter((source) =>
-            band.groups
-              ? band.groups.includes(source.group ?? "")
-              : !BANDED_GROUPS.has(source.group ?? ""),
-          );
-          if (!inBand.length) return null;
+          const cards = inBand(shown, band.groups);
+          if (!cards.length) return null;
 
           return (
             <Box key={band.heading ?? "main"} mb={{ base: "10", md: "14" }}>
@@ -157,7 +137,7 @@ export default async function SourcesPage({
                 columns={{ base: 2, sm: 3, md: 4, lg: 6 }}
                 gap={{ base: "4", md: "6" }}
               >
-                {inBand.map((source) => (
+                {cards.map((source) => (
                   <SourceCard key={source.id} source={source} />
                 ))}
               </SimpleGrid>

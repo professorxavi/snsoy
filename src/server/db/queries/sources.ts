@@ -38,9 +38,22 @@ const SYNTHESISED = eq(sources.group, "unlisted");
 export type SourceListItem = Awaited<ReturnType<typeof listSources>>[number];
 
 /**
- * Every source worth showing, with how many chapters it has. Ordered by kind
- * and then chronologically, so the core rulebooks lead and the rest reads as a
- * publication history.
+ * The three core rulebooks lead the shelf; everything else is chronological.
+ *
+ * They are the only books whose place is not their date. A shelf that opened
+ * on the 2014 adventures would bury the three anyone needs first, and they are
+ * what the rest is read against.
+ */
+const CORE_FIRST = sql`CASE WHEN ${sources.group} = 'core' THEN 0 ELSE 1 END`;
+
+/**
+ * Every source worth showing, with how many chapters it has: the core books,
+ * then the rest oldest first.
+ *
+ * By `published` rather than `sortOrder`: the latter is the order the data
+ * lists its books in, which is only roughly chronological and puts a book
+ * ahead of one printed before it. Every listed source carries a date, so the
+ * shelf reads as a publication history with nothing stranded at the end.
  *
  * `chapterCount` decides whether a card opens the reader. Every listed source
  * has body text today, so it never reads zero — but it is what the index shows
@@ -63,7 +76,7 @@ export async function listSources() {
     .leftJoin(entities, eq(entities.sourceId, sources.id))
     .where(sql`NOT ${SYNTHESISED}`)
     .groupBy(sources.id)
-    .orderBy(asc(sources.sortOrder), asc(sources.name));
+    .orderBy(CORE_FIRST, asc(sources.published), asc(sources.name));
 }
 
 export type SourceDetail = NonNullable<Awaited<ReturnType<typeof getSource>>>;

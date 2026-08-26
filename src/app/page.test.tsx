@@ -91,6 +91,27 @@ describe("the shelf", () => {
     }
   });
 
+  /**
+   * The sources page files promotional one-shots under Odds and Ends and the
+   * Sage Advice Compendium under Errata and Rulings. A shelf that showed them
+   * among the first twelve covers would misrepresent what the instance holds.
+   */
+  it("keeps the banded sources off the shelf", async () => {
+    vi.mocked(listSources).mockResolvedValue([
+      ...SOURCES,
+      source({ id: "OGA", name: "One Grung Above", group: "supplement-alt" }),
+      source({ id: "SAC", name: "Sage Advice Compendium", group: "errata" }),
+    ]);
+
+    await renderPage();
+
+    const named = (name: string) => screen.queryByRole("link", { name });
+
+    expect(named("One Grung Above")).toBeNull();
+    expect(named("Sage Advice Compendium")).toBeNull();
+    expect(named("Player's Handbook")).not.toBeNull();
+  });
+
   it("renders nothing when there are no sources", async () => {
     vi.mocked(listSources).mockResolvedValue([]);
     await renderPage();

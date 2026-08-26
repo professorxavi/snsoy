@@ -3,6 +3,7 @@ import Image from "next/image";
 import NextLink from "next/link";
 import { mediaUrl } from "@/lib/content/media";
 import { sourceHref } from "@/lib/routes";
+import { onMainShelf } from "@/lib/content/shelf";
 import { listSources, type SourceListItem } from "@/server/db/queries/sources";
 
 const ENTRIES = [
@@ -21,8 +22,8 @@ const ENTRIES = [
 /**
  * How much of the shelf the page shows.
  *
- * `listSources` orders by `sortOrder` then name, so the core rulebooks lead and
- * a slice is the front of the shelf rather than an arbitrary cut.
+ * `listSources` leads with the core rulebooks and runs chronologically after
+ * them, so a slice is the front of the shelf rather than an arbitrary cut.
  */
 const SHELF = 12;
 
@@ -35,7 +36,12 @@ const SHELF = 12;
  * prerender, and that is the whole of its cost.
  */
 export default async function Home() {
-  const sources = await listSources();
+  // The main band only. The sources page files the promotional one-shots under
+  // Odds and Ends and the Sage Advice Compendium under Errata and Rulings, and
+  // a shelf meant to show what this instance carries should agree with it.
+  const sources = (await listSources()).filter((source) =>
+    onMainShelf(source.group),
+  );
 
   return (
     <Box
