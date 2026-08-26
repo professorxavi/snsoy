@@ -37,10 +37,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning lang="en">
-      <body
-        className={`${literata.variable} ${plexSans.variable} ${alfaSlab.variable}`}
-      >
+    /*
+      The font variables go on `html`, not `body`, and they have to.
+      Chakra defines its font tokens on `:where(html, .chakra-theme)` as
+      `var(--font-ui), …`. A custom property that references an undefined
+      custom property is guaranteed-invalid, so with the variables declared on
+      `body` — a descendant — every `--chakra-fonts-*` token computed to
+      nothing and the whole app silently fell back to the browser's default
+      sans. Colours were unaffected, which is what kept it hidden.
+    */
+    <html
+      suppressHydrationWarning
+      lang="en"
+      className={`${literata.variable} ${plexSans.variable} ${alfaSlab.variable}`}
+    >
+      <body>
         <Provider>
           <AppFrame>{children}</AppFrame>
         </Provider>

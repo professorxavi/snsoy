@@ -220,19 +220,23 @@ export function SearchBox() {
   return (
     <Box ref={rootRef} position="relative" ml="auto">
       <form action="/search" method="get" onSubmit={onSubmit} role="search">
+        {/* A ruled field rather than a filled chip: one hairline under it, the
+            way a form is ruled on paper. The focus ring is the theme's global
+            one, so the border change here is an addition to it and not a
+            replacement. */}
         <Box
           asChild
+          fontFamily="ui"
           fontSize="xs"
-          px="2.5"
+          px="1"
           py="1"
-          rounded="l1"
           w={{ base: "32", sm: "44" }}
-          bg="whiteAlpha.200"
-          borderWidth="1px"
-          borderColor="whiteAlpha.300"
-          color="brand.contrast"
-          _placeholder={{ color: "brand.contrast", opacity: 0.7 }}
-          _focusVisible={{ bg: "whiteAlpha.300", borderColor: "whiteAlpha.500" }}
+          bg="transparent"
+          color="fg"
+          borderBottomWidth="1px"
+          borderColor="border.emphasized"
+          _placeholder={{ color: "fg.subtle" }}
+          _focusVisible={{ borderColor: "brand" }}
         >
           <input
             ref={inputRef}

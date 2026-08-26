@@ -8,6 +8,7 @@ import {
   IconButton,
   Portal,
   Stack,
+  Text,
 } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { usePathname } from "next/navigation";
@@ -22,6 +23,15 @@ const LINKS = [
   { href: "/sources", label: "Sources" },
 ] as const;
 
+/**
+ * The top bar: a ground step with a purple keyline, not a filled purple slab.
+ *
+ * The app still speaks in purple — the keyline under the bar, the ampersand in
+ * the wordmark, the focus ring — but as printed rules rather than a painted
+ * surface. A fully saturated bar made the chrome the brightest thing on screen,
+ * above the text it exists to frame, and a filled bar over pill navigation is
+ * the shape every generic app shell takes.
+ */
 export function TopNav() {
   const pathname = usePathname();
 
@@ -32,11 +42,13 @@ export function TopNav() {
       top="0"
       zIndex="docked"
       align="center"
-      gap="4"
+      gap={{ base: "3", md: "6" }}
       h="topbar"
-      px="3"
-      bg="brand"
-      color="brand.contrast"
+      px="4"
+      bg="bg.panel"
+      color="fg"
+      borderBottomWidth="2px"
+      borderColor="brand"
     >
       <MobileNav pathname={pathname} />
 
@@ -46,14 +58,23 @@ export function TopNav() {
         fontSize="md"
         letterSpacing="wide"
         whiteSpace="nowrap"
+        lineHeight="1"
       >
-        <NextLink href="/">S&amp;S</NextLink>
+        <NextLink href="/">
+          S
+          <Text as="span" color="brand">
+            &amp;
+          </Text>
+          S
+        </NextLink>
       </Box>
 
       <Flex
         as="nav"
         aria-label="Main"
-        gap="0.5"
+        gap="5"
+        h="100%"
+        align="center"
         display={{ base: "none", md: "flex" }}
       >
         {LINKS.map((link) => {
@@ -63,14 +84,34 @@ export function TopNav() {
             <Box
               key={link.href}
               asChild
-              fontSize="sm"
-              fontWeight={active ? "semibold" : "normal"}
-              px="2.5"
-              py="1"
-              rounded="l1"
-              opacity={active ? 1 : 0.72}
-              bg={active ? "whiteAlpha.300" : "transparent"}
-              _hover={{ opacity: 1, bg: "whiteAlpha.200" }}
+              fontFamily="ui"
+              fontSize="2xs"
+              fontWeight="medium"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              color={active ? "fg" : "fg.muted"}
+              h="100%"
+              display="flex"
+              alignItems="center"
+              position="relative"
+              _hover={{ color: "fg" }}
+              /*
+               * The active marker sits on the bar's own keyline and replaces it
+               * under the word — the way a running head marks a section, rather
+               * than a filled pill.
+               */
+              _after={
+                active
+                  ? {
+                      content: '""',
+                      position: "absolute",
+                      insetInline: 0,
+                      bottom: "-2px",
+                      h: "2px",
+                      bg: "fg",
+                    }
+                  : undefined
+              }
             >
               <NextLink
                 href={link.href}
@@ -94,8 +135,8 @@ export function TopNav() {
           search field or for everything else, and the field wins. */}
       <ColorModeButton
         display={{ base: "none", md: "inline-flex" }}
-        color="brand.contrast"
-        _hover={{ bg: "whiteAlpha.300" }}
+        color="fg.muted"
+        _hover={{ bg: "bg.muted", color: "fg" }}
       />
 
       {/* Rides the bottom edge of the bar. Sticky is a positioned element, so
@@ -133,8 +174,8 @@ function MobileNav({ pathname }: { pathname: string }) {
           variant="ghost"
           size="sm"
           display={{ base: "inline-flex", md: "none" }}
-          color="brand.contrast"
-          _hover={{ bg: "whiteAlpha.300" }}
+          color="fg.muted"
+          _hover={{ bg: "bg.muted", color: "fg" }}
         >
           <LuMenu />
         </IconButton>
@@ -146,7 +187,11 @@ function MobileNav({ pathname }: { pathname: string }) {
           <Drawer.Content>
             <Drawer.Header>
               <Drawer.Title fontFamily="display" fontWeight="normal">
-                S&amp;S
+                S
+                <Text as="span" color="brand">
+                  &amp;
+                </Text>
+                S
               </Drawer.Title>
               <Drawer.CloseTrigger asChild>
                 <CloseButton size="sm" />
