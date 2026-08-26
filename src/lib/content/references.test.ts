@@ -91,6 +91,26 @@ describe("candidateKeysForTag", () => {
     ]);
   });
 
+  /**
+   * `{@race Elf (Eladrin)|DMG}` addresses `subrace|eladrin|elf|phb|dmg`. A
+   * subrace key carries its parent race's source as well as its own, and a tag
+   * names only one source, so the citing book cannot stand for both.
+   */
+  it("offers the parent race's own source for a subrace printed elsewhere", () => {
+    expect(candidateKeysForTag(tag("{@race Elf (Eladrin)|DMG}"))).toEqual([
+      "race|elf (eladrin)|dmg",
+      "subrace|eladrin|elf|dmg|dmg",
+      "subrace|eladrin|elf|phb|dmg",
+    ]);
+  });
+
+  /** Every boon in the books is from Mordenkainen's, and none names a source. */
+  it("resolves a boon to the only book that prints one", () => {
+    expect(
+      candidateKeysForTag(tag("{@boon Demonic Boon of Baphomet}")),
+    ).toEqual(["boon|demonic boon of baphomet|mtf"]);
+  });
+
   it("builds the multi-part key a class feature needs", () => {
     expect(candidateKeysForTag(tag("{@classFeature Divine Sense|Paladin|PHB|1}"))).toEqual(
       ["classfeature|divine sense|paladin|phb|1|phb"],

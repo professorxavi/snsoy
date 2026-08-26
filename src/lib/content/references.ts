@@ -46,7 +46,7 @@ const REFERENCE_TAGS = {
   language: { type: "language", defaultSource: "phb" },
   variantrule: { type: "variantrule", defaultSource: "dmg" },
   table: { type: "table", defaultSource: "dmg" },
-  boon: { type: "boon", defaultSource: "dmg" },
+  boon: { type: "boon", defaultSource: "mtf" },
   cult: { type: "cult", defaultSource: "mtf" },
   deck: { type: "deck", defaultSource: "dmg" },
   charoption: { type: "charoption", defaultSource: "mot" },
@@ -310,10 +310,17 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
 
     if (tag.name === "race") {
       const qualified = QUALIFIED_NAME.exec(name);
+      // A subrace key carries its parent race's source as well as its own, and
+      // the two differ whenever the subrace was printed in a later book than
+      // the race. The citing tag only ever names one source, so try the
+      // parent's usual home as well.
       return qualified
         ? [
             `race|${name}|${source}`,
             `subrace|${qualified[2]}|${qualified[1]}|${source}|${source}`,
+            ...(source === "phb"
+              ? []
+              : [`subrace|${qualified[2]}|${qualified[1]}|phb|${source}`]),
           ]
         : [`race|${name}|${source}`];
     }
