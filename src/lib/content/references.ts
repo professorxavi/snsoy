@@ -467,10 +467,19 @@ export function labelForTag(tag: TagSegment): string {
   const first = part(tag, 0);
 
   switch (tag.name) {
-    // Display text comes first; the rest is addressing.
+    /*
+     * Display text comes first; the rest is addressing.
+     *
+     * `{@area Aarakocra|59f|x}` is the one that had to be found the hard way.
+     * Its second part is an anchor id and its third a flag, so the default rule
+     * printed the flag: 10,681 of the 11,393 area tags in the books rendered as
+     * the single letter "x", which is every cross-reference an adventure makes
+     * to one of its own numbered locations.
+     */
     case "book":
     case "adventure":
     case "filter":
+    case "area":
       return first;
 
     /** `{@quickref name|source|chapter|?|display}` */

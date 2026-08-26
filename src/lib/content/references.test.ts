@@ -147,6 +147,19 @@ describe("labelForTag", () => {
     expect(labelForTag(tag("{@filter fey|bestiary|type=fey}"))).toBe("fey");
   });
 
+  /**
+   * An adventure pointing at one of its own numbered locations. The second part
+   * is the anchor id and the third a flag, so the default rule showed the flag:
+   * 10,681 area tags across the books printed the single letter "x", and a
+   * whole column of ToA's encounter tables read x, x, x.
+   */
+  it("names the area rather than the flag that follows it", () => {
+    expect(labelForTag(tag("{@area Aarakocra|59f|x}"))).toBe("Aarakocra");
+    expect(labelForTag(tag("{@area area 22a|163|u}"))).toBe("area 22a");
+    // The 712 that carry no flag were right by accident, and must stay right.
+    expect(labelForTag(tag("{@area 21l|217}"))).toBe("21l");
+  });
+
   it("shows the per-level step for a scaling roll, not the base", () => {
     // "{@scaledamage 8d6|3-9|1d6}" is read as "1d6 per level above 3rd".
     expect(labelForTag(tag("{@scaledamage 8d6|3-9|1d6}"))).toBe("1d6");
