@@ -691,3 +691,121 @@ describe("an illustration's alt text", () => {
     expect(screen.getByRole("img", { name: "Dwarf" })).toBeInTheDocument();
   });
 });
+
+/**
+ * A book pointing at one of its own numbered locations.
+ *
+ * `{@area Aarakocra|59f|x}` addresses an entry by the id the source data hangs
+ * on the node, not an entity by natural key — so the link and the thing it
+ * lands on are both the renderer's job, and both are keyed on that id.
+ */
+describe("an area reference", () => {
+  const ENCOUNTERS: Entry[] = [
+    { type: "table", rows: [["{@area Aarakocra|59f|x}", "01–05"]] },
+    { type: "entries", id: "59f", name: "Aarakocra", entries: ["Four aarakocra."] },
+  ];
+
+  it("links to the entry the id addresses", () => {
+    render(
+      <Entries entries={ENCOUNTERS} areas={{ "59f": "#59f" }} anchored={{ "59f": true }} />,
+    );
+
+    expect(screen.getByRole("link", { name: "Aarakocra" })).toHaveAttribute(
+      "href",
+      "#59f",
+    );
+  });
+
+  it("marks the entry so the link has somewhere to land", () => {
+    const { container } = render(
+      <Entries entries={ENCOUNTERS} areas={{ "59f": "#59f" }} anchored={{ "59f": true }} />,
+    );
+
+    expect(container.querySelector('[id="59f"]')).toBeInTheDocument();
+  });
+
+  /** A target in another chapter is a real navigation, like the outline's. */
+  it("crosses to another chapter when that is where the entry lives", () => {
+    render(
+      <Entries
+        entries={[ENCOUNTERS[0]!]}
+        areas={{ "59f": "/sources/toa/omu#59f" }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Aarakocra" })).toHaveAttribute(
+      "href",
+      "/sources/toa/omu#59f",
+    );
+  });
+
+  /**
+   * An anchor to an element that is not on the page scrolls nowhere and reads
+   * as broken, so an unresolved area keeps its words and drops the link.
+   */
+  it("stays plain words when the id resolves to nothing", () => {
+    render(<Entries entries={[ENCOUNTERS[0]!]} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByText("Aarakocra")).toBeInTheDocument();
+  });
+
+  /** 55,969 ids in the books; marking the ones nothing points at is markup for nobody. */
+  it("leaves an entry unmarked when nothing points at it", () => {
+    const { container } = render(<Entries entries={ENCOUNTERS} />);
+
+    expect(container.querySelector('[id="59f"]')).toBeNull();
+  });
+
+  /** Some targets are bare images, which have no name to hang an id on. */
+  it("marks a node that is not a named section", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "image",
+            id: "0e5",
+            href: { type: "internal", path: "book/ToA/map.webp" },
+          },
+        ]}
+        anchored={{ "0e5": true }}
+      />,
+    );
+
+    expect(container.querySelector('[id="0e5"]')).toBeInTheDocument();
+  });
+
+  /**
+   * A gallery renders its images itself instead of handing them back to the
+   * renderer, so it is the one place the mark has to be repeated — and it is
+   * where the maps that BGDIA and VEoR point at happen to live.
+   */
+  it("marks an image inside a gallery", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "gallery",
+            images: [
+              {
+                type: "image",
+                id: "1a8",
+                href: { type: "internal", path: "adventure/BGDIA/map.webp" },
+              },
+            ],
+          },
+        ]}
+        anchored={{ "1a8": true }}
+      />,
+    );
+
+    expect(container.querySelector('[id="1a8"]')).toBeInTheDocument();
+  });
+
+  it("is not reported as a gap", () => {
+    resetCoverage();
+    render(<Entries entries={ENCOUNTERS} areas={{ "59f": "#59f" }} />);
+
+    expect(coverageReport()).toEqual([]);
+  });
+});

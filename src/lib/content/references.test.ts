@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  areaTargetForTag,
   candidateKeysForStatblock,
   candidateKeysForTag,
+  collectAreaTargets,
   collectReferences,
   kindOfTag,
   labelForTag,
@@ -336,5 +338,37 @@ describe("labelForTag on a unit", () => {
   /** 1½ cups, not 1½ cup. */
   it("treats a mixed number as more than one", () => {
     expect(labelForTag(tag("{@unit 1½|cup|cups}"))).toBe("cups");
+  });
+});
+
+/**
+ * `{@area}` addresses a position inside a chapter — the `id` the source data
+ * hangs on the entry node — rather than an entity by natural key. It is the
+ * only tag that does, which is why it has a kind of its own.
+ */
+describe("area anchors", () => {
+  it("is a kind apart from a reference", () => {
+    expect(kindOfTag("area")).toBe("anchor");
+  });
+
+  it("reads the entry id out of the second part", () => {
+    expect(areaTargetForTag(tag("{@area Aarakocra|59f|x}"))).toBe("59f");
+    expect(areaTargetForTag(tag("{@area 21l|217}"))).toBe("217");
+  });
+
+  it("has no target when the tag names none", () => {
+    expect(areaTargetForTag(tag("{@area see below}"))).toBeNull();
+    expect(areaTargetForTag(tag("{@spell fireball}"))).toBeNull();
+  });
+
+  it("collects every target on a page in one pass", () => {
+    const found = collectAreaTargets({
+      entries: [
+        "Head for {@area the bridge|1a2|x}.",
+        { type: "table", rows: [["{@area Aarakocra|59f|x}", "01–05"]] },
+      ],
+    });
+
+    expect([...found].sort()).toEqual(["1a2", "59f"]);
   });
 });

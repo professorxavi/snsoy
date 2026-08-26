@@ -11,13 +11,20 @@
  */
 
 /** The shape this needs from an entry; the renderer defines the full type. */
-type NamedEntry = { name?: unknown; entries?: unknown };
+type NamedEntry = { name?: unknown; entries?: unknown; id?: unknown };
 
 export interface DocumentSection<E> {
   /** In-page anchor. Unique within the document. */
   id: string;
   title: string;
   entries: E[];
+  /**
+   * The id the source data hangs on the entry, where it has one. A top-level
+   * section is split out of the tree before the renderer sees it, so this is
+   * the only way its own id survives — and 713 `{@area}` tags in the books
+   * point at one, which would otherwise land nowhere.
+   */
+  anchorId?: string;
 }
 
 export interface SplitDocument<E> {
@@ -45,10 +52,12 @@ export function splitSections<E>(entries: E[] | undefined): SplitDocument<E> {
 
     const title = named;
     const nested = (entry as NamedEntry).entries;
+    const anchorId = (entry as NamedEntry).id;
     sections.push({
       id: uniqueAnchor(title, used),
       title,
       entries: Array.isArray(nested) ? (nested as E[]) : [],
+      ...(typeof anchorId === "string" ? { anchorId } : {}),
     });
   }
 

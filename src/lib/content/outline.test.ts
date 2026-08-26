@@ -28,6 +28,21 @@ describe("splitSections", () => {
     expect(sections[0]?.id).toBe("realms-of-gods-and-mortals");
   });
 
+  /**
+   * A top-level section is unwrapped before the renderer sees it, so its own id
+   * would be lost here — and 713 `{@area}` tags in the books address one.
+   */
+  it("carries the entry's own id through, where it has one", () => {
+    const { sections } = splitSections([
+      { type: "section", id: "595", name: "Wilderness Encounters" },
+      { type: "section", name: "Omu Encounters" },
+    ]);
+
+    expect(sections[0]?.anchorId).toBe("595");
+    expect(sections[0]?.id).toBe("wilderness-encounters");
+    expect(sections[1]?.anchorId).toBeUndefined();
+  });
+
   /** Two sections with one anchor would make the outline ambiguous. */
   it("disambiguates repeated headings", () => {
     const { sections } = splitSections([

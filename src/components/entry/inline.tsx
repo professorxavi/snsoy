@@ -2,12 +2,15 @@ import { Box, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import type { ReactNode } from "react";
 import {
+  areaTargetForTag,
   candidateKeysForTag,
+  EMPTY_AREAS,
   EMPTY_REFERENCES,
   FORMAT_TAGS,
   kindOfTag,
   labelForTag,
   lookupReference,
+  type AreaIndex,
   type FormatKind,
   type ReferenceIndex,
 } from "@/lib/content/references";
@@ -33,10 +36,25 @@ export interface InlineProps {
   selfKey?: string;
   /** Entity name, used to label unsupported tags in the coverage report. */
   context?: string;
+  /**
+   * Where this book's numbered locations are, for `{@area}`. Only a chapter
+   * page has any; everywhere else an area tag renders as plain words.
+   */
+  areas?: AreaIndex;
 }
 
-export function Inline({ text, refs, selfKey, context }: InlineProps) {
-  return <>{renderText(text, refs ?? EMPTY_REFERENCES, selfKey, context)}</>;
+export function Inline({ text, refs, selfKey, context, areas }: InlineProps) {
+  return (
+    <>
+      {renderText(
+        text,
+        refs ?? EMPTY_REFERENCES,
+        selfKey,
+        context,
+        areas ?? EMPTY_AREAS,
+      )}
+    </>
+  );
 }
 
 function renderText(
@@ -44,6 +62,7 @@ function renderText(
   refs: ReferenceIndex,
   selfKey: string | undefined,
   context: string | undefined,
+  areas: AreaIndex,
 ): ReactNode {
   // The common case by a wide margin — skip tokenizing text with no markup.
   if (!text.includes("{@") && !text.includes("{=")) return text;
@@ -55,6 +74,7 @@ function renderText(
       refs={refs}
       selfKey={selfKey}
       context={context}
+      areas={areas}
     />
   ));
 }
@@ -64,11 +84,13 @@ function Segment({
   refs,
   selfKey,
   context,
+  areas,
 }: {
   segment: TagSegment;
   refs: ReferenceIndex;
   selfKey?: string;
   context?: string;
+  areas: AreaIndex;
 }) {
   if (segment.kind === "text") return <>{segment.value}</>;
 
@@ -90,6 +112,20 @@ function Segment({
       );
     }
 
+    /*
+     * A location inside the book — resolved to a fragment on this page, or to
+     * another chapter of the same book. Unresolved ones stay plain words: an
+     * anchor to an element that is not on the page scrolls nowhere and looks
+     * broken, which is worse than not linking.
+     */
+    case "anchor": {
+      const target = areaTargetForTag(segment);
+      const href = target ? areas[target] : undefined;
+      if (!href) return <>{label}</>;
+
+      return <CrossReference href={href}>{label}</CrossReference>;
+    }
+
     case "roll":
       return <Roll>{label}</Roll>;
 
@@ -99,7 +135,7 @@ function Segment({
     case "format":
       return (
         <Emphasis kind={FORMAT_TAGS[segment.name as keyof typeof FORMAT_TAGS]}>
-          {renderText(segment.parts[0] ?? "", refs, selfKey, context)}
+          {renderText(segment.parts[0] ?? "", refs, selfKey, context, areas)}
         </Emphasis>
       );
 

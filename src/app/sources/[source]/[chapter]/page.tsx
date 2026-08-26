@@ -13,9 +13,15 @@ import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import { chapterLabel } from "@/lib/content/chapters";
 import { splitSections } from "@/lib/content/outline";
-import { collectReferences } from "@/lib/content/references";
+import {
+  collectAreaTargets,
+  collectReferences,
+} from "@/lib/content/references";
 import { sourceHref } from "@/lib/routes";
-import { resolveReferences } from "@/server/db/queries/references";
+import {
+  resolveAreas,
+  resolveReferences,
+} from "@/server/db/queries/references";
 import { getChapter } from "@/server/db/queries/sources";
 
 /**
@@ -58,6 +64,14 @@ export default async function ChapterPage({ params }: RouteParams) {
   // 37,000 creature tags across the corpus — so this is by far the largest
   // reference set any page builds, and it must stay a single round trip.
   const refs = await resolveReferences(collectReferences(found.data));
+
+  // `{@area}` addresses a position inside a chapter rather than an entity, so
+  // it resolves against the book's own sections instead of `entities`.
+  const { hrefs: areas, anchored } = await resolveAreas(
+    found.sourceId,
+    chapter,
+    collectAreaTargets(found.data),
+  );
 
   const outline: OutlineItem[] = sections.map((section) => ({
     id: section.id,
@@ -124,6 +138,8 @@ export default async function ChapterPage({ params }: RouteParams) {
           <Entries
             entries={intro}
             refs={refs}
+            areas={areas}
+            anchored={anchored}
             selfKey={found.naturalKey}
             context={found.name}
             headingLevel={2}
@@ -139,6 +155,17 @@ export default async function ChapterPage({ params }: RouteParams) {
           scrollMarginTop="4rem"
           mb="8"
         >
+          {/*
+            The section's own id from the data, alongside the slug the outline
+            uses. An element carries one id, so the second is an empty div at
+            the top of the section — 713 `{@area}` tags address a top-level
+            section, and `splitSections` unwraps the entry before the renderer
+            can mark it. Both anchors land in the same place.
+          */}
+          {section.anchorId && anchored[section.anchorId] ? (
+            <Box id={section.anchorId} scrollMarginTop="4rem" />
+          ) : null}
+
           <Text
             as="h2"
             fontFamily="display"
@@ -151,11 +178,18 @@ export default async function ChapterPage({ params }: RouteParams) {
             borderBottomWidth="1px"
             borderColor="border"
           >
-            <Inline text={section.title} refs={refs} context={found.name} />
+            <Inline
+              text={section.title}
+              refs={refs}
+              areas={areas}
+              context={found.name}
+            />
           </Text>
           <Entries
             entries={section.entries}
             refs={refs}
+            areas={areas}
+            anchored={anchored}
             selfKey={found.naturalKey}
             context={found.name}
             headingLevel={3}

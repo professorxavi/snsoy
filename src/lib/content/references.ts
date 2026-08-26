@@ -134,7 +134,6 @@ export type FormatKind = (typeof FORMAT_TAGS)[keyof typeof FORMAT_TAGS];
 const PLAIN_TAGS = new Set([
   "filter",
   "quickref",
-  "area",
   "5etools",
   "footnote",
   "style",
@@ -145,6 +144,7 @@ const PLAIN_TAGS = new Set([
 
 export type TagKind =
   | "reference"
+  | "anchor"
   | "roll"
   | "format"
   | "cue"
@@ -155,11 +155,78 @@ export function kindOfTag(name: string): TagKind {
   if (name in REFERENCE_TAGS || STRUCTURAL_REFERENCE_TAGS.has(name)) {
     return "reference";
   }
+  if (name === "area") return "anchor";
   if (ROLL_TAGS.has(name)) return "roll";
   if (name in FORMAT_TAGS) return "format";
   if (CUE_TAGS.has(name)) return "cue";
   if (PLAIN_TAGS.has(name)) return "plain";
   return "unknown";
+}
+
+/* ------------------------------------------------------------------ *
+ * Anchors
+ * ------------------------------------------------------------------ */
+
+/**
+ * `{@area Aarakocra|59f|x}` — a book pointing at one of its own numbered
+ * locations. Unlike every other reference this addresses a position *inside* a
+ * chapter rather than an entity: `59f` is the `id` the source data hangs on the
+ * entry node itself, so there is no natural key and nothing in `entities` to
+ * resolve against. Hence a kind of its own.
+ *
+ * The tag occurs in `book_sections` and nowhere else — no creature, item or
+ * spell writes one — so only a chapter page ever supplies an `AreaIndex`.
+ */
+export function areaTargetForTag(tag: TagSegment): string | null {
+  if (tag.kind !== "tag" || tag.name !== "area") return null;
+  return part(tag, 1) || null;
+}
+
+/** Entry id to the URL that reaches it: `#59f` in this chapter, a path across. */
+export type AreaIndex = Readonly<Record<string, string>>;
+
+/**
+ * The ids a page must mark, so a link from another chapter has somewhere to
+ * land. Keyed by id — a record rather than a Set because it crosses the
+ * server/client boundary, the same reason `ReferenceIndex` is one.
+ *
+ * Book-wide, not page-wide: a page cannot know it is a target by reading its
+ * own text, since the tag pointing at it is written somewhere else.
+ */
+export type AnchoredIds = Readonly<Record<string, true>>;
+
+export const EMPTY_AREAS: AreaIndex = Object.freeze({});
+
+export const EMPTY_ANCHORS: AnchoredIds = Object.freeze({});
+
+/**
+ * Every area id a page points at, so one query can resolve them all. The mirror
+ * of `collectReferences`, and separate from it because the two resolve against
+ * different things.
+ */
+export function collectAreaTargets(value: unknown): Set<string> {
+  const found = new Set<string>();
+
+  const visitString = (text: string) => {
+    if (!text.includes("{@")) return;
+    for (const segment of splitByTags(text)) {
+      if (segment.kind !== "tag") continue;
+
+      const target = areaTargetForTag(segment);
+      if (target) found.add(target);
+
+      for (const nested of segment.parts) visitString(nested);
+    }
+  };
+
+  const visit = (node: unknown) => {
+    if (typeof node === "string") return visitString(node);
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (node && typeof node === "object") Object.values(node).forEach(visit);
+  };
+
+  visit(value);
+  return found;
 }
 
 /* ------------------------------------------------------------------ *

@@ -19,6 +19,8 @@ import {
 import {
   candidateKeysForStatblock,
   lookupReference,
+  type AnchoredIds,
+  type AreaIndex,
   type ReferenceIndex,
 } from "@/lib/content/references";
 import { columnStyles } from "@/lib/content/tables";
@@ -75,6 +77,10 @@ interface RenderContext {
   selfKey?: string;
   /** Entity name, for the coverage report. */
   context?: string;
+  /** Where this book's `{@area}` tags point. Chapter pages only. */
+  areas?: AreaIndex;
+  /** Which entry ids this page has to mark, so a link elsewhere can reach them. */
+  anchored?: AnchoredIds;
   /**
    * Heading level for the outermost named sub-section. Chapter bodies start at
    * 2, since the chapter title is the page's `h1`; a spell or race detail passes
@@ -100,7 +106,59 @@ export function Entries({ entries, ...ctx }: EntriesProps) {
   );
 }
 
+/**
+ * One entry, marked as an anchor when the book points at it.
+ *
+ * `{@area}` addresses an entry by the `id` the source data hangs on the node
+ * itself, and the mark goes here rather than on each block type so that every
+ * shape a tag can target gets it in one place — a named `entries`, a `section`,
+ * an `inset`, and the handful that are bare images with no name at all. Read
+ * off the node rather than declared per type, because the field means the same
+ * thing on all of them.
+ *
+ * Only ids something actually points at are marked. The books hang 55,969 of
+ * them and one page carries 1,014; wrapping every one would be a great deal of
+ * markup for anchors nothing can reach.
+ */
 function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
+  return (
+    <Anchored
+      id={isEntryObject(entry) ? (entry as { id?: unknown }).id : undefined}
+      anchored={ctx.anchored}
+    >
+      <EntryBody entry={entry} {...ctx} />
+    </Anchored>
+  );
+}
+
+/**
+ * The element an `{@area}` link lands on, where the book has one pointing here.
+ *
+ * Ids are read off the node rather than declared per entry type, because the
+ * field means the same thing wherever it appears. Anything the book does not
+ * point at is left alone: 55,969 ids are hung on entries across the books and
+ * one page carries 1,014 of them, so marking every one would be a great deal
+ * of markup for anchors nothing can reach.
+ */
+function Anchored({
+  id,
+  anchored,
+  children,
+}: {
+  id?: unknown;
+  anchored?: AnchoredIds;
+  children: ReactNode;
+}) {
+  if (typeof id !== "string" || !anchored?.[id]) return <>{children}</>;
+
+  return (
+    <Box id={id} scrollMarginTop="4rem">
+      {children}
+    </Box>
+  );
+}
+
+function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
   // Bare strings are the bulk of all entry text.
   if (typeof entry === "string" || typeof entry === "number") {
     return <Paragraph>{inline(String(entry), ctx)}</Paragraph>;
@@ -225,6 +283,7 @@ const inline = (text: string, ctx: RenderContext) => (
     refs={ctx.refs}
     selfKey={ctx.selfKey}
     context={ctx.context}
+    areas={ctx.areas}
   />
 );
 
@@ -993,14 +1052,24 @@ function GalleryBlock({
       alignItems="center"
       my="2"
     >
+      {/*
+        A gallery renders its images itself rather than handing them back to
+        `EntryNode`, so it has to mark them itself too — the maps three
+        `{@area}` tags point at are all inside one.
+      */}
       {entry.images.map((image, index) => (
-        <Illustration
+        <Anchored
           key={image.href?.path ?? index}
-          image={image}
-          entityName={ctx.context ?? ""}
-          maxHeight={320}
-          sizes="(max-width: 48em) 100vw, 18rem"
-        />
+          id={(image as { id?: unknown }).id}
+          anchored={ctx.anchored}
+        >
+          <Illustration
+            image={image}
+            entityName={ctx.context ?? ""}
+            maxHeight={320}
+            sizes="(max-width: 48em) 100vw, 18rem"
+          />
+        </Anchored>
       ))}
     </Box>
   );

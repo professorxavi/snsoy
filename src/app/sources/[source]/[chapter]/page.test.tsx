@@ -13,6 +13,7 @@ import ChapterPage, { generateMetadata } from "./page";
 vi.mock("@/server/db/queries/sources", () => ({ getChapter: vi.fn() }));
 vi.mock("@/server/db/queries/references", () => ({
   resolveReferences: vi.fn().mockResolvedValue({}),
+  resolveAreas: vi.fn().mockResolvedValue({ hrefs: {}, anchored: {} }),
 }));
 const { getChapter } = await import("@/server/db/queries/sources");
 
