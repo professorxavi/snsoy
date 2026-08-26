@@ -5,12 +5,12 @@ const ENTRIES = [
   {
     href: "/compendium",
     title: "Compendium",
-    body: "Every spell, creature, item and rule, filtered on the things you actually search by — and cross-linked to everything that mentions them.",
+    body: "Look up what a spell does, then find every creature that casts it.",
   },
   {
     href: "/sources",
     title: "Sources",
-    body: "The full text of your books and adventures, chapter by chapter, with every reference resolved inline as you read.",
+    body: "Read a chapter the way it was printed, with nothing left to look up.",
   },
 ] as const;
 
@@ -55,10 +55,7 @@ export default function Home() {
             lineHeight="1.7"
             color="fg.muted"
           >
-            A compendium and character toolset for the 2014 ruleset of the fifth
-            edition of the world&rsquo;s greatest role-playing game. You paid for
-            the content, you should be able to access it without being forced to
-            play the new edition.
+            The content is paid for. Everyone at the table can read it.
           </Text>
         </Stack>
 

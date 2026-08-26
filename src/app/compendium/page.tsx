@@ -10,15 +10,14 @@ import {
 
 export const metadata: Metadata = {
   title: "Compendium",
-  description:
-    "Spells, creatures, items and rules — cross-linked to everything that mentions them.",
+  description: "Every spell, creature, item and rule the books define.",
 };
 
 /**
- * The compendium index: 20 cards in five groups, every one of them a live link.
+ * The compendium index: 17 cards in five groups, every one of them a live link.
  *
- * Fewer cards than there are browse views, on purpose — nine types keep their
- * list route without being advertised here; see `BUILT_BUT_UNLISTED`.
+ * One card per browse view, and no view without a card — sixteen types are met
+ * through the tag that cites them instead; see `WITHOUT_A_BROWSE_VIEW`.
  *
  * For most of this project's life the page was mostly dashed "Not yet built"
  * cards; every type `DIRECTORY` lists is now implemented, so that branch
@@ -55,9 +54,7 @@ export default function CompendiumPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            Everything from the books you own, filtered on the things you
-            actually search by — and cross-linked to every entry that mentions
-            it.
+            Everything the rules name, and everywhere they name it.
           </Text>
         </Stack>
 

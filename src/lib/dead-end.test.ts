@@ -42,22 +42,24 @@ describe("readDeadEnd", () => {
     );
   });
 
-  /**
-   * The nine unlisted types are the reason this exists at all: no card on the
-   * index, but the list is still there and still the place they open.
-   */
-  it("still points an unlisted type at its list", () => {
-    expect(readDeadEnd("/compendium/traps/dmg/pit")?.listHref).toBe(
-      "/compendium/traps",
+  /** A type with a browse view is sent to it. */
+  it("points a listed type at its list", () => {
+    expect(readDeadEnd("/compendium/conditions/phb/prone")?.listHref).toBe(
+      "/compendium/conditions",
     );
   });
 
-  /** A type with no browse view has nowhere to be sent. */
-  it("gives no list for a type that has none", () => {
-    expect(readDeadEnd("/compendium/cards/cos/abjurer")).toEqual({
-      label: "Cards",
-      listHref: null,
-    });
+  /**
+   * A type with no browse view has nowhere to be sent, and must say so rather
+   * than link to a route that 404s in its own right. Traps are here because
+   * they used to be the other case: a list with no card, kept on the theory
+   * that a hidden route was worth having. It was not, and the list is gone.
+   */
+  it.each([
+    ["a type that never had a view", "/compendium/cards/cos/abjurer", "Cards"],
+    ["one whose view was cut", "/compendium/traps/dmg/pit", "Traps"],
+  ])("gives no list for %s", (_case, path, label) => {
+    expect(readDeadEnd(path)).toEqual({ label, listHref: null });
   });
 
   /**

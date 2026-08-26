@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
-  BUILT_BUT_UNLISTED,
   DIRECTORY,
   entryHref,
   IMPLEMENTED,
   WITHOUT_A_BROWSE_VIEW,
-  WITHOUT_A_CARD,
 } from "./compendium-directory";
 import { BROWSABLE_TYPES, listHrefFor, segmentFor } from "./routes";
 
@@ -32,7 +30,7 @@ describe("the directory covers the route map", () => {
   it("lists every browsable type exactly once", () => {
     const listed = typed.map((entry) => entry.type).sort();
     const expected = BROWSABLE_TYPES.filter(
-      (type) => !WITHOUT_A_CARD.has(type),
+      (type) => !WITHOUT_A_BROWSE_VIEW.has(type),
     ).sort();
 
     expect(listed).toEqual(expected);
@@ -40,7 +38,7 @@ describe("the directory covers the route map", () => {
 
   /** A type with no card must still be addressable, or its links go nowhere. */
   it("keeps a segment for a type it does not list", () => {
-    for (const type of WITHOUT_A_CARD) {
+    for (const type of WITHOUT_A_BROWSE_VIEW) {
       expect(segmentFor(type)).not.toBeNull();
       expect(typed.map((entry) => entry.type)).not.toContain(type);
     }
@@ -74,8 +72,9 @@ describe("the directory covers the route map", () => {
    *
    * There used to be a second kind — a type whose card pointed at a list it
    * shared, as `baseitem` and `itemGroup` pointed at `/compendium/items` with a
-   * category set. Both are in `WITHOUT_A_CARD` now, so a typed card with its
-   * own route no longer exists; the shape is still allowed and still checked.
+   * category set. Both are in `WITHOUT_A_BROWSE_VIEW` now, so a typed card with
+   * its own route no longer exists; the shape is still allowed and still
+   * checked.
    */
   it("keeps a card's own route under the compendium, and says if it is live", () => {
     for (const entry of entries.filter((candidate) => candidate.route)) {
@@ -121,28 +120,21 @@ describe("entries are presentable", () => {
 
 describe("IMPLEMENTED", () => {
   /**
-   * Marking a type built when it is not turns the card into a 404 — and the
-   * unlisted nine are the one legitimate way to be built without a card. A type
-   * dropped for want of a view is not: `table` here would be a claim that
-   * `/compendium/tables` exists, which nothing else would contradict.
+   * Marking a type built when it is not turns the card into a 404. A card and a
+   * browse view now imply each other, so every type here has to be one the
+   * directory lists: `table` here would be a claim that `/compendium/tables`
+   * exists, which nothing else would contradict.
    */
-  it("only names types the directory lists, or ones built and unlisted", () => {
+  it("only names types the directory lists", () => {
     const listed = new Set(entries.map((entry) => entry.type));
     for (const type of IMPLEMENTED) {
-      expect(listed.has(type) || BUILT_BUT_UNLISTED.has(type)).toBe(true);
+      expect(listed.has(type)).toBe(true);
     }
   });
 
   it("names no type dropped for want of a browse view", () => {
     for (const type of WITHOUT_A_BROWSE_VIEW) {
       expect(IMPLEMENTED.has(type)).toBe(false);
-    }
-  });
-
-  /** The nine kept their view when they lost their card; that is the point. */
-  it("keeps the built-but-unlisted types built", () => {
-    for (const type of BUILT_BUT_UNLISTED) {
-      expect(IMPLEMENTED.has(type)).toBe(true);
     }
   });
 

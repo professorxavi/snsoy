@@ -65,8 +65,7 @@ export default async function ConditionsPage() {
           lineHeight="1.65"
           color="fg.muted"
         >
-          What being blinded, grappled or frightened actually does to you. Open
-          one to read it in full without leaving the list.
+          What being blinded, grappled or frightened actually does to you.
         </Text>
       </Stack>
 

@@ -50,9 +50,7 @@ export default async function ClassesPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            Twenty levels of progression, every feature in full, and the
-            subclasses beneath them — including the ones printed years later in
-            another book.
+            What your character can do, and when they learn it.
           </Text>
         </Stack>
 

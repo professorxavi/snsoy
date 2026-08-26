@@ -12,8 +12,8 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * rows that happen to carry `isSidekick`, and they get a card because a player
  * looking for one is not looking for a class. Such a card names no type at all.
  *
- * Sixteen types have no card, for two different reasons — see
- * `WITHOUT_A_CARD`.
+ * Sixteen types have no card, and none of them has a browse view either — see
+ * `WITHOUT_A_BROWSE_VIEW`.
  */
 
 /**
@@ -55,6 +55,13 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   shops for one cold. `/compendium/vehicles` stays, and the 34
  *   `{@vehupgrade}` references in book text still open one in the aside, which
  *   is the whole reason the type was built.
+ * - **`sense`, `status`, `boon`, `reward`, `recipe`, `cult`, `trap`, `hazard`
+ *   and `object`.** These nine kept a list for a while after losing their card,
+ *   on the theory that a hidden route still served the reader who typed the URL.
+ *   It served nobody: nothing linked to them but the 404 signpost, which is a
+ *   thin reason for a route to exist. Every one of them is met through the thing
+ *   that cites it — darkvision on a stat block, a pit trap in a room
+ *   description — and follows the tag into the aside, which is untouched.
  */
 export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
   new Set<BrowsableType>([
@@ -65,26 +72,6 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
     "optionalfeature",
     "charoption",
     "vehicleUpgrade",
-  ]);
-
-/**
- * Types whose browse view is built and kept, but which the index no longer
- * advertises.
- *
- * Unlike the three above, these have a list route and it stays: a URL typed by
- * hand still lands on the table, the aside and the entity page are untouched,
- * and every `{@sense}` or `{@trap}` tag in book text resolves as before. Only
- * the way in from the index is gone.
- *
- * They come off the index because a card is the scarcest thing on it. Some are
- * small enough that a directory entry promises more than it delivers, and the
- * rest are reached from the thing that cites them rather than looked up cold: a
- * reader meets darkvision on a statblock and a pit trap in a room description,
- * and follows the tag there. Nine cards spent that way crowd the seventeen that
- * answer a question somebody actually arrives with.
- */
-export const BUILT_BUT_UNLISTED: ReadonlySet<BrowsableType> =
-  new Set<BrowsableType>([
     "sense",
     "status",
     "boon",
@@ -95,10 +82,6 @@ export const BUILT_BUT_UNLISTED: ReadonlySet<BrowsableType> =
     "hazard",
     "object",
   ]);
-
-/** Everything the index leaves out, whichever of the two reasons applies. */
-export const WITHOUT_A_CARD: ReadonlySet<BrowsableType> =
-  new Set<BrowsableType>([...WITHOUT_A_BROWSE_VIEW, ...BUILT_BUT_UNLISTED]);
 
 export interface DirectoryEntry {
   /** The type this card browses, when it browses a whole one. */
@@ -125,11 +108,11 @@ export interface DirectoryGroup {
 /**
  * Types with a browse view built.
  *
- * Every type the index lists, plus the nine in `BUILT_BUT_UNLISTED` whose view
- * outlived their card — so the "not yet built" card the index used to render
- * has nothing left to render. Kept as a set rather than folded away because a
- * type added to `routes.ts` before its view exists must still be listed inert
- * rather than linking to a 404.
+ * Exactly the types the index lists — every card points at a route that exists,
+ * so the "not yet built" card the index used to render has nothing left to
+ * render. Kept as a set rather than folded away because a type added to
+ * `routes.ts` before its view exists must still be listed inert rather than
+ * linking to a 404.
  */
 export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "spell",
@@ -139,22 +122,13 @@ export const IMPLEMENTED: ReadonlySet<BrowsableType> = new Set<BrowsableType>([
   "condition",
   "monster",
   "item",
-  "sense",
   "action",
-  "status",
   "variantrule",
   "language",
   "background",
   "feat",
-  "trap",
-  "hazard",
   "disease",
-  "object",
   "deity",
-  "recipe",
-  "reward",
-  "cult",
-  "boon",
   "deck",
   "vehicle",
 ]);

@@ -76,8 +76,7 @@ export default async function LanguagesPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          What your character can speak, read and overhear. Open one to read it
-          in full without leaving the list.
+          What your character can speak, read and overhear.
         </Text>
       </Stack>
 

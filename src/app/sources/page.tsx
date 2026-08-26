@@ -69,8 +69,7 @@ export default async function SourcesPage({
             lineHeight="1.65"
             color="fg.muted"
           >
-            Every book and adventure, readable chapter by chapter, with each
-            creature, spell and item linked to its own entry.
+            Your books, chapter by chapter, exactly as they were printed.
           </Text>
         </Stack>
 

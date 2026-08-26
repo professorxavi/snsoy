@@ -52,8 +52,7 @@ export default async function RacesPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            Every ancestry from the books you own. Subraces live on their
-            parent&rsquo;s page, alongside the traits they build on.
+            What your character is born with, before they choose anything.
           </Text>
         </Stack>
 

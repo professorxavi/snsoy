@@ -55,9 +55,7 @@ export default async function SidekicksPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            A creature a small party takes along and levels up beside them.
-            Each one is built like a class, over the same twenty levels, and
-            reads the same way.
+            A creature a small party takes along, and levels up beside them.
           </Text>
         </Stack>
 

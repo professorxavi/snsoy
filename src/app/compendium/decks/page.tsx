@@ -37,7 +37,7 @@ const BASE = listHrefFor("deck");
  *
  * 31 rows, and the only way into the 656 cards: a card is met through its deck,
  * so the panel this list opens is where the cards are. There was a second list
- * at `/compendium/cards` and it is gone — see `WITHOUT_A_CARD`.
+ * at `/compendium/cards` and it is gone — see `WITHOUT_A_BROWSE_VIEW`.
  */
 export default async function DecksPage({
   searchParams,
@@ -73,8 +73,7 @@ export default async function DecksPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Every deck the books deal from, and what is in it. Open one to read its
-          cards without leaving the list.
+          Every deck the books print, and what it deals.
         </Text>
       </Stack>
 

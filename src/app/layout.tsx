@@ -28,7 +28,7 @@ const alfaSlab = Alfa_Slab_One({
 export const metadata: Metadata = {
   title: "Sword & Sorcery over Yonder",
   description:
-    "A compendium and character toolset for 2014 fifth edition D&D.",
+    "A compendium and reader for the 2014 ruleset of the world's greatest roleplaying game.",
 };
 
 export default function RootLayout({

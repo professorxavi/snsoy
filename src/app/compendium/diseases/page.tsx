@@ -61,8 +61,7 @@ export default async function DiseasesPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Afflictions a party can catch, and what each one costs them. Open one
-          to read it in full without leaving the list.
+          Afflictions a party can catch, and how each one worsens.
         </Text>
       </Stack>
 

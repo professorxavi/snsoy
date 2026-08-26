@@ -102,8 +102,7 @@ export default async function VehiclesPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Everything a party can crew, from a rowboat to a nautiloid. Open one to
-          read its stat block without leaving the list.
+          Everything a party can crew, from a rowboat to a nautiloid.
         </Text>
       </Stack>
 

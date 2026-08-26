@@ -77,8 +77,7 @@ export default async function VariantRulesPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Rules a table can choose to adopt, replace or ignore. Open one to read
-          it in full without leaving the list.
+          Rules a table can choose to adopt, replace or ignore.
         </Text>
       </Stack>
 

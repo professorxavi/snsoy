@@ -67,8 +67,7 @@ export default async function SkillsPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Every ability check narrows to one of these. Open one to read what it
-          covers without leaving the list.
+          Every ability check narrows to one of these.
         </Text>
       </Stack>
 

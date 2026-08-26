@@ -70,8 +70,7 @@ export default async function ActionsPage() {
           lineHeight="1.65"
           color="fg.muted"
         >
-          What a turn can be spent on, and what each one costs. Open one to read
-          it in full without leaving the list.
+          What a turn can be spent on, and what each one costs.
         </Text>
       </Stack>
 
