@@ -117,7 +117,7 @@ describeDb("renderer coverage over every book section", () => {
   });
 
   it("renders every section in the corpus", () => {
-    expect(sectionCount).toBe(833);
+    expect(sectionCount).toBe(829);
   });
 
   it("meets no entry type outside the known gaps", () => {

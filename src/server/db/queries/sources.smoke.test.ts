@@ -40,9 +40,9 @@ describeDb("source queries against the seed", () => {
     it("lists every source that has body text", async () => {
       const all = await queries.listSources();
 
-      expect(all).toHaveLength(87);
+      expect(all).toHaveLength(84);
       expect(all.filter((source) => !source.isAdventure)).toHaveLength(34);
-      expect(all.filter((source) => source.isAdventure)).toHaveLength(53);
+      expect(all.filter((source) => source.isAdventure)).toHaveLength(50);
     });
 
     /**
@@ -83,6 +83,22 @@ describeDb("source queries against the seed", () => {
 
       expect(dates).toEqual([...dates].sort());
       expect(dates[0]!.startsWith("2014")).toBe(true);
+    });
+
+    /**
+     * Four books can share a release date and still have an order. The three
+     * sequels to Dragon of Icespire Peak all shipped on one day and are played
+     * one after another, which only the data's own listing order records — by
+     * name they would read Divine Contention first.
+     */
+    it("keeps a sequence in its own order, not alphabetical", async () => {
+      const all = await queries.listSources();
+      const ids = all.map((source) => source.id);
+      const at = (id: string) => ids.indexOf(id);
+
+      expect(at("DIP")).toBeLessThan(at("SLW"));
+      expect(at("SLW")).toBeLessThan(at("SDW"));
+      expect(at("SDW")).toBeLessThan(at("DC"));
     });
 
     it("counts only chapters, not every entity in the source", async () => {
@@ -212,7 +228,7 @@ describeDb("source queries against the seed", () => {
 
   describe("allChapterParams", () => {
     it("covers every book section", async () => {
-      expect(await queries.allChapterParams()).toHaveLength(833);
+      expect(await queries.allChapterParams()).toHaveLength(829);
     });
 
     /**

@@ -55,6 +55,11 @@ const CORE_FIRST = sql`CASE WHEN ${sources.group} = 'core' THEN 0 ELSE 1 END`;
  * ahead of one printed before it. Every listed source carries a date, so the
  * shelf reads as a publication history with nothing stranded at the end.
  *
+ * `sortOrder` does break ties, though, and it is the only thing that can. Four
+ * books can share a release date and still have an order — the three sequels to
+ * Dragon of Icespire Peak all shipped on one day and are read one after another
+ * — and the data lists them in that order where a name never would.
+ *
  * `chapterCount` decides whether a card opens the reader. Every listed source
  * has body text today, so it never reads zero — but it is what the index shows
  * per card, and a source can be cited before its body is loaded.
@@ -76,7 +81,12 @@ export async function listSources() {
     .leftJoin(entities, eq(entities.sourceId, sources.id))
     .where(sql`NOT ${SYNTHESISED}`)
     .groupBy(sources.id)
-    .orderBy(CORE_FIRST, asc(sources.published), asc(sources.name));
+    .orderBy(
+      CORE_FIRST,
+      asc(sources.published),
+      asc(sources.sortOrder),
+      asc(sources.name),
+    );
 }
 
 export type SourceDetail = NonNullable<Awaited<ReturnType<typeof getSource>>>;
