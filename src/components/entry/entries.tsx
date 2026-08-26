@@ -86,8 +86,20 @@ interface RenderContext {
    * 2, since the chapter title is the page's `h1`; a spell or race detail passes
    * nothing and starts at 3, below its own section headings.
    */
-  headingLevel?: 2 | 3 | 4 | 5;
+  headingLevel?: HeadingLevel;
+  /**
+   * Which of the three visual steps a heading takes, which is not always its
+   * element level. The books nest deeper than the scale has steps, and a page
+   * may open a list of options under its own `h2` — semantically an `h3`, but it
+   * reads as a side-head. Defaults to the level.
+   */
+  headingTier?: HeadingTier;
 }
+
+type HeadingLevel = 2 | 3 | 4 | 5;
+
+/** 2 is a ruled section head, 3 a plain one, 4 the side-head. */
+type HeadingTier = 2 | 3 | 4;
 
 export interface EntriesProps extends RenderContext {
   entries?: Entry[];
@@ -100,7 +112,7 @@ export function Entries({ entries, ...ctx }: EntriesProps) {
   return (
     <Stack gap="3">
       {entries.map((entry, index) => (
-        <EntryNode key={index} entry={entry} {...ctx} />
+        <EntryNode key={index} entry={entry} first={index === 0} {...ctx} />
       ))}
     </Stack>
   );
@@ -120,13 +132,17 @@ export function Entries({ entries, ...ctx }: EntriesProps) {
  * them and one page carries 1,014; wrapping every one would be a great deal of
  * markup for anchors nothing can reach.
  */
-function EntryNode({ entry, ...ctx }: { entry: Entry } & RenderContext) {
+function EntryNode({
+  entry,
+  first = true,
+  ...ctx
+}: { entry: Entry; first?: boolean } & RenderContext) {
   return (
     <Anchored
       id={isEntryObject(entry) ? (entry as { id?: unknown }).id : undefined}
       anchored={ctx.anchored}
     >
-      <EntryBody entry={entry} {...ctx} />
+      <EntryBody entry={entry} first={first} {...ctx} />
     </Anchored>
   );
 }
@@ -158,7 +174,11 @@ function Anchored({
   );
 }
 
-function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
+function EntryBody({
+  entry,
+  first = true,
+  ...ctx
+}: { entry: Entry; first?: boolean } & RenderContext) {
   // Bare strings are the bulk of all entry text.
   if (typeof entry === "string" || typeof entry === "number") {
     return <Paragraph>{inline(String(entry), ctx)}</Paragraph>;
@@ -169,7 +189,7 @@ function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
   switch (entry.type) {
     case "entries":
     case "section":
-      return <SubSection entry={entry as EntriesEntry} ctx={ctx} />;
+      return <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />;
 
     case "list":
       return <ListBlock entry={entry as ListEntry} ctx={ctx} />;
@@ -177,7 +197,7 @@ function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     case "item":
     case "itemSpell":
     case "itemSub":
-      return <ItemBlock entry={entry as ItemEntry} ctx={ctx} />;
+      return <ItemBlock entry={entry as ItemEntry} ctx={ctx} first={first} />;
 
     case "abilityDc":
     case "abilityAttackMod":
@@ -193,21 +213,31 @@ function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
 
     case "refClassFeature":
     case "refSubclassFeature":
-      return <FeatureReference entry={entry} ctx={ctx} />;
+      return <FeatureReference entry={entry} ctx={ctx} first={first} />;
 
     case "options":
       return <OptionsBlock entry={entry as OptionsEntry} ctx={ctx} />;
 
     case "refOptionalfeature":
       return (
-        <OptionBlock entry={entry as RefOptionalFeatureEntry} ctx={ctx} />
+        <OptionBlock
+          entry={entry as RefOptionalFeatureEntry}
+          ctx={ctx}
+          first={first}
+        />
       );
 
     case "table":
       return <TableBlock entry={entry as TableEntry} ctx={ctx} />;
 
     case "tableGroup":
-      return <TableGroupBlock entry={entry as TableGroupEntry} ctx={ctx} />;
+      return (
+        <TableGroupBlock
+          entry={entry as TableGroupEntry}
+          ctx={ctx}
+          first={first}
+        />
+      );
 
     case "quote":
       return <QuoteBlock entry={entry as QuoteEntry} ctx={ctx} />;
@@ -232,7 +262,7 @@ function EntryBody({ entry, ...ctx }: { entry: Entry } & RenderContext) {
     // headings rather than boxes of their own.
     case "variantInner":
     case "variantSub":
-      return <SubSection entry={entry as EntriesEntry} ctx={ctx} />;
+      return <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />;
 
     case "spellcasting":
       return <SpellcastingBlock entry={entry as SpellcastingEntry} ctx={ctx} />;
@@ -415,40 +445,101 @@ function Paragraph({ children }: { children: ReactNode }) {
 }
 
 /**
+ * The heading over a named sub-section, and over everything else that names
+ * itself and then takes a line of its own.
+ *
+ * Three visual steps, not five. The top two carry a chapter's structure and are
+ * set large in the body face, the deeper one is a side-head: the ui face, small,
+ * set against the serif it introduces. The break of face is what does the work,
+ * because a name here runs from one word ("Archery") to a whole sentence — the
+ * Sage Advice questions are names at this depth — and every treatment that
+ * depends on brevity, small caps or letterspacing or the display face, falls
+ * apart on the long ones.
+ *
+ * `first` is whether this opens its stack. Anything below the first gets a full
+ * line above it and stays tight to what it introduces, so proximity says which
+ * paragraph belongs to which name; the one that opens a stack is already under
+ * the heading it belongs to and stays where it is.
+ */
+function SubHeading({
+  level,
+  tier,
+  first,
+  children,
+}: {
+  level: HeadingLevel;
+  tier: HeadingTier;
+  first?: boolean;
+  children: ReactNode;
+}) {
+  const side = tier === 4;
+
+  return (
+    <Text
+      as={`h${level}`}
+      fontFamily={side ? "ui" : "body"}
+      fontWeight="semibold"
+      fontSize={side ? "sm" : "lg"}
+      lineHeight={side ? "1.35" : "1.25"}
+      letterSpacing={side ? "0.005em" : undefined}
+      mt={first ? undefined : "3.5"}
+      mb={side ? "1" : "2"}
+      pb={side ? "0" : "1"}
+      borderBottomWidth={tier === 2 ? "1px" : "0"}
+      borderColor="border"
+      textWrap="pretty"
+    >
+      {children}
+    </Text>
+  );
+}
+
+/**
+ * A label that runs into the sentence it introduces — "Amphibious. The dragon
+ * can breathe air and water." Deliberately not a heading: it names a thing
+ * inside a paragraph rather than opening one, and giving it the side-head
+ * treatment would put a heading in the middle of a sentence.
+ */
+function RunInLabel({ children }: { children: ReactNode }) {
+  return (
+    <Text as="span" fontFamily="body" fontWeight="semibold">
+      {children}
+    </Text>
+  );
+}
+
+/** The visual step a level takes when nothing overrides it. */
+function tierFor(level: HeadingLevel): HeadingTier {
+  return level >= 4 ? 4 : (level as 2 | 3);
+}
+
+/**
  * A named sub-section. The name is often absent, in which case this is only a
  * grouping and must not emit an empty heading.
  */
 function SubSection({
   entry,
   ctx,
+  first,
 }: {
   entry: EntriesEntry | SectionEntry;
   ctx: RenderContext;
+  first?: boolean;
 }) {
   const level = ctx.headingLevel ?? 3;
+  const tier = ctx.headingTier ?? tierFor(level);
   const nested: RenderContext = {
     ...ctx,
-    headingLevel: level < 5 ? ((level + 1) as 3 | 4 | 5) : 5,
+    headingLevel: level < 5 ? ((level + 1) as HeadingLevel) : 5,
+    headingTier: tier < 4 ? ((tier + 1) as HeadingTier) : 4,
   };
 
   return (
     <Box>
       {entry.name ? (
-        <Text
-          as={`h${level}`}
-          fontFamily="body"
-          fontWeight="semibold"
-          // The top two levels carry a chapter's structure, so they are set
-          // larger and ruled; deeper ones are run-in headings above a paragraph.
-          fontSize={level <= 3 ? "lg" : "md"}
-          lineHeight="1.25"
-          mb={level <= 3 ? "2" : "1"}
-          pb={level <= 3 ? "1" : "0"}
-          borderBottomWidth={level === 2 ? "1px" : "0"}
-          borderColor="border"
-        >
+        <SubHeading level={level} tier={tier} first={first}>
           {inline(entry.name, ctx)}
-        </Text>
+        </SubHeading>
       ) : null}
       <Entries entries={entry.entries} {...nested} />
     </Box>
@@ -489,9 +580,11 @@ function ListBlock({ entry, ctx }: { entry: ListEntry; ctx: RenderContext }) {
 function FeatureReference({
   entry,
   ctx,
+  first,
 }: {
   entry: EntryObject;
   ctx: RenderContext;
+  first?: boolean;
 }) {
   const key = featureReferenceKey(entry);
   const feature = key ? ctx.features?.[key] : undefined;
@@ -501,11 +594,17 @@ function FeatureReference({
     return null;
   }
 
+  const level = ctx.headingLevel ?? 3;
+
   return (
     <Box>
-      <Text as="span" fontFamily="body" fontWeight="semibold">
+      <SubHeading
+        level={level}
+        tier={ctx.headingTier ?? tierFor(level)}
+        first={first}
+      >
         {feature.name}
-      </Text>
+      </SubHeading>
       <Entries entries={feature.entries as Entry[] | undefined} {...ctx} />
     </Box>
   );
@@ -613,7 +712,7 @@ function OptionsBlock({
       borderColor="border"
     >
       {entry.entries.map((child, index) => (
-        <EntryNode key={index} entry={child} {...ctx} />
+        <EntryNode key={index} entry={child} first={index === 0} {...ctx} />
       ))}
     </Stack>
   );
@@ -631,23 +730,21 @@ function OptionsBlock({
 function OptionBlock({
   entry,
   ctx,
+  first,
 }: {
   entry: RefOptionalFeatureEntry;
   ctx: RenderContext;
+  first?: boolean;
 }) {
   const key = optionalFeatureKey(entry.optionalfeature);
   const option = key ? ctx.options?.[key] : undefined;
 
   if (!option) {
     reportGap("option", entry.optionalfeature, ctx.context);
-    return (
-      <Text as="span" fontFamily="body" fontWeight="semibold">
-        {entry.optionalfeature.split("|")[0]}
-      </Text>
-    );
+    return <RunInLabel>{entry.optionalfeature.split("|")[0]}</RunInLabel>;
   }
 
-  return <OptionBody option={option} {...ctx} />;
+  return <OptionBody option={option} first={first} {...ctx} />;
 }
 
 /**
@@ -658,25 +755,35 @@ function OptionBlock({
  */
 export function OptionBody({
   option,
+  first,
   ...ctx
-}: { option: OptionalFeatureBody } & RenderContext) {
+}: { option: OptionalFeatureBody; first?: boolean } & RenderContext) {
+  const level = ctx.headingLevel ?? 3;
+
   return (
     <Box>
-      <Text as="span" fontFamily="body" fontWeight="semibold">
+      {/* The prerequisite rides inside the heading, so an option still reads as
+          one line: what it is called, then what it costs. */}
+      <SubHeading
+        level={level}
+        tier={ctx.headingTier ?? tierFor(level)}
+        first={first}
+      >
         {option.name}
-      </Text>
-      {option.prerequisite ? (
-        <Text
-          as="span"
-          fontFamily="body"
-          fontSize="sm"
-          fontStyle="italic"
-          color="fg.muted"
-          ml="2"
-        >
-          Prerequisite: {option.prerequisite}
-        </Text>
-      ) : null}
+        {option.prerequisite ? (
+          <Text
+            as="span"
+            fontFamily="body"
+            fontSize="sm"
+            fontStyle="italic"
+            fontWeight="normal"
+            color="fg.muted"
+            ml="2"
+          >
+            Prerequisite: {option.prerequisite}
+          </Text>
+        ) : null}
+      </SubHeading>
       <Entries entries={option.entries as Entry[] | undefined} {...ctx} />
     </Box>
   );
@@ -692,17 +799,46 @@ function labelDot(name: string, nameDot?: boolean): string {
   return /[.!?:]$/.test(name.trimEnd()) ? "" : ".";
 }
 
-/** A labelled item: "Name. description" — the data's definition-list shape. */
-function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
+/**
+ * A labelled item: "Name. description" — the data's definition-list shape.
+ *
+ * The label runs into its sentence, which is what the books print. It only
+ * becomes a heading where it cannot run into anything: a label whose body opens
+ * with a list or a table already lands on a line of its own, and left as a
+ * run-in it sits flush against the block underneath with nothing to say the two
+ * belong together.
+ */
+function ItemBlock({
+  entry,
+  ctx,
+  first,
+}: {
+  entry: ItemEntry;
+  ctx: RenderContext;
+  first?: boolean;
+}) {
   const body = entry.entries ?? (entry.entry != null ? [entry.entry] : []);
+  const opensWithBlock =
+    body.length > 0 &&
+    typeof body[0] !== "string" &&
+    typeof body[0] !== "number";
+  const level = ctx.headingLevel ?? 3;
 
   return (
     <Box>
-      {entry.name ? (
-        <Text as="span" fontFamily="body" fontWeight="semibold">
+      {entry.name && opensWithBlock ? (
+        <SubHeading
+          level={level}
+          tier={ctx.headingTier ?? tierFor(level)}
+          first={first}
+        >
+          {inline(entry.name, ctx)}
+        </SubHeading>
+      ) : entry.name ? (
+        <RunInLabel>
           {inline(entry.name, ctx)}
           {labelDot(entry.name, entry.nameDot)}{" "}
-        </Text>
+        </RunInLabel>
       ) : null}
       {body.map((child, index) =>
         typeof child === "string" || typeof child === "number" ? (
@@ -963,24 +1099,26 @@ function rollLabel(cell: CellEntry): string {
 function TableGroupBlock({
   entry,
   ctx,
+  first,
 }: {
   entry: TableGroupEntry;
   ctx: RenderContext;
+  first?: boolean;
 }) {
   if (!entry.tables?.length) return null;
+
+  const level = ctx.headingLevel ?? 3;
 
   return (
     <Box>
       {entry.name ? (
-        <Text
-          as="h4"
-          fontFamily="body"
-          fontWeight="semibold"
-          fontSize="md"
-          mb="2"
+        <SubHeading
+          level={level}
+          tier={ctx.headingTier ?? tierFor(level)}
+          first={first}
         >
           {inline(entry.name, ctx)}
-        </Text>
+        </SubHeading>
       ) : null}
       <Stack gap="3">
         {entry.tables.map((table, index) => (
@@ -1252,9 +1390,7 @@ function SpellcastingBlock({
   return (
     <Box>
       {entry.name ? (
-        <Text as="span" fontFamily="body" fontWeight="semibold">
-          {inline(entry.name, ctx)}{" "}
-        </Text>
+        <RunInLabel>{inline(entry.name, ctx)} </RunInLabel>
       ) : null}
 
       {/* Inline with the name, so the trait opens as one sentence. */}

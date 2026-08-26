@@ -809,3 +809,140 @@ describe("an area reference", () => {
     expect(coverageReport()).toEqual([]);
   });
 });
+
+/**
+ * The outline a page of prose emits.
+ *
+ * These assert elements, not type: a name that reads as a heading and is coded
+ * as a bold span is invisible to anything navigating by heading, and that is
+ * exactly what an option's name used to be. What the levels are worth visually
+ * is a design call and belongs in the styles, but the shape below is what any
+ * treatment has to hang on.
+ */
+describe("the heading over a named sub-section", () => {
+  const NESTED: Entry = {
+    type: "entries",
+    name: "Racial Traits",
+    entries: [
+      {
+        type: "entries",
+        name: "Does Trance shorten a long rest?",
+        entries: ["The elf finishes the rest after only 4 hours."],
+      },
+    ],
+  };
+
+  it("opens at the level the page hands it", () => {
+    render(<Entries entries={[NESTED]} headingLevel={2} />);
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Racial Traits" }),
+    ).toBeInTheDocument();
+  });
+
+  it("steps a nested name down rather than repeating the one above it", () => {
+    render(<Entries entries={[NESTED]} headingLevel={2} />);
+
+    expect(
+      screen.getByRole("heading", {
+        level: 3,
+        name: "Does Trance shorten a long rest?",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  /** The books nest deeper than the heading elements go. */
+  it("stops descending at 5", () => {
+    const deep = (depth: number): Entry =>
+      depth === 0
+        ? "The bottom."
+        : { type: "entries", name: `Level ${depth}`, entries: [deep(depth - 1)] };
+
+    render(<Entries entries={[deep(5)]} headingLevel={2} />);
+
+    expect(
+      screen.getAllByRole("heading").map((node) => node.tagName),
+    ).toEqual(["H2", "H3", "H4", "H5", "H5"]);
+  });
+
+  it("emits no heading for a section that only groups", () => {
+    const { container } = render(
+      <Entries entries={[{ type: "entries", entries: ["Just prose."] }]} />,
+    );
+
+    expect(container.querySelector("h1,h2,h3,h4,h5,h6")).toBeNull();
+  });
+});
+
+describe("a name printed on a line of its own", () => {
+  const OPTION: OptionalFeatureIndex = {
+    "optionalfeature|archery|phb": {
+      name: "Archery",
+      prerequisite: null,
+      entries: ["You gain a +2 bonus to ranged attack rolls."],
+      sourceId: "PHB",
+      sourceName: "Player's Handbook",
+    },
+  };
+
+  it("makes an option's name a heading, not a bold span", () => {
+    render(
+      <Entries
+        entries={[
+          {
+            type: "options",
+            entries: [{ type: "refOptionalfeature", optionalfeature: "Archery" }],
+          },
+        ]}
+        options={OPTION}
+        headingLevel={4}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Archery" }),
+    ).toBeInTheDocument();
+  });
+
+  /**
+   * The label the books use most, and the one that must stay as it is: it names
+   * a thing inside a sentence rather than opening one.
+   */
+  it("leaves a label that runs into its sentence alone", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "item",
+            name: "Amphibious",
+            entries: ["The dragon can breathe air and water."],
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelector("h1,h2,h3,h4,h5,h6")).toBeNull();
+    expect(container.textContent).toContain(
+      "Amphibious. The dragon can breathe air and water.",
+    );
+  });
+
+  it("heads a label whose body opens with a block instead", () => {
+    render(
+      <Entries
+        entries={[
+          {
+            type: "item",
+            name: "Light Armor",
+            entries: [{ type: "list", items: ["Padded", "Leather"] }],
+          },
+        ]}
+        headingLevel={4}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 4, name: "Light Armor" }),
+    ).toBeInTheDocument();
+  });
+});

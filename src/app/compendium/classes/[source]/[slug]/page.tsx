@@ -486,6 +486,7 @@ export default async function ClassPage({ params }: RouteParams) {
                 refs={refs}
                 options={options}
                 context={found.name}
+                headingLevel={3}
               />
             </Box>
           ))}
@@ -531,6 +532,7 @@ export default async function ClassPage({ params }: RouteParams) {
                             refs={refs}
                             options={options}
                             context={`${found.name}: ${subclass.name}`}
+                            headingLevel={5}
                           />
                         </Box>
                       ))}
@@ -658,6 +660,7 @@ function FeatureList({
               features={featureBodies}
               selfKey={feature.naturalKey}
               context={context}
+              headingLevel={4}
             />
           </Box>
         );
@@ -680,6 +683,7 @@ function OptionList({
   refs,
   options,
   context,
+  headingLevel,
 }: {
   list: {
     progression: OptionalFeatureProgression;
@@ -688,6 +692,8 @@ function OptionList({
   refs: Awaited<ReturnType<typeof resolveReferences>>;
   options: OptionalFeatureIndex;
   context: string;
+  /** Where this list sits in the page's outline; its own heading is above it. */
+  headingLevel: 3 | 5;
 }) {
   if (list.options.length === 0) return null;
 
@@ -700,13 +706,16 @@ function OptionList({
       ) : null}
 
       <Stack gap="3">
-        {list.options.map((option) => (
+        {list.options.map((option, index) => (
           <Box key={option.naturalKey}>
             <OptionBody
               option={options[option.naturalKey]!}
               refs={refs}
               options={options}
               context={context}
+              headingLevel={headingLevel}
+              headingTier={4}
+              first={index === 0}
             />
           </Box>
         ))}
