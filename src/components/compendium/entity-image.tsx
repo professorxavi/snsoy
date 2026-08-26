@@ -1,6 +1,6 @@
 import { Box } from "@chakra-ui/react";
 import Image from "next/image";
-import { imageUrl, type ImageEntry } from "@/lib/content/media";
+import { imageUrl, mediaUrl, type ImageEntry } from "@/lib/content/media";
 
 /**
  * Entity illustrations.
@@ -200,6 +200,53 @@ export function IllustrationRow({
           sizes="(max-width: 48em) 100vw, 12rem"
         />
       ))}
+    </Box>
+  );
+}
+
+/**
+ * A creature's map token, for the 1,125 with no illustration at all.
+ *
+ * Not an `Illustration`, and deliberately not bent into one. Those exist for
+ * art with a 0.39–2.04 aspect range and no border; a token is square, 280x280
+ * for every one measured, and wants a round crop — at the plate's 24–30rem it
+ * would be upscaled several times over into a blur.
+ *
+ * Takes a path rather than an `ImageEntry` because that is what it is: a token
+ * is derived by convention from the creature's name and source (`tokenPath`),
+ * not stored as an entry, and giving it the entry's shape would suggest the
+ * data has something it does not.
+ *
+ * A path that no file backs 404s rather than erroring — zero misses today
+ * across all 1,125, but a naming convention is not a guarantee.
+ */
+export function TokenPortrait({
+  path,
+  entityName,
+  size = 120,
+}: {
+  path: string;
+  entityName: string;
+  size?: number;
+}) {
+  return (
+    <Box
+      lineHeight="0"
+      borderRadius="full"
+      overflow="hidden"
+      borderWidth="1px"
+      borderColor="border"
+      width={`${size}px`}
+      height={`${size}px`}
+      flexShrink="0"
+    >
+      <Image
+        src={mediaUrl(path)}
+        alt={entityName}
+        width={size}
+        height={size}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+      />
     </Box>
   );
 }

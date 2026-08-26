@@ -419,8 +419,9 @@ async function raceAside(source: string, slug: string): Promise<ReactNode> {
 }
 
 /**
- * A creature, in full. Like a skill or a condition it has no page behind it, so
- * this is not a preview of anywhere — it is the stat block itself.
+ * A creature's stat block, in full — and, as of the monster page, a preview of
+ * somewhere. The page adds the artwork and the lore that the panel has no room
+ * for; the numbers are the same numbers.
  *
  * The largest thing the aside answers for, and the reason it was worth
  * building: 15,887 `{@creature}` tags point into the reader, more than spells,
@@ -434,11 +435,25 @@ async function monsterAside(source: string, slug: string): Promise<ReactNode> {
   /*
    * `data` only. A creature's fluff is its lore and its artwork, neither of
    * which the stat block prints — resolving it would mean a second blob and its
-   * references for text that never renders.
+   * references for text that never renders. The page resolves both, because it
+   * prints both.
    */
   const refs = await resolveReferences(collectReferences(monster.data));
 
-  return <MonsterStatblock monster={monster} refs={refs} />;
+  return (
+    <>
+      <MonsterStatblock monster={monster} refs={refs} density="aside" />
+      <FullPageLink
+        href={hrefFor({
+          entityType: "monster",
+          sourceId: monster.sourceId,
+          slug: monster.slug,
+        })}
+      >
+        Open full page →
+      </FullPageLink>
+    </>
+  );
 }
 
 /**

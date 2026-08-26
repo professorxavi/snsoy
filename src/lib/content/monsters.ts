@@ -524,6 +524,25 @@ function titleCase(input: string): string {
   return input.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+/**
+ * "Forest, Hill, Underdark" — where the creature is found, as the books list it.
+ *
+ * Stored lowercase on 1,613 of the 3,628 creatures and printed nowhere else.
+ * Book-external metadata rather than part of the stat block, so it goes at the
+ * foot of the page rather than among the qualities.
+ */
+export function formatEnvironmentList(environments: unknown): string {
+  if (!Array.isArray(environments)) return "";
+
+  return environments
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    )
+    .map(titleCase)
+    .sort((a, b) => a.localeCompare(b))
+    .join(", ");
+}
+
 /* ------------------------------------------------------------------ *
  * Challenge rating
  * ------------------------------------------------------------------ */

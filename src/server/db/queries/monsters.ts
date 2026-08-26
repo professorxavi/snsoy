@@ -187,7 +187,12 @@ export async function getMonster(sourceId: string, slug: string) {
     )
     .limit(1);
 
-  return row ?? null;
+  // Early return rather than `row ?? null`: the destructured row is not typed
+  // optional, so the coalesce collapses away and the signature ends up
+  // promising a creature it cannot deliver. Every caller already guards.
+  if (!row) return null;
+
+  return row;
 }
 
 /* ------------------------------------------------------------------ *

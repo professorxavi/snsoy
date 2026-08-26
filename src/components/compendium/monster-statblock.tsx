@@ -41,22 +41,35 @@ import type { MonsterDetail } from "@/server/db/queries/monsters";
  * then the qualities, then everything the creature can do. Someone who opened
  * this mid-encounter is looking for one number and finds it by position.
  *
- * Rendered for the aside, which is 400px wide. That is narrower than the two
- * columns print uses, so this is the one-column form throughout — but nothing
- * is dropped, because a stat block with parts missing is not a stat block.
+ * One column throughout. The aside is 400px, narrower than the two columns
+ * print uses, and the page keeps the same form rather than reflowing — nothing
+ * is dropped either way, because a stat block with parts missing is not a stat
+ * block.
  *
- * Deliberately without the creature's artwork, which 2,457 of them have. The
- * art is a portrait plate several hundred pixels tall, and putting it above the
- * block would push the armour class below the fold in the panel whose whole
- * purpose is to answer a question without moving the reader.
+ * `density` changes measurements and who prints the identity, nothing else.
+ * In the aside this owns the source line and the name; on the page the header
+ * above it does, and printing them here as well would put two `h1`s on one
+ * page. The creature line belongs to the block in both — in print it sits
+ * directly under the name, and it is as much a part of the block as the armour
+ * class is.
+ *
+ * Deliberately without the creature's artwork, which 2,503 of them have, even
+ * on the page. The art is a portrait plate several hundred pixels tall, and
+ * above the block it would push the armour class below the fold — in the panel
+ * whose whole purpose is to answer a question without moving the reader, and on
+ * the page for a reader who opened a creature cold wanting the numbers.
  */
 export function MonsterStatblock({
   monster,
   refs,
+  density = "page",
 }: {
   monster: MonsterDetail;
   refs: ReferenceIndex;
+  /** "aside" is the 400px panel; "page" is the creature's own route. */
+  density?: "page" | "aside";
 }) {
+  const isAside = density === "aside";
   const data = monster.data as StatblockData;
 
   const context = { refs, selfKey: monster.naturalKey, context: monster.name };
@@ -100,24 +113,22 @@ export function MonsterStatblock({
       { label: "Challenge", text: formatChallenge(data.cr ?? monster.crDisplay) },
     ]);
 
+  const creatureLine = formatCreatureLine(data);
+
   return (
-    <Stack gap="3" px="4" py="4">
-      <AsideIdentity
-        sourceId={monster.sourceId}
-        sourceName={monster.sourceName}
-        page={monster.page}
-        name={monster.name}
-      >
-        <Text
-          fontFamily="body"
-          fontStyle="italic"
-          fontSize="sm"
-          color="fg.muted"
-          mt="1"
+    <Stack gap="3" px={isAside ? "4" : "0"} py={isAside ? "4" : "0"}>
+      {isAside ? (
+        <AsideIdentity
+          sourceId={monster.sourceId}
+          sourceName={monster.sourceName}
+          page={monster.page}
+          name={monster.name}
         >
-          {formatCreatureLine(data)}
-        </Text>
-      </AsideIdentity>
+          <CreatureLine mt="1">{creatureLine}</CreatureLine>
+        </AsideIdentity>
+      ) : (
+        <CreatureLine>{creatureLine}</CreatureLine>
+      )}
 
       {/* The three lines that decide whether it can be hurt and how it moves. */}
       <Ruled>
@@ -222,6 +233,32 @@ interface RenderContext {
   refs: ReferenceIndex;
   selfKey: string;
   context: string;
+}
+
+/**
+ * "Medium humanoid, neutral evil" — the line under the creature's name.
+ *
+ * Printed by the block at both densities rather than by whoever prints the
+ * name, so a creature reads the same in the panel and on its page.
+ */
+function CreatureLine({
+  children,
+  mt,
+}: {
+  children: ReactNode;
+  mt?: string;
+}) {
+  return (
+    <Text
+      fontFamily="body"
+      fontStyle="italic"
+      fontSize="sm"
+      color="fg.muted"
+      mt={mt}
+    >
+      {children}
+    </Text>
+  );
 }
 
 /**

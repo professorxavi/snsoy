@@ -88,7 +88,9 @@ const DRAGON = {
 
 describe("MonsterStatblock", () => {
   it("leads with the creature, its book and what it is", () => {
-    render(<MonsterStatblock monster={monster(DRAGON)} refs={REFS} />);
+    render(
+      <MonsterStatblock monster={monster(DRAGON)} refs={REFS} density="aside" />,
+    );
 
     expect(
       screen.getByRole("heading", { level: 1, name: "Adult Red Dragon" }),
@@ -381,5 +383,48 @@ describe("MonsterStatblock", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("Saving Throws")).toBeNull();
     expect(coverageReport()).toEqual([]);
+  });
+});
+
+/**
+ * The one thing `density` decides.
+ *
+ * The block renders in two places that must not drift: the 400px panel, where
+ * it owns the source line and the name, and the creature's own page, where the
+ * header above it does and a second `h1` would be the bug. The creature line
+ * belongs to the block either way — in print it sits directly under the name,
+ * as much a part of the block as the armour class.
+ */
+describe("the two densities", () => {
+  it("leaves the identity to the page header at page density", () => {
+    render(<MonsterStatblock monster={monster(DRAGON)} refs={REFS} />);
+
+    expect(screen.queryByRole("heading", { name: "Adult Red Dragon" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Monster Manual" })).toBeNull();
+  });
+
+  it("prints the creature line at both densities", () => {
+    const { unmount } = render(
+      <MonsterStatblock monster={monster(DRAGON)} refs={REFS} density="aside" />,
+    );
+    expect(screen.getByText("Huge dragon, chaotic evil")).toBeInTheDocument();
+    unmount();
+
+    render(<MonsterStatblock monster={monster(DRAGON)} refs={REFS} />);
+    expect(screen.getByText("Huge dragon, chaotic evil")).toBeInTheDocument();
+  });
+
+  /** The numbers are the same numbers; only the chrome around them differs. */
+  it("prints the same stat lines either way", () => {
+    const { unmount } = render(
+      <MonsterStatblock monster={monster(DRAGON)} refs={REFS} density="aside" />,
+    );
+    expect(screen.getByText("Armor Class")).toBeInTheDocument();
+    expect(screen.getByText(/19 \(natural armor\)/)).toBeInTheDocument();
+    unmount();
+
+    render(<MonsterStatblock monster={monster(DRAGON)} refs={REFS} />);
+    expect(screen.getByText("Armor Class")).toBeInTheDocument();
+    expect(screen.getByText(/19 \(natural armor\)/)).toBeInTheDocument();
   });
 });

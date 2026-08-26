@@ -29,6 +29,9 @@ const describeDb = process.env.DATABASE_URL ? describe : describe.skip;
 /** Creatures in the published-material seed. */
 const MONSTER_COUNT = 3628;
 
+/** Of those, the ones with no illustration at all — every one has a token. */
+const ARTLESS_COUNT = 1125;
+
 describeDb("monster queries against the seed", () => {
   let queries: typeof MonsterQueries;
   let db: typeof import("../client").db;
@@ -322,6 +325,52 @@ describeDb("monster queries against the seed", () => {
         .map((row) => row.name);
 
       expect(broken).toEqual([]);
+    });
+
+    /**
+     * The creature page stands a map token in for the 1,125 creatures with no
+     * illustration, and the path is *derived* — `bestiary/tokens/{source}/
+     * {name}.webp` — rather than stored. Nothing upstream guarantees that
+     * convention holds, and a path that no file backs 404s silently into an
+     * empty circle on the page.
+     *
+     * This is the only tier that can see it: the naming rule folds accents,
+     * expands ligatures and keeps spaces literal, so the creatures it would
+     * break on are exactly the ones nobody writes a fixture for.
+     */
+    it("has a token file for every creature with no illustration", async () => {
+      const { access } = await import("node:fs/promises");
+      const { join } = await import("node:path");
+      const { tokenPath } = await import("@/lib/content/media");
+
+      const root = process.env.CONTENT_IMAGE_DIR;
+      if (!root) return;
+
+      /*
+       * Asked of Postgres rather than filtered in memory: the shared fixture
+       * carries `data` only, and widening it would make every other sweep in
+       * this block pay for a column it does not read.
+       */
+      const artless = (await db.execute(
+        sql`select e.name, e.source_id as "sourceId"
+            from monsters m
+            join entities e on e.id = m.entity_id
+            where e.fluff -> 'images' is null
+               or jsonb_array_length(e.fluff -> 'images') = 0`,
+      )) as unknown as { name: string; sourceId: string }[];
+
+      const missing: string[] = [];
+      for (const row of artless) {
+        const path = tokenPath("monster", row.name, row.sourceId);
+        try {
+          await access(join(root, path));
+        } catch {
+          missing.push(`${row.name} (${row.sourceId}): ${path}`);
+        }
+      }
+
+      expect(artless.length).toBe(ARTLESS_COUNT);
+      expect(missing).toEqual([]);
     });
 
     /**
