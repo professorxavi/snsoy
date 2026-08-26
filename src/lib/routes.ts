@@ -76,6 +76,38 @@ export function isFragmentType(type: EntityType): boolean {
   return FRAGMENT_TYPES.has(type);
 }
 
+/**
+ * Types with a detail route of their own, under `[source]/[slug]`.
+ *
+ * Having one is the exception. An address that resolves to no page is the
+ * design rather than a gap: `hrefFor` addresses every entity so that a citation
+ * in book text is a real anchor — middle-clickable, copyable, crawlable — and
+ * the panel opens in place without the URL moving. Opening that anchor cold
+ * reaches a 404, and that is the intended destination. A page is granted per
+ * type, on the merits, when someone asks for one.
+ *
+ * This list is what stops the 404's signpost lying. Without it a mistyped slug
+ * on a type that *does* have a page — `/compendium/spells/phb/frebal` — is told
+ * "Spells have no page of their own. They open in a panel beside their list",
+ * which is false in both halves.
+ *
+ * Hand-listed because `readDeadEnd` runs in a client component and cannot read
+ * the filesystem. `routes.test.ts` pins it against the routes that actually
+ * exist under `src/app/compendium`, so it fails the moment one is added or
+ * removed rather than drifting quietly.
+ */
+const TYPES_WITH_A_PAGE = new Set<EntityType>([
+  "spell",
+  "race",
+  "class",
+  "monster",
+]);
+
+/** True when opening this entity's URL cold reaches a page rather than a 404. */
+export function hasDetailPage(type: EntityType): boolean {
+  return TYPES_WITH_A_PAGE.has(type);
+}
+
 /** The URL segment for a browsable type, or null for fragments and non-types. */
 export function segmentFor(type: EntityType): string | null {
   return isBrowsable(type) ? SEGMENTS[type] : null;

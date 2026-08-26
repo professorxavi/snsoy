@@ -1,7 +1,10 @@
+import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   BROWSABLE_TYPES,
   chapterHref,
+  hasDetailPage,
   hrefFor,
   listHrefFor,
   parseEntityHref,
@@ -229,5 +232,49 @@ describe("parseEntityHref", () => {
     ]) {
       expect(parseEntityHref(href), href).toBeNull();
     }
+  });
+});
+
+/**
+ * `TYPES_WITH_A_PAGE` is hand-listed because `readDeadEnd` runs in a client
+ * component and cannot read the filesystem. This is the test that makes the
+ * hand-listing safe: it reads the routes that actually exist and requires the
+ * two to agree.
+ *
+ * The failure it exists for is silent. Add a detail route and forget the list,
+ * and a mistyped slug on the new type gets told its type "has no page of its
+ * own" — confidently, and wrongly. Delete one and every real dead end on that
+ * type loses its signpost. Neither shows up anywhere else.
+ */
+describe("hasDetailPage", () => {
+  const COMPENDIUM = join(process.cwd(), "src", "app", "compendium");
+
+  /** Segments with a `[source]/[slug]/page.tsx` under them, read off disk. */
+  const segmentsOnDisk = () =>
+    readdirSync(COMPENDIUM, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .filter((name) =>
+        existsSync(join(COMPENDIUM, name, "[source]", "[slug]", "page.tsx")),
+      )
+      .sort();
+
+  it("names exactly the types whose route exists on disk", () => {
+    const declared = BROWSABLE_TYPES.filter(hasDetailPage)
+      .map((type) => segmentFor(type)!)
+      .sort();
+
+    expect(declared).toEqual(segmentsOnDisk());
+  });
+
+  /**
+   * Stated separately so the diff above stays readable when it breaks, and
+   * because "four" is the claim `dead-end.test.ts` counts against.
+   */
+  it("is the exception rather than the rule", () => {
+    const withPage = BROWSABLE_TYPES.filter(hasDetailPage);
+
+    expect(withPage.sort()).toEqual(["class", "monster", "race", "spell"]);
+    expect(BROWSABLE_TYPES.length - withPage.length).toBe(28);
   });
 });
