@@ -575,3 +575,119 @@ describe("a run-in label", () => {
     ).toBe("Abjuration spells are protective in nature.");
   });
 });
+
+/**
+ * The notes printed under a table.
+ *
+ * 129 tables carry `footnotes` and the field was never declared, so the note
+ * was dropped and the asterisk in the cells above it pointed at nothing.
+ */
+describe("a table's footnotes", () => {
+  const PACK: Entry = {
+    type: "table",
+    colLabels: ["Item", "Cost"],
+    rows: [["Backpack*", "2 gp"]],
+    footnotes: [
+      "*You can also strap items, such as a bedroll, to the outside of a backpack.",
+    ],
+  };
+
+  it("prints the note the asterisk stands for", () => {
+    render(<Entries entries={[PACK]} />);
+
+    expect(screen.getByText(/strap items, such as a bedroll/)).toBeInTheDocument();
+  });
+
+  it("keeps a cross-reference inside a note live", () => {
+    render(
+      <Entries
+        entries={[{ ...PACK, footnotes: ["*While {@condition blinded}."] }]}
+        refs={{
+          "condition|blinded|phb": {
+            name: "Blinded",
+            entityType: "condition",
+            href: "/compendium/conditions/phb/blinded",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "blinded" })).toHaveAttribute(
+      "href",
+      "/compendium/conditions/phb/blinded",
+    );
+  });
+});
+
+/**
+ * A header of more than one row, which the books use to group columns under a
+ * shared heading. Three tables carry it as `colLabelRows` and carry no
+ * `colLabels` at all, so a ten-column encounter table printed with no column
+ * headings whatsoever.
+ */
+describe("a table's multi-row header", () => {
+  const ENCOUNTERS: Entry = {
+    type: "table",
+    caption: "Wilderness Encounters",
+    colLabelRows: [
+      ["", { type: "cellHeader", entry: "Jungle", width: 3 }, ""],
+      ["Encounter", "Beach", "No Undead", "Swamp", "Wasteland"],
+    ],
+    rows: [["Ghouls", "01–05", "—", "01–04", "—"]],
+  };
+
+  it("heads the columns a missing label row left bare", () => {
+    render(<Entries entries={[ENCOUNTERS]} />);
+
+    for (const label of ["Encounter", "Beach", "No Undead", "Wasteland"]) {
+      expect(
+        screen.getByRole("columnheader", { name: label }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("stands a grouping heading over the columns it covers", () => {
+    render(<Entries entries={[ENCOUNTERS]} />);
+
+    expect(screen.getByRole("columnheader", { name: "Jungle" })).toHaveAttribute(
+      "colspan",
+      "3",
+    );
+  });
+});
+
+/**
+ * What a screen reader announces for an illustration.
+ *
+ * 63 images describe themselves in `altText` and the renderer read only
+ * `title`, which is the caption — so the description the books supply for
+ * exactly this purpose went unread.
+ */
+describe("an illustration's alt text", () => {
+  const image = (extra: Record<string, unknown>): Entry => ({
+    type: "image",
+    href: { type: "internal", path: "book/PHB/dwarf.webp" },
+    ...extra,
+  });
+
+  it("announces the description over the caption", () => {
+    render(
+      <Entries
+        context="Dwarf"
+        entries={[image({ title: "A Mountain Dwarf", altText: "A dwarf in mail, axe over one shoulder" })]}
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "A dwarf in mail, axe over one shoulder" }),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the caption, then to the entity", () => {
+    render(<Entries context="Dwarf" entries={[image({ title: "A Mountain Dwarf" })]} />);
+    expect(screen.getByRole("img", { name: "A Mountain Dwarf" })).toBeInTheDocument();
+
+    render(<Entries context="Dwarf" entries={[image({})]} />);
+    expect(screen.getByRole("img", { name: "Dwarf" })).toBeInTheDocument();
+  });
+});

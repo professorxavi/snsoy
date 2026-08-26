@@ -59,13 +59,33 @@ export interface RowEntry {
   style?: string;
 }
 
+/**
+ * A heading cell that stands over more than one column, which is what a
+ * multi-row header is for: `width` is its span, and the columns it covers are
+ * named individually on the row below.
+ */
+export interface CellHeaderEntry {
+  type: "cellHeader";
+  entry?: Entry;
+  width?: number;
+  style?: string;
+}
+
 export interface TableEntry {
   type: "table";
   caption?: string;
   colLabels?: string[];
+  /**
+   * A header of more than one row, used instead of `colLabels` rather than
+   * alongside it. Three tables in the books have one; without it they print
+   * with no column headings at all.
+   */
+  colLabelRows?: (Entry | CellHeaderEntry)[][];
   /** Upstream layout hints: column widths and alignment, as class names. */
   colStyles?: string[];
   rows?: ((Entry | CellEntry)[] | RowEntry)[];
+  /** The notes printed under the table, keyed to it by asterisk. */
+  footnotes?: Entry[];
 }
 
 /** Several tables printed under one heading, as a single figure. */
@@ -297,6 +317,7 @@ export type EntryObject =
   | ListEntry
   | ItemEntry
   | CellEntry
+  | CellHeaderEntry
   | RowEntry
   | TableEntry
   | TableGroupEntry
@@ -328,6 +349,15 @@ export function isCell(value: unknown): value is CellEntry {
     typeof value === "object" &&
     value !== null &&
     (value as { type?: unknown }).type === "cell"
+  );
+}
+
+/** A spanning heading cell, as opposed to a plain string in a header row. */
+export function isCellHeader(value: unknown): value is CellHeaderEntry {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { type?: unknown }).type === "cellHeader"
   );
 }
 

@@ -27,12 +27,14 @@ import { Inline } from "./inline";
 import {
   cellsOf,
   isCell,
+  isCellHeader,
   isEntryObject,
   isRow,
   type AbilityFormulaEntry,
   type AbilityGenericEntry,
   type AttackEntry,
   type CellEntry,
+  type CellHeaderEntry,
   type Entry,
   type EntryObject,
   type EntriesEntry,
@@ -676,8 +678,14 @@ function ItemBlock({ entry, ctx }: { entry: ItemEntry; ctx: RenderContext }) {
 function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   if (!entry.rows?.length) return null;
 
+  // `colLabels` is one row of headings and `colLabelRows` several; a table
+  // carries one or the other, never both.
+  const headerRows: (Entry | CellHeaderEntry)[][] = entry.colLabels?.length
+    ? [entry.colLabels]
+    : (entry.colLabelRows ?? []);
+
   const columns = Math.max(
-    entry.colLabels?.length ?? 0,
+    ...headerRows.map(headerWidth),
     ...entry.rows.map((row) => cellsOf(row).length),
   );
   const styles = columnStyles(entry.colStyles, columns);
@@ -747,25 +755,33 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
             </colgroup>
           ) : null}
 
-          {entry.colLabels?.length ? (
+          {headerRows.length ? (
             <Table.Header>
-              <Table.Row bg="bg.muted">
-                {entry.colLabels.map((label, index) => (
-                  <Table.ColumnHeader
-                    key={index}
-                    fontFamily="ui"
-                    fontSize="xs"
-                    fontWeight="semibold"
-                    // A long heading wraps. Holding it on one line makes it the
-                    // column's minimum width, which is how "Saving Throw
-                    // Proficiencies" came to be wider than the sentence beside it.
-                    whiteSpace={styles[index]?.noWrap ? "nowrap" : undefined}
-                    textAlign={styles[index]?.align}
-                  >
-                    {inline(label, ctx)}
-                  </Table.ColumnHeader>
-                ))}
-              </Table.Row>
+              {headerRows.map((labels, rowIndex) => (
+                <Table.Row key={rowIndex} bg="bg.muted">
+                  {headerCells(labels).map(({ label, column, span }, index) => (
+                    <Table.ColumnHeader
+                      key={index}
+                      colSpan={span > 1 ? span : undefined}
+                      fontFamily="ui"
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      // A long heading wraps. Holding it on one line makes it the
+                      // column's minimum width, which is how "Saving Throw
+                      // Proficiencies" came to be wider than the sentence beside it.
+                      whiteSpace={
+                        span === 1 && styles[column]?.noWrap ? "nowrap" : undefined
+                      }
+                      // A heading over several columns sits over the middle of
+                      // them; one over a single column takes that column's own
+                      // alignment.
+                      textAlign={span > 1 ? "center" : styles[column]?.align}
+                    >
+                      {label == null ? null : inline(String(label), ctx)}
+                    </Table.ColumnHeader>
+                  ))}
+                </Table.Row>
+              ))}
             </Table.Header>
           ) : null}
 
@@ -802,7 +818,63 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
           </Table.Body>
         </Table.Root>
       </Box>
+
+      {entry.footnotes?.length ? (
+        <TableFootnotes notes={entry.footnotes} ctx={ctx} />
+      ) : null}
     </Box>
+  );
+}
+
+/** How many columns a header row covers, spanning cells included. */
+function headerWidth(row: (Entry | CellHeaderEntry)[]): number {
+  return row.reduce<number>(
+    (total, cell) => total + (isCellHeader(cell) ? (cell.width ?? 1) : 1),
+    0,
+  );
+}
+
+/**
+ * A header row's cells, each with the column it starts at — which is not its
+ * position in the row once a cell spans more than one column.
+ */
+function headerCells(row: (Entry | CellHeaderEntry)[]) {
+  let column = 0;
+
+  return row.map((cell) => {
+    const span = isCellHeader(cell) ? (cell.width ?? 1) : 1;
+    const at = column;
+    column += span;
+    return { label: isCellHeader(cell) ? cell.entry : cell, column: at, span };
+  });
+}
+
+/**
+ * The notes printed under a table, keyed to its cells by asterisk. Set smaller
+ * and apart, as print sets them; they are entries, so their tags stay live.
+ */
+function TableFootnotes({ notes, ctx }: { notes: Entry[]; ctx: RenderContext }) {
+  return (
+    <Stack gap="1" mt="1.5">
+      {notes.map((note, index) =>
+        typeof note === "string" || typeof note === "number" ? (
+          <Text
+            key={index}
+            className="prose"
+            fontFamily="body"
+            fontSize="xs"
+            lineHeight="1.5"
+            color="fg.muted"
+          >
+            {inline(String(note), ctx)}
+          </Text>
+        ) : (
+          // One footnote in the books is a whole `entries` block rather than a
+          // sentence, and goes back through the renderer.
+          <EntryNode key={index} entry={note} {...ctx} />
+        ),
+      )}
+    </Stack>
   );
 }
 

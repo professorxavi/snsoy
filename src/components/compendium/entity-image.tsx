@@ -35,7 +35,7 @@ export function Illustration({
   priority = false,
 }: {
   image: ImageEntry;
-  /** Used for alt text when the image carries no title of its own. */
+  /** Used for alt text when the image describes neither itself nor its title. */
   entityName: string;
   maxHeight?: number;
   sizes?: string;
@@ -49,9 +49,9 @@ export function Illustration({
     <Box lineHeight="0">
       <Image
         src={src}
-        // No image carries `altText` and most lack a `title`, so fall back to
-        // the entity name.
-        alt={image.title ?? entityName}
+        // 63 images are described for a screen reader; most of the rest lack
+        // even a `title`, so the last resort is the entity's own name.
+        alt={image.altText ?? image.title ?? entityName}
         width={image.width ?? 400}
         height={image.height ?? 500}
         priority={priority}
@@ -129,7 +129,7 @@ export function IllustrationPlate({
       >
         <Image
           src={src}
-          alt={image.title ?? entityName}
+          alt={image.altText ?? image.title ?? entityName}
           width={image.width ?? 800}
           height={image.height ?? Math.round(800 / ratio)}
           priority={priority}
