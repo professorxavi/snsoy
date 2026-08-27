@@ -78,25 +78,14 @@ const TYPED_TABLES = {
 /**
  * Tags no renderer in this codebase handles yet.
  *
- * These four are not tags at all but `{=prop}` substitutions, and they are the
- * one thing a magic variant cannot render. A template writes prose that suits
- * every base item it applies to — "{=baseName/at} {=baseName/l} of slaying",
- * "an extra 7 {=dmgType} damage" — and the value names the *base item*, which a
- * template has none of. `resolveItemTemplates` fills in the 41 placeholders
- * naming a field the template itself carries, and leaves these 14 standing.
- *
- * Three of the 129 variants are affected: `Arrow of Slaying (*)`, which nothing
- * cites, and `Vicious Weapon` / `Vicious +1 Weapon`. Every concrete expansion
- * of all three renders correctly, because expansion is where a base item
- * exists. Closing these means rewording the sentence for the generic case,
- * which is an editorial call rather than a missing renderer.
+ * Empty again. It briefly held four `{=prop}` substitutions when the magic
+ * variants became entities: a template writes prose that suits every base item
+ * it applies to, and the placeholder names the base item, which a template has
+ * none of. All four are resolved at ingest now — `{=baseName}` against the noun
+ * the template's `requires` names, and Vicious Weapon's `{=dmgType} damage`
+ * restored to the DMG's own "damage of the weapon's type".
  */
-const KNOWN_TAG_GAPS: readonly string[] = [
-  "baseName/l",
-  "baseName/a",
-  "baseName/at",
-  "dmgType",
-];
+const KNOWN_TAG_GAPS: readonly string[] = [];
 
 /**
  * What a type keeps *outside* `entries`, handed to the panel the way the loader
