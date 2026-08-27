@@ -20,8 +20,8 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * Browsable types with no browse view, and so nothing for a card to point at.
  *
  * Each is dropped rather than deferred, and dropping a card drops the browse
- * view, not the type: all seven keep their URL segment so `hrefFor` still
- * addresses their entities, and all seven still open in the aside.
+ * view, not the type: every one keeps its URL segment so `hrefFor` still
+ * addresses their entities, and every one still opens in the aside.
  *
  * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
  *   references in book text point: a real roll table lives inside the chapter
@@ -36,6 +36,16 @@ import { listHrefFor, type BrowsableType } from "./routes";
  *   372 of 402 member references resolve to real rows, and 66 of the 73 groups
  *   are reached from book text, which is where a group belongs — in the aside,
  *   under the `{@item}` tag that cites it.
+ * - **`magicvariant`.** The 129 magic items the books print once and the data
+ *   expands: "Flame Tongue" is one entry in the DMG, and the expansion into
+ *   `Flame Tongue Longsword`, `Flame Tongue Rapier` and five more is what fills
+ *   the items list — 1,852 of the 3,634 item rows are expansions of these 129.
+ *   The expansions are also the rows that can answer a list's questions: of the
+ *   129 templates, one carries an item type and none carries a value or a
+ *   weight, because "+1 Weapon" has no type — it *applies to* one. So the
+ *   template is here to be cited and read, not browsed: all 362 `{@item}`
+ *   references that resolved to nothing were naming one of these, and they open
+ *   the magic item as it was printed.
  * - **`card`.** A card is only ever met through its deck, and the deck panel
  *   already lists every card it deals. A flat list of all 656 was the one place
  *   in the app where that context had to be rebuilt with a facet — the rail's
@@ -68,6 +78,7 @@ export const WITHOUT_A_BROWSE_VIEW: ReadonlySet<BrowsableType> =
     "table",
     "baseitem",
     "itemGroup",
+    "magicvariant",
     "card",
     "optionalfeature",
     "charoption",

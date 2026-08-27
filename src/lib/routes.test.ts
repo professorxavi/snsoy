@@ -140,7 +140,7 @@ describe("hrefFor", () => {
 
   it("declines types that are never browsable entities", () => {
     expect(
-      hrefFor({ entityType: "magicvariant", sourceId: "DMG", slug: "x" }),
+      hrefFor({ entityType: "psionic", sourceId: "UA", slug: "x" }),
     ).toBeNull();
   });
 });
@@ -275,6 +275,6 @@ describe("hasDetailPage", () => {
     const withPage = BROWSABLE_TYPES.filter(hasDetailPage);
 
     expect(withPage.sort()).toEqual(["class", "monster", "race", "spell"]);
-    expect(BROWSABLE_TYPES.length - withPage.length).toBe(27);
+    expect(BROWSABLE_TYPES.length - withPage.length).toBe(28);
   });
 });

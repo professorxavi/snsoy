@@ -66,13 +66,15 @@ describe("candidateKeysForTag", () => {
 
   /**
    * `{@item club|phb}` is a `baseitem`, not an `item` — mundane gear, magic
-   * items and item groups all share one tag.
+   * items, item groups and magic variants all share one tag. The variant comes
+   * last so a concrete item always wins the name.
    */
   it("offers every type an item tag might address", () => {
     expect(candidateKeysForTag(tag("{@item club|phb}"))).toEqual([
       "item|club|phb",
       "baseitem|club|phb",
       "itemgroup|club|phb",
+      "magicvariant|club|phb",
     ]);
   });
 
@@ -306,11 +308,16 @@ describe("candidateKeysForStatblock", () => {
     ).toEqual(["spell|fireball|phb"]);
   });
 
-  /** `{@item}` covers three types, and a statblock inherits that ambiguity. */
+  /** `{@item}` covers four types, and a statblock inherits that ambiguity. */
   it("keeps every candidate an item may be", () => {
     expect(
       candidateKeysForStatblock({ tag: "item", name: "Club", source: "PHB" }),
-    ).toEqual(["item|club|phb", "baseitem|club|phb", "itemgroup|club|phb"]);
+    ).toEqual([
+      "item|club|phb",
+      "baseitem|club|phb",
+      "itemgroup|club|phb",
+      "magicvariant|club|phb",
+    ]);
   });
 
   /** Fluff belongs to the entity it describes, so it points at the same key. */

@@ -81,6 +81,7 @@ export const ASIDE_TYPE_LIST = [
   "item",
   "baseitem",
   "itemGroup",
+  "magicvariant",
   "sense",
   "action",
   "status",

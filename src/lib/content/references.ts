@@ -340,11 +340,21 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
     const source = sourceOr(part(tag, 1), spec.defaultSource);
 
     if (tag.name === "item") {
-      // Mundane gear, magic items and item groups all arrive as {@item}.
+      /*
+       * Mundane gear, magic items, item groups and magic variants all arrive as
+       * {@item}.
+       *
+       * The variant is tried last, so a concrete item always wins the name.
+       * `{@item Flame Tongue}` names the magic item the DMG prints once, which
+       * the data expands into seven concrete swords, and the printed item is
+       * the only one of the eight that carries that exact name — every one of
+       * the 362 unresolved `{@item}` references was one of these.
+       */
       return [
         `item|${name}|${source}`,
         `baseitem|${name}|${source}`,
         `itemgroup|${name}|${source}`,
+        `magicvariant|${name}|${source}`,
       ];
     }
 

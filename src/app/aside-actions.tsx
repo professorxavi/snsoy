@@ -26,7 +26,7 @@ import {
   deitySubtitle,
 } from "@/lib/content/deities";
 import { featPrerequisite } from "@/lib/content/feats";
-import { itemGroupTags } from "@/lib/content/items";
+import { itemGroupTags, rarityLabel, rarityPhrase } from "@/lib/content/items";
 import { objectSummary } from "@/lib/content/objects";
 import { trapKindLabel, trapThreat } from "@/lib/content/traps";
 import {
@@ -79,6 +79,7 @@ type GenericAsideType = Extract<
   | "vehicle"
   | "vehicleUpgrade"
   | "table"
+  | "magicvariant"
 >;
 type GenericAsideConfig = {
   noun: string;
@@ -251,6 +252,25 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
       nullable(upgradeKind(data["upgradeType"])),
   },
   /*
+   * A magic item as the books print it — one "Flame Tongue", not the seven
+   * concrete swords the data expands it into. It has no browse view for the
+   * same reason a table does not: the expansions are what fills the items list,
+   * and they are the rows carrying the type, value and weight a list column
+   * needs. This is what `{@item Flame Tongue}` cites.
+   *
+   * The subtitle is the rarity alone. What a template *applies to* lives in
+   * `requires`, whose 17 keys are mostly item type codes — resolving those
+   * needs the item vocabulary, which is more than a subtitle line should carry,
+   * and the name already says whether it is a weapon or armour.
+   */
+  magicvariant: {
+    noun: "magic item",
+    subtitle: (data: Record<string, unknown>) => {
+      const phrase = rarityPhrase(text(data["rarity"]));
+      return phrase ? rarityLabel(phrase) : null;
+    },
+  },
+  /*
    * A roll table. It has no browse view on purpose — a table in a chapter
    * belongs to that chapter, and these seven rows are not where the ~351
    * `{@table}` references point — but the four that do reach one open here
@@ -293,6 +313,7 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   item: (source, slug) => itemAside("item", source, slug),
   baseitem: (source, slug) => itemAside("baseitem", source, slug),
   itemGroup: (source, slug) => itemAside("itemGroup", source, slug),
+  magicvariant: (source, slug) => genericAside("magicvariant", source, slug),
   sense: (source, slug) => genericAside("sense", source, slug),
   status: (source, slug) => genericAside("status", source, slug),
   action: (source, slug) => genericAside("action", source, slug),

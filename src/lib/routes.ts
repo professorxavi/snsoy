@@ -18,6 +18,7 @@ const SEGMENTS = {
   item: "items",
   baseitem: "base-items",
   itemGroup: "item-groups",
+  magicvariant: "magic-variants",
   race: "races",
   background: "backgrounds",
   feat: "feats",

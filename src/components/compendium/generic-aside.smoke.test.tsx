@@ -60,6 +60,7 @@ const TYPES = {
   vehicle: 35,
   vehicleUpgrade: 31,
   table: 7,
+  magicvariant: 129,
 } as const;
 
 /**
@@ -77,11 +78,25 @@ const TYPED_TABLES = {
 /**
  * Tags no renderer in this codebase handles yet.
  *
- * Empty, for the first time. `{@vehupgrade}` was the last entry — 34
- * occurrences addressing a type with no view and no aside case — and it closed
- * when the vehicle upgrades were built, which is exactly what the list is for.
+ * These four are not tags at all but `{=prop}` substitutions, and they are the
+ * one thing a magic variant cannot render. A template writes prose that suits
+ * every base item it applies to — "{=baseName/at} {=baseName/l} of slaying",
+ * "an extra 7 {=dmgType} damage" — and the value names the *base item*, which a
+ * template has none of. `resolveItemTemplates` fills in the 41 placeholders
+ * naming a field the template itself carries, and leaves these 14 standing.
+ *
+ * Three of the 129 variants are affected: `Arrow of Slaying (*)`, which nothing
+ * cites, and `Vicious Weapon` / `Vicious +1 Weapon`. Every concrete expansion
+ * of all three renders correctly, because expansion is where a base item
+ * exists. Closing these means rewording the sentence for the generic case,
+ * which is an editorial call rather than a missing renderer.
  */
-const KNOWN_TAG_GAPS: readonly string[] = [];
+const KNOWN_TAG_GAPS: readonly string[] = [
+  "baseName/l",
+  "baseName/a",
+  "baseName/at",
+  "dmgType",
+];
 
 /**
  * What a type keeps *outside* `entries`, handed to the panel the way the loader

@@ -48,18 +48,26 @@ describe("groupByBook", () => {
   });
 
   /**
-   * An anthology the data ships as several printings has no body under its own
-   * id at all. Every chapter is foreign, and all of it is the book.
+   * An anthology reads as one book even though every adventure in it carries
+   * its own id.
+   *
+   * Ingest gives the volume back the front matter, the appendices and the
+   * credits — each is printed by all seven inner works, so it belongs to none
+   * of them — and the adventures keep theirs. That leaves the source with a
+   * body of its own whose last chapter is the credits, so the trailing run
+   * never advances and the split stays at the end: one body, and no heading
+   * over each adventure. Splitting here would put one over every chapter.
    */
-  it("keeps an anthology with no body of its own in one piece", () => {
+  it("keeps an anthology in one piece once the volume has its own chapters", () => {
     const tftyp = [
-      { bookId: "TftYP-ToH", slug: "introduction" },
+      { bookId: "TftYP", slug: "introduction" },
       { bookId: "TftYP-TSC", slug: "the-sunless-citadel" },
       { bookId: "TftYP-ToH", slug: "tomb-of-horrors" },
+      { bookId: "TftYP", slug: "credits" },
     ];
 
     expect(groupByBook(tftyp, "TftYP")).toEqual([
-      { bookId: "TftYP-ToH", chapters: tftyp },
+      { bookId: "TftYP", chapters: tftyp },
     ]);
   });
 
