@@ -110,6 +110,26 @@ export const FORMAT_TAGS = {
   strike: "strike",
   highlight: "highlight",
   note: "note",
+
+  /*
+   * The Rick and Morty books letter their commentary the way a comic does.
+   * `{@comic}` is a speech balloon, and comicH1-comicH4 are not headings
+   * despite the names: they are lettering *inside* a balloon, wrapping a word
+   * or a clause mid-sentence — "you get to be a {@comicH3 god}, Morty",
+   * "everything we do is {@comicH4 MEANINGLESS}". Set as headings they would
+   * break sentences apart. The scale also runs the other way from HTML's:
+   * comicH4 is the loudest, and the books always wrap it in bold italic.
+   *
+   * They live here rather than in a kind of their own because `format` is the
+   * only kind that re-renders its inner text, and these tags nearly always
+   * contain more markup.
+   */
+  comic: "comicVoice",
+  comicH1: "comicShout",
+  comicH2: "comicShout",
+  comicH3: "comicStress",
+  comicH4: "comicRoar",
+  comicNote: "comicNote",
 } as const;
 
 export type FormatKind = (typeof FORMAT_TAGS)[keyof typeof FORMAT_TAGS];

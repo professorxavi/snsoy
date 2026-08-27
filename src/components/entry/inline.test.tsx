@@ -116,6 +116,71 @@ describe("Inline", () => {
     });
   });
 
+  /**
+   * The Rick and Morty books' comic lettering. Every one of these rendered in
+   * the amber unsupported treatment until 2026-08-26, which painted the book's
+   * own commentary as a defect.
+   */
+  describe("comic lettering", () => {
+    it("renders the balloon and its lettering as text, not as a gap", () => {
+      resetCoverage();
+      render(
+        <Inline text="{@comic You get to be a {@comicH3 god}, Morty.}" />,
+      );
+
+      expect(screen.getByText("god")).toBeInTheDocument();
+      expect(coverageReport()).toEqual([]);
+    });
+
+    /**
+     * comicH1-comicH4 are lettering inside a balloon, not headings. Set as
+     * headings they would break the sentence they sit in.
+     */
+    it("does not render the lettering levels as headings", () => {
+      const { container } = render(
+        <Inline text="{@comicH1 POWER, Morty!} {@comicH4 MEANINGLESS}" />,
+      );
+
+      expect(container.querySelector("h1, h2, h3, h4")).toBeNull();
+    });
+
+    /** The books always wrap the loudest level in bold italic. */
+    it("unwraps the markup the loudest level always arrives in", () => {
+      render(<Inline text="everything is {@b {@i {@comicH4 MEANINGLESS}}}" />);
+
+      expect(screen.getByText("MEANINGLESS")).toBeInTheDocument();
+      expect(screen.queryByText(/\{@/)).not.toBeInTheDocument();
+    });
+
+    /** "Magic Missile {@comicNote YES, Poke}" — Rick rating a spell list. */
+    it("keeps a margin note beside the line it annotates", () => {
+      render(<Inline text="Magic Missile {@comicNote YES, Poke}" />);
+
+      expect(screen.getByText("YES, Poke")).toBeInTheDocument();
+    });
+  });
+
+  /**
+   * F1: only the format kind used to re-render its inner text, so a tag nested
+   * in any other kind reached the reader as literal markup — 315 occurrences.
+   */
+  describe("tags nested inside a non-format tag", () => {
+    it("renders markup nested inside a reference label", () => {
+      render(<Inline text="{@adventure {@i Curse of Strahd}|CoS}" />);
+
+      expect(screen.getByText("Curse of Strahd")).toBeInTheDocument();
+      expect(screen.queryByText(/\{@/)).not.toBeInTheDocument();
+    });
+
+    /** A constructed label has no markup in it and must survive untouched. */
+    it("leaves a label the renderer builds itself alone", () => {
+      render(<Inline text="{@dc 15} and {@recharge 5}" />);
+
+      expect(screen.getByText("DC 15")).toBeInTheDocument();
+      expect(screen.getByText("(Recharge 5–6)")).toBeInTheDocument();
+    });
+  });
+
   describe("rolls", () => {
     /**
      * Rolls navigate nowhere, so rendering one as a link would promise a

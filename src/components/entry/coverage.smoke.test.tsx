@@ -54,12 +54,6 @@ const KNOWN_TAG_GAPS = [
   "5etoolsImg",
   "ability",
   "color",
-  "comic",
-  "comicH1",
-  "comicH2",
-  "comicH3",
-  "comicH4",
-  "comicNote",
   "savingThrow",
 ] as const;
 

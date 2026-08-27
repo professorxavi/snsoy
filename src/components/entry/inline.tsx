@@ -96,18 +96,30 @@ function Segment({
 
   const label = labelForTag(segment);
 
+  /*
+   * A label is usually one of the tag's own parts, and a part can hold more
+   * markup: `{@adventure {@i Curse of Strahd}|CoS}`. Emitted as a flat string
+   * the inner tag reaches the reader verbatim, so render it.
+   *
+   * Safe on the labels that are built rather than quoted ("Hit: ", `DC 15`),
+   * because renderText returns a string with no markup in it untouched. The
+   * one thing never passed through here is `segment.raw`, which would re-parse
+   * this very tag and never terminate.
+   */
+  const rendered = renderText(label, refs, selfKey, context, areas);
+
   switch (kindOfTag(segment.name)) {
     case "reference": {
       const hit = lookupReference(candidateKeysForTag(segment), refs);
 
       // Unresolved, unaddressable, or self-referential: render as plain text.
       if (!hit || !hit.target.href || hit.key === selfKey) {
-        return <>{label || hit?.target.name || ""}</>;
+        return <>{label ? rendered : (hit?.target.name ?? "")}</>;
       }
 
       return (
         <CrossReference href={hit.target.href}>
-          {label || hit.target.name}
+          {label ? rendered : hit.target.name}
         </CrossReference>
       );
     }
@@ -121,16 +133,16 @@ function Segment({
     case "anchor": {
       const target = areaTargetForTag(segment);
       const href = target ? areas[target] : undefined;
-      if (!href) return <>{label}</>;
+      if (!href) return <>{rendered}</>;
 
-      return <CrossReference href={href}>{label}</CrossReference>;
+      return <CrossReference href={href}>{rendered}</CrossReference>;
     }
 
     case "roll":
-      return <Roll>{label}</Roll>;
+      return <Roll>{rendered}</Roll>;
 
     case "cue":
-      return <Cue>{label}</Cue>;
+      return <Cue>{rendered}</Cue>;
 
     case "format":
       return (
@@ -141,11 +153,11 @@ function Segment({
 
     // Recognised but not actionable; render the label only.
     case "plain":
-      return <>{label}</>;
+      return <>{rendered}</>;
 
     default:
       reportGap("tag", segment.name, context);
-      return <Unsupported>{label || segment.raw}</Unsupported>;
+      return <Unsupported>{label ? rendered : segment.raw}</Unsupported>;
   }
 }
 
@@ -242,6 +254,75 @@ function Emphasis({
     case "note":
       return (
         <Text as="em" color="fg.muted">
+          {children}
+        </Text>
+      );
+
+    /*
+     * A speech balloon, and deliberately unmarked. The commentary already sits
+     * in a panel of its own and the lettering levels carry the voice, so a
+     * rule here bought nothing: it marked the lines the books wrapped in
+     * `{@comic}` and left the ones wrapped in `{@comicH1}` bare, which tracks
+     * the markup rather than anything a reader can see.
+     *
+     * It stays a format tag so that what is inside it renders at all, and so
+     * it is classified rather than reported as a gap.
+     */
+    case "comicVoice":
+      return <>{children}</>;
+
+    // A word leant on mid-sentence — "you get to be a god, Morty".
+    case "comicStress":
+      return (
+        <Text as="strong" fontWeight="semibold">
+          {children}
+        </Text>
+      );
+
+    // A raised voice, usually a whole line. The slab face in a short run.
+    case "comicShout":
+      return (
+        <Text as="strong" fontFamily="display" fontWeight="normal">
+          {children}
+        </Text>
+      );
+
+    /*
+     * The loudest the books get, and always already wrapped in bold italic.
+     * The slab face has one weight and no italic, so those would synthesise a
+     * smeared oblique; reset them and let the face and the size carry it.
+     */
+    case "comicRoar":
+      return (
+        <Text
+          as="strong"
+          fontFamily="display"
+          fontWeight="normal"
+          fontStyle="normal"
+          fontSize="1.15em"
+          textTransform="uppercase"
+          lineHeight="1"
+        >
+          {children}
+        </Text>
+      );
+
+    /*
+     * A note pencilled beside the line, most often Rick rating a spell:
+     * "Magic Missile YES, POKE". Short, and uppercase and tracked in the UI
+     * face, which is what the brief reserves that treatment for.
+     */
+    case "comicNote":
+      return (
+        <Text
+          as="span"
+          fontFamily="ui"
+          fontSize="xs"
+          textTransform="uppercase"
+          letterSpacing="wider"
+          color="fg.subtle"
+          whiteSpace="nowrap"
+        >
           {children}
         </Text>
       );
