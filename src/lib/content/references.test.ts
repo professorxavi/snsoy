@@ -121,10 +121,43 @@ describe("candidateKeysForTag", () => {
   it("addresses a book section by source and chapter index", () => {
     expect(
       candidateKeysForTag(tag("{@book school of magic|PHB|10|The Schools of Magic}")),
-    ).toEqual(["booksection|phb|10"]);
+    ).toEqual(["booksection|phb|10", "source|phb"]);
     expect(candidateKeysForTag(tag("{@adventure appendix C|IDRotF|21}"))).toEqual([
       "booksection|idrotf|21",
+      "source|idrotf",
     ]);
+  });
+
+  /**
+   * Without a chapter the tag names the whole book. There is no entity for a
+   * book — `entities` holds its chapters — so it addresses the source, which
+   * resolves against `sources` instead of by natural key.
+   */
+  it("addresses the whole book when the tag names no chapter", () => {
+    expect(candidateKeysForTag(tag("{@book Player's Handbook|PHB}"))).toEqual([
+      "source|phb",
+    ]);
+    expect(candidateKeysForTag(tag("{@adventure Curse of Strahd|CoS}"))).toEqual([
+      "source|cos",
+    ]);
+  });
+
+  /**
+   * A chapter index that names no section still leaves the book worth reaching.
+   * `{@adventure appendix B|TftYP-ToH|3}` numbers its appendix against the whole
+   * of Tales from the Yawning Portal, whose sections are filed under the inner
+   * adventure that printed them.
+   */
+  it("falls back to the book when a chapter index cannot be placed", () => {
+    expect(candidateKeysForTag(tag("{@adventure appendix B|TftYP-ToH|3}"))).toEqual([
+      "booksection|tftyp-toh|3",
+      "source|tftyp-toh",
+    ]);
+  });
+
+  /** No source, nothing to address: better plain words than a wrong book. */
+  it("addresses nothing when a book tag names no source", () => {
+    expect(candidateKeysForTag(tag("{@book Player's Handbook}"))).toEqual([]);
   });
 
   /**

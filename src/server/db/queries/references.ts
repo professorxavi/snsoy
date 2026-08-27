@@ -4,6 +4,8 @@ import {
   EMPTY_AREAS,
   EMPTY_REFERENCES,
   parentKeyFor,
+  sourceIdFromKey,
+  sourceKeyFor,
   type AnchoredIds,
   type AreaIndex,
   type ReferenceIndex,
@@ -13,6 +15,7 @@ import { hrefFor, isFragmentType } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
 import { db } from "../client";
 import { entities } from "../schema/entities";
+import { sources } from "../schema/sources";
 
 /**
  * Resolves inline cross-references to URLs.
@@ -21,6 +24,13 @@ import { entities } from "../schema/entities";
  * text, and references are collected for the whole page and resolved in one
  * round trip rather than one per tag.
  */
+
+interface BookRow {
+  /** Lowercased, because that is what a tag's source part resolves to. */
+  id: string;
+  name: string;
+  href: string;
+}
 
 interface Row {
   naturalKey: string;
@@ -45,19 +55,103 @@ async function fetchByKeys(keys: string[]): Promise<Row[]> {
 }
 
 /**
+ * Where each wanted book lives.
+ *
+ * A book is usually a source of its own and answers at `/sources/<id>`. Twenty
+ * one are not: they were printed inside another book and are carried inside it,
+ * keeping their own `book_id` on sections whose entity belongs to the parent's
+ * source — the Yawning Portal adventures, Strixhaven's four, "No Silent Secret"
+ * inside Theros. Those resolve into the book that printed them, at the chapter
+ * where it begins.
+ *
+ * It begins at its first section in reading order, which is the inner work
+ * itself in twenty of the twenty one. The exception is `TftYP-ToH`, where the
+ * whole volume's Introduction is filed under the adventure and sorts ahead of
+ * it — an upstream quirk, and it still lands in the right book.
+ *
+ * The landing spot is a chapter rather than a heading on the parent's page
+ * because `groupByBook` deliberately does not split an anthology into headings:
+ * an inner work reads in its place, so there is no heading to aim at.
+ *
+ * A book that is neither is absent from the result and its tag renders as plain
+ * words, rather than a link to a page that would 404.
+ */
+async function fetchBooks(ids: string[]): Promise<BookRow[]> {
+  if (ids.length === 0) return [];
+
+  const [own, folded] = await Promise.all([
+    db
+      .select({ id: sources.id, name: sources.name })
+      .from(sources)
+      .where(inArray(sql`lower(${sources.id})`, ids)),
+    db.execute(sql`
+      SELECT DISTINCT ON (lower(bs.book_id))
+             lower(bs.book_id) AS id,
+             s.id   AS parent_id,
+             e.name AS name,
+             e.slug AS slug
+      FROM book_sections bs
+      JOIN entities e ON e.id = bs.entity_id
+      JOIN sources s ON s.id = e.source_id
+      WHERE lower(bs.book_id) = ANY(${sql.param(ids)})
+        AND lower(bs.book_id) <> lower(e.source_id)
+      ORDER BY lower(bs.book_id), bs.sort_order
+    `) as unknown as Promise<
+      { id: string; parent_id: string; name: string; slug: string }[]
+    >,
+  ]);
+
+  const books = new Map<string, BookRow>();
+
+  // Folded first, so a book carried in its own right always wins.
+  for (const row of folded) {
+    books.set(row.id, {
+      id: row.id,
+      name: row.name,
+      href: `/sources/${row.parent_id.toLowerCase()}/${row.slug}`,
+    });
+  }
+
+  for (const row of own) {
+    books.set(row.id.toLowerCase(), {
+      id: row.id.toLowerCase(),
+      name: row.name,
+      href: `/sources/${row.id.toLowerCase()}`,
+    });
+  }
+
+  return [...books.values()];
+}
+
+/**
  * Resolve candidate natural keys to names and URLs. Keys that match nothing are
  * absent from the result, which is normal: an `{@item}` contributes three
  * candidates and only one exists.
  *
- * At most two queries; the second only when a fragment needs its parent.
+ * Entities and whole books are asked for together; a third query follows only
+ * when a fragment needs its parent's URL before it can be addressed.
  */
 export async function resolveReferences(
   keys: Iterable<string>,
 ): Promise<ReferenceIndex> {
-  const wanted = [...keys];
-  if (wanted.length === 0) return EMPTY_REFERENCES;
+  const wanted: string[] = [];
+  const wantedSources: string[] = [];
 
-  const rows = await fetchByKeys(wanted);
+  // A whole book is a source, not an entity, so the two are asked separately.
+  for (const key of keys) {
+    const sourceId = sourceIdFromKey(key);
+    if (sourceId) wantedSources.push(sourceId);
+    else wanted.push(key);
+  }
+
+  if (wanted.length === 0 && wantedSources.length === 0) {
+    return EMPTY_REFERENCES;
+  }
+
+  const [rows, bookRows] = await Promise.all([
+    fetchByKeys(wanted),
+    fetchBooks(wantedSources),
+  ]);
 
   // Fragments need their parent's URL before they can be addressed at all.
   const parentKeys = new Set<string>();
@@ -73,6 +167,11 @@ export async function resolveReferences(
   }
 
   const index: Record<string, ResolvedReference> = {};
+
+  for (const book of bookRows) {
+    index[sourceKeyFor(book.id)] = { name: book.name, href: book.href };
+  }
+
   for (const row of rows) {
     let href: string | null;
 

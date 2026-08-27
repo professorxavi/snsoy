@@ -259,9 +259,29 @@ export function collectAreaTargets(value: unknown): Set<string> {
 export interface ResolvedReference {
   /** The entity's real name, used when a tag supplies no display override. */
   name: string;
-  entityType: EntityType;
+  /** Absent for a whole book, which is a source rather than an entity. */
+  entityType?: EntityType;
   /** Null when the target exists but has no page of its own. */
   href: string | null;
+}
+
+/**
+ * The key a whole book resolves under.
+ *
+ * Deliberately not a natural key: `entities` holds a book's chapters, never the
+ * book, so this one is looked up against `sources` instead. The prefix is what
+ * tells the resolver which of the two to ask.
+ */
+const SOURCE_KEY_PREFIX = "source|";
+
+export const sourceKeyFor = (id: string) =>
+  `${SOURCE_KEY_PREFIX}${id.toLowerCase()}`;
+
+/** The source id a key names, or null if it does not name one. */
+export function sourceIdFromKey(key: string): string | null {
+  return key.startsWith(SOURCE_KEY_PREFIX)
+    ? key.slice(SOURCE_KEY_PREFIX.length)
+    : null;
 }
 
 /**
@@ -349,13 +369,27 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
   }
 
   switch (tag.name) {
-    // `{@book display|SOURCE|chapter|header}`. The chapter is an index, which
-    // is why it stays in the natural key and never reaches a URL.
+    /*
+     * `{@book display|SOURCE|chapter|header}`. The chapter is an index, which
+     * is why it stays in the natural key and never reaches a URL.
+     *
+     * Without a chapter the tag names a whole book — `{@book Player's
+     * Handbook|PHB}` — which is not an entity and has no natural key, so it
+     * addresses the source itself and resolves against `sources`.
+     */
     case "book":
     case "adventure": {
       const source = part(tag, 1).toLowerCase();
+      if (!source) return [];
+
+      // The book itself is the fallback for a chapter we cannot place. A few
+      // books number their appendices against the whole volume while their
+      // sections are filed under the inner work that printed them, so the
+      // index names no section of that book — the reader still wants the book.
       const chapter = part(tag, 2);
-      return source && chapter ? [`booksection|${source}|${chapter}`] : [];
+      return chapter
+        ? [`booksection|${source}|${chapter}`, sourceKeyFor(source)]
+        : [sourceKeyFor(source)];
     }
 
     /** `{@classFeature name|class|classSource|level|source}` */
