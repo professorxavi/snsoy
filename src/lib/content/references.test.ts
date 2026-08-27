@@ -79,6 +79,28 @@ describe("candidateKeysForTag", () => {
   });
 
   /**
+   * All but seven of the tables the books print live inside a chapter and have
+   * no row of their own, so a table tag offers the entity key and an anchor key
+   * — and the anchor key carries the caption, not the qualified name.
+   */
+  it("offers a table tag both a row and the chapter it is printed in", () => {
+    expect(
+      candidateKeysForTag(tag("{@table Cyclops; Treasure Drops|ToA}")),
+    ).toEqual([
+      "table|cyclops; treasure drops|toa",
+      "tableanchor|treasure drops|toa",
+    ]);
+  });
+
+  /** `{@table}` defaults to the DMG, which prints most of the rollable ones. */
+  it("sends a sourceless table tag to the DMG", () => {
+    expect(candidateKeysForTag(tag("{@table Magic Item Table C}"))).toEqual([
+      "table|magic item table c|dmg",
+      "tableanchor|magic item table c|dmg",
+    ]);
+  });
+
+  /**
    * `{@race dwarf (hill)}` addresses the subrace `subrace|hill|dwarf|phb|phb`.
    */
   it("recognises the parenthesised subrace form", () => {

@@ -1,5 +1,6 @@
 import type { EntityType } from "@/server/db/schema/enums";
 import { splitByTags, type TagSegment } from "./tags";
+import { captionForTableTag } from "./tables";
 
 /**
  * Classifies inline `{@tag}` markup and resolves the tags that point at other
@@ -285,6 +286,34 @@ export function sourceIdFromKey(key: string): string | null {
 }
 
 /**
+ * The key a table printed inside a chapter resolves under.
+ *
+ * Deliberately not a natural key, for the same reason a whole book is not:
+ * `entities` holds seven standalone `table` rows and none of the ~1,900 tables
+ * the books print inside their chapters, which is where all but a handful of
+ * `{@table}` tags point. A table is a position in a chapter, so this is looked
+ * up against `book_sections` instead, and the prefix is what tells the resolver
+ * which to ask.
+ */
+const TABLE_KEY_PREFIX = "tableanchor|";
+
+export const tableKeyFor = (caption: string, source: string) =>
+  `${TABLE_KEY_PREFIX}${caption.toLowerCase()}|${source.toLowerCase()}`;
+
+/** The caption and source a table key names, or null if it names neither. */
+export function tableTargetFromKey(
+  key: string,
+): { caption: string; source: string } | null {
+  if (!key.startsWith(TABLE_KEY_PREFIX)) return null;
+
+  const rest = key.slice(TABLE_KEY_PREFIX.length);
+  const split = rest.lastIndexOf("|");
+  if (split === -1) return null;
+
+  return { caption: rest.slice(0, split), source: rest.slice(split + 1) };
+}
+
+/**
  * Natural key to target, for everything one page refers to. A plain object
  * rather than a Map so it serializes across the server/client boundary.
  */
@@ -355,6 +384,18 @@ export function candidateKeysForTag(tag: TagSegment): string[] {
         `baseitem|${name}|${source}`,
         `itemgroup|${name}|${source}`,
         `magicvariant|${name}|${source}`,
+      ];
+    }
+
+    /**
+     * A table is usually printed inside a chapter and has no row of its own.
+     * The entity key is tried first, for the seven standalone tables; the
+     * anchor key finds the rest where they are actually printed.
+     */
+    if (tag.name === "table") {
+      return [
+        `table|${name}|${source}`,
+        tableKeyFor(captionForTableTag(name), source),
       ];
     }
 

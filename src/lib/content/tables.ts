@@ -62,3 +62,45 @@ export function columnStyles(
     parseColumnStyle(colStyles?.[index]),
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * Anchors
+ * ------------------------------------------------------------------ */
+
+/**
+ * The caption a `{@table}` tag names.
+ *
+ * Most tags name a caption outright. Some qualify it with the block it sits
+ * under — `{@table Artifact Properties; Minor Beneficial Properties|DMG}`,
+ * `{@table Cyclops; Treasure Drops|ToA}` — which the upstream index writes as
+ * one name while the table's own caption is only the part after the semicolon.
+ * Taking the tail is what lets a lookup match on the caption alone, without
+ * reconstructing where in a chapter the table sits.
+ */
+export function captionForTableTag(name: string): string {
+  const split = name.lastIndexOf("; ");
+  return split === -1 ? name : name.slice(split + 2);
+}
+
+/**
+ * The anchor a table is reachable at, derived from its caption.
+ *
+ * A table is a position inside a chapter rather than an entity, and unlike an
+ * `{@area}` the data hangs no `id` on it — so the anchor has to be derived, and
+ * both ends have to derive it the same way. The one function is used by the
+ * link and by the table it lands on; nothing else may reproduce the rule.
+ *
+ * Prefixed because the same document also carries the ids `{@area}` points at,
+ * which are the data's own and unprefixed.
+ */
+export function tableAnchorId(caption: string): string {
+  const slug = caption
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return `table-${slug || "entry"}`;
+}

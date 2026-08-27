@@ -23,7 +23,7 @@ import {
   type AreaIndex,
   type ReferenceIndex,
 } from "@/lib/content/references";
-import { columnStyles } from "@/lib/content/tables";
+import { columnStyles, tableAnchorId } from "@/lib/content/tables";
 import { reportGap } from "./coverage";
 import { Inline } from "./inline";
 import {
@@ -886,8 +886,19 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   const styles = columnStyles(entry.colStyles, columns);
   const sized = styles.some((style) => style.width);
 
+  /*
+   * Every captioned table is anchored, not only the ones something points at.
+   * An `{@area}` is gated on that, because the books hang 55,969 ids and a page
+   * would otherwise carry an anchor per paragraph — but a chapter holds a
+   * handful of tables, so marking them all costs nothing and saves asking which
+   * of them are cited from other books.
+   */
   return (
-    <Box my="1">
+    <Box
+      my="1"
+      id={entry.caption ? tableAnchorId(entry.caption) : undefined}
+      scrollMarginTop={entry.caption ? "4rem" : undefined}
+    >
       {entry.caption ? (
         <Text
           fontFamily="ui"
@@ -1110,7 +1121,10 @@ function TableGroupBlock({
   const level = ctx.headingLevel ?? 3;
 
   return (
-    <Box>
+    <Box
+      id={entry.name ? tableAnchorId(entry.name) : undefined}
+      scrollMarginTop={entry.name ? "4rem" : undefined}
+    >
       {entry.name ? (
         <SubHeading
           level={level}

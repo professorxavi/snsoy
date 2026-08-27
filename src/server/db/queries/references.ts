@@ -6,11 +6,13 @@ import {
   parentKeyFor,
   sourceIdFromKey,
   sourceKeyFor,
+  tableTargetFromKey,
   type AnchoredIds,
   type AreaIndex,
   type ReferenceIndex,
   type ResolvedReference,
 } from "@/lib/content/references";
+import { tableAnchorId } from "@/lib/content/tables";
 import { hrefFor, isFragmentType } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
 import { db } from "../client";
@@ -136,21 +138,38 @@ export async function resolveReferences(
 ): Promise<ReferenceIndex> {
   const wanted: string[] = [];
   const wantedSources: string[] = [];
+  const wantedTables: TableTarget[] = [];
 
-  // A whole book is a source, not an entity, so the two are asked separately.
+  // Neither a whole book nor a table inside a chapter is an entity, so each is
+  // asked for separately and merged back into one index.
   for (const key of keys) {
     const sourceId = sourceIdFromKey(key);
-    if (sourceId) wantedSources.push(sourceId);
-    else wanted.push(key);
+    if (sourceId) {
+      wantedSources.push(sourceId);
+      continue;
+    }
+
+    const table = tableTargetFromKey(key);
+    if (table) {
+      wantedTables.push({ ...table, key });
+      continue;
+    }
+
+    wanted.push(key);
   }
 
-  if (wanted.length === 0 && wantedSources.length === 0) {
+  if (
+    wanted.length === 0 &&
+    wantedSources.length === 0 &&
+    wantedTables.length === 0
+  ) {
     return EMPTY_REFERENCES;
   }
 
-  const [rows, bookRows] = await Promise.all([
+  const [rows, bookRows, tableRows] = await Promise.all([
     fetchByKeys(wanted),
     fetchBooks(wantedSources),
+    fetchTableAnchors(wantedTables),
   ]);
 
   // Fragments need their parent's URL before they can be addressed at all.
@@ -172,6 +191,10 @@ export async function resolveReferences(
     index[sourceKeyFor(book.id)] = { name: book.name, href: book.href };
   }
 
+  for (const table of tableRows) {
+    index[table.key] = { name: table.name, href: table.href };
+  }
+
   for (const row of rows) {
     let href: string | null;
 
@@ -187,6 +210,141 @@ export async function resolveReferences(
   }
 
   return index;
+}
+
+/* ------------------------------------------------------------------ *
+ * Table anchors
+ * ------------------------------------------------------------------ */
+
+interface TableTarget {
+  caption: string;
+  source: string;
+  key: string;
+}
+
+/** A located table: a chapter of its book, or the class page a feature is on. */
+interface TableRow {
+  caption: string;
+  source: string;
+  display: string;
+  slug: string | null;
+  classHref: string | null;
+}
+
+/**
+ * Where each wanted table is printed.
+ *
+ * A `{@table}` names a table by caption and book, and all but seven of them are
+ * printed inside a chapter rather than held as entities — so this asks
+ * `book_sections` for the chapter carrying a `table` or `tableGroup` node of
+ * that caption, and addresses it by the anchor `tableAnchorId` derives.
+ *
+ * Unlike `{@area}`, which never points outside its own book, a table is cited
+ * across books — the DMG's magic item tables are rolled on from a dozen
+ * adventures. The tag names the source, though, so the scan is still bounded by
+ * the sources actually asked for rather than by the book being read.
+ *
+ * A caption repeated within one book resolves to whichever chapter comes first
+ * in reading order, which is where the book prints the table it defines.
+ */
+async function fetchTableAnchors(
+  targets: TableTarget[],
+): Promise<{ key: string; name: string; href: string }[]> {
+  if (targets.length === 0) return [];
+
+  const captions = [...new Set(targets.map((t) => t.caption))];
+  const sources = [...new Set(targets.map((t) => t.source))];
+
+  const rows = (await db.execute(sql`
+    SELECT DISTINCT ON (lower(coalesce(n->>'caption', n->>'name')), lower(e.source_id))
+           lower(coalesce(n->>'caption', n->>'name')) AS caption,
+           lower(e.source_id)                         AS source,
+           coalesce(n->>'caption', n->>'name')        AS display,
+           e.slug                                     AS slug
+    FROM book_sections bs
+    JOIN entities e ON e.id = bs.entity_id,
+         LATERAL jsonb_path_query(bs.data, '$.**') n
+    WHERE n->>'type' IN ('table', 'tableGroup')
+      AND lower(e.source_id) = ANY(${sql.param(sources)})
+      AND lower(coalesce(n->>'caption', n->>'name')) = ANY(${sql.param(captions)})
+    ORDER BY lower(coalesce(n->>'caption', n->>'name')),
+             lower(e.source_id),
+             bs.sort_order
+  `)) as unknown as {
+    caption: string;
+    source: string;
+    display: string;
+    slug: string;
+  }[];
+
+  const found = new Map<string, TableRow>(
+    rows.map((r) => [`${r.caption}|${r.source}`, { ...r, classHref: null }]),
+  );
+
+  /*
+   * A handful of tables are printed inside a class feature rather than a
+   * chapter — the sorcerer's Wild Magic Surge is 30 of the 33 — so the ones a
+   * chapter could not answer for are asked of the features, which render on
+   * their class's page and anchor their tables the same way.
+   *
+   * Second, and only where the first came up short, because most pages resolve
+   * every table they cite from the chapters alone.
+   */
+  const unresolved = targets.filter(
+    (target) => !found.has(`${target.caption}|${target.source}`),
+  );
+
+  if (unresolved.length > 0) {
+    const featureRows = (await db.execute(sql`
+      SELECT DISTINCT ON (lower(coalesce(n->>'caption', n->>'name')), lower(e.source_id))
+             lower(coalesce(n->>'caption', n->>'name')) AS caption,
+             lower(e.source_id)                         AS source,
+             coalesce(n->>'caption', n->>'name')        AS display,
+             lower(c.source_id)                         AS class_source,
+             c.slug                                     AS class_slug
+      FROM class_features cf
+      JOIN entities e ON e.id = cf.entity_id
+      JOIN entities c ON c.id = cf.class_id,
+           LATERAL jsonb_path_query(cf.data, '$.**') n
+      WHERE n->>'type' IN ('table', 'tableGroup')
+        AND lower(e.source_id) = ANY(${sql.param([...new Set(unresolved.map((t) => t.source))])})
+        AND lower(coalesce(n->>'caption', n->>'name')) = ANY(${sql.param([...new Set(unresolved.map((t) => t.caption))])})
+      ORDER BY lower(coalesce(n->>'caption', n->>'name')),
+               lower(e.source_id),
+               cf.level
+    `)) as unknown as {
+      caption: string;
+      source: string;
+      display: string;
+      class_source: string;
+      class_slug: string;
+    }[];
+
+    for (const row of featureRows) {
+      found.set(`${row.caption}|${row.source}`, {
+        caption: row.caption,
+        source: row.source,
+        display: row.display,
+        slug: null,
+        classHref: `/compendium/classes/${row.class_source}/${row.class_slug}`,
+      });
+    }
+  }
+
+  return targets.flatMap((target) => {
+    const row = found.get(`${target.caption}|${target.source}`);
+    if (!row) return [];
+
+    const page = row.classHref ?? `/sources/${row.source}/${row.slug}`;
+
+    return [
+      {
+        key: target.key,
+        name: row.display,
+        href: `${page}#${tableAnchorId(row.display)}`,
+      },
+    ];
+  });
 }
 
 /* ------------------------------------------------------------------ *

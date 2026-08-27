@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { columnStyles, parseColumnStyle } from "./tables";
+import {
+  captionForTableTag,
+  columnStyles,
+  parseColumnStyle,
+  tableAnchorId,
+} from "./tables";
 
 /**
  * The hints are the only record of how a table was set, and they are read once,
@@ -55,5 +60,53 @@ describe("columnStyles", () => {
     expect(columnStyles(["col-2", "col-10"], 1)).toEqual([
       { width: "16.6667%" },
     ]);
+  });
+});
+
+/**
+ * A table is a position inside a chapter, not an entity, and the data hangs no
+ * id on it — so the anchor is derived, and a link and the table it lands on
+ * derive it from the same function. These pin the two halves of that rule.
+ */
+describe("captionForTableTag", () => {
+  it("takes a plain caption as it stands", () => {
+    expect(captionForTableTag("Magic Item Table C")).toBe("Magic Item Table C");
+  });
+
+  /**
+   * The upstream index writes a qualified table as one name, while the table's
+   * own caption is only the tail — `{"name": "Cyclops; Treasure Drops",
+   * "caption": "Treasure Drops"}`. Taking the tail is what lets the lookup match
+   * on caption alone, without working out where in a chapter a table sits.
+   */
+  it("drops the block a qualified table is named under", () => {
+    expect(captionForTableTag("Cyclops; Treasure Drops")).toBe("Treasure Drops");
+    expect(
+      captionForTableTag("Artifact Properties; Minor Beneficial Properties"),
+    ).toBe("Minor Beneficial Properties");
+  });
+
+  /** A colon is part of a caption, unlike a semicolon. */
+  it("keeps a caption that only looks qualified", () => {
+    expect(captionForTableTag("Treasure Hoard: Challenge 0-4")).toBe(
+      "Treasure Hoard: Challenge 0-4",
+    );
+  });
+});
+
+describe("tableAnchorId", () => {
+  it("prefixes, so it cannot collide with the ids an area points at", () => {
+    expect(tableAnchorId("Magic Item Table C")).toBe("table-magic-item-table-c");
+  });
+
+  it("drops punctuation the books set captions with", () => {
+    expect(tableAnchorId("Treasure Hoard: Challenge 0-4")).toBe(
+      "table-treasure-hoard-challenge-0-4",
+    );
+    expect(tableAnchorId("Giants' Bags")).toBe("table-giants-bags");
+  });
+
+  it("still yields an anchor for a caption that is entirely punctuation", () => {
+    expect(tableAnchorId("!?")).toBe("table-entry");
   });
 });
