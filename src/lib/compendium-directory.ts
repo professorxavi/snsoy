@@ -23,11 +23,13 @@ import { listHrefFor, type BrowsableType } from "./routes";
  * view, not the type: every one keeps its URL segment so `hrefFor` still
  * addresses their entities, and every one still opens in the aside.
  *
- * - **`table`.** The seven `table` entities are not where the ~351 `{@table}`
+ * - **`table`.** The seven `table` entities are not where the 521 `{@table}`
  *   references in book text point: a real roll table lives inside the chapter
  *   that uses it and renders there, and a chapter's table belongs to that
- *   chapter. A `/compendium/tables` route would be a near-empty index for a
- *   type whose content is already reachable where it is used.
+ *   chapter. All but three of those references now resolve to the chapter that
+ *   prints them — see `tableAnchorId` — so the content is reachable where it is
+ *   used, and a `/compendium/tables` route would be a near-empty index over the
+ *   seven rows that happen to have been ingested separately.
  * - **`baseitem` and `itemGroup`.** Both are ingest artifacts rather than
  *   distinctions a reader makes. `baseitem` is only the 124 PHB core rows —
  *   567 of the 3,448 `item` rows are non-magic too, so the split is not magic
