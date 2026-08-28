@@ -156,8 +156,13 @@ export default async function ClassPage({ params }: RouteParams) {
    * the page already holds all 343 of them.
    */
   const featureIndex = indexFeatures([
-    ...allFeatures,
-    ...found.subclasses.flatMap((subclass) => subclass.features),
+    ...allFeatures.map((feature) => ({ ...feature, anchorId: feature.slug })),
+    ...found.subclasses.flatMap((subclass) =>
+      subclass.features.map((feature) => ({
+        ...feature,
+        anchorId: `${subclass.slug}-${feature.slug}`,
+      })),
+    ),
   ]);
   const referenced = collectFeatureReferences(everything);
   const standalone = <T extends { naturalKey: string }>(list: T[]) =>

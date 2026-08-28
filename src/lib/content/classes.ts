@@ -367,6 +367,16 @@ export function startingEquipment(data: unknown): string[] {
 export interface FeatureBody {
   name: string;
   entries?: unknown[];
+  /**
+   * The id this feature answers to on its class's page.
+   *
+   * A feature cited by another is printed inside it and dropped from the flat
+   * list, so it never renders a heading of its own to carry an anchor — and 26
+   * of the 42 `{@subclassFeature}` links pointed at exactly those. The page
+   * knows the subclass a feature belongs to, so it works the id out here and
+   * the renderer only has to hang it on the block it draws.
+   */
+  anchorId?: string;
 }
 
 /** Feature bodies by natural key. */
@@ -432,7 +442,12 @@ export function collectFeatureReferences(value: unknown): Set<string> {
 
 /** Loaded features into the index the renderer reads. */
 export function indexFeatures(
-  features: { naturalKey: string; name: string; data: unknown }[],
+  features: {
+    naturalKey: string;
+    name: string;
+    data: unknown;
+    anchorId?: string;
+  }[],
 ): FeatureIndex {
   const index: FeatureIndex = {};
 
@@ -440,6 +455,7 @@ export function indexFeatures(
     index[feature.naturalKey] = {
       name: feature.name,
       entries: (feature.data as { entries?: unknown[] })?.entries,
+      ...(feature.anchorId ? { anchorId: feature.anchorId } : {}),
     };
   }
 

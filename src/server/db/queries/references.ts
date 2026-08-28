@@ -57,6 +57,63 @@ async function fetchByKeys(keys: string[]): Promise<Row[]> {
     .where(inArray(entities.naturalKey, keys));
 }
 
+/** The least a row must carry for its ancestry to be walked. */
+interface Ancestrable {
+  naturalKey: string;
+  entityType: EntityType;
+}
+
+/**
+ * Every ancestor these rows need before they can be addressed, by natural key.
+ *
+ * Fetched in rounds, because a fragment's parent can itself be a fragment: a
+ * subclass feature's parent is a subclass, whose own parent is the class that
+ * holds the page. One round is enough for a subrace or a class feature and
+ * leaves every subclass feature unaddressable, which is what it did — all 847
+ * of them, and the 42 `{@subclassFeature}` tags with them.
+ */
+export async function fetchAncestry(
+  rows: readonly Ancestrable[],
+): Promise<Map<string, Row>> {
+  const known = new Map<string, Row>();
+  let frontier: readonly Ancestrable[] = rows;
+
+  while (frontier.length > 0) {
+    const wanted = new Set<string>();
+    for (const row of frontier) {
+      if (!isFragmentType(row.entityType)) continue;
+      const key = parentKeyFor(row.naturalKey);
+      if (key && !known.has(key)) wanted.add(key);
+    }
+    if (wanted.size === 0) break;
+
+    const found = await fetchByKeys([...wanted]);
+    for (const row of found) known.set(row.naturalKey, row);
+    frontier = found;
+  }
+
+  return known;
+}
+
+/** A row's ancestors, nearest first, as far as they were found. */
+export function ancestorsOf(
+  row: Ancestrable,
+  known: Map<string, Row>,
+): Row[] {
+  const chain: Row[] = [];
+  let current: Ancestrable = row;
+
+  while (isFragmentType(current.entityType)) {
+    const key = parentKeyFor(current.naturalKey);
+    const parent = key ? known.get(key) : undefined;
+    if (!parent) break;
+    chain.push(parent);
+    current = parent;
+  }
+
+  return chain;
+}
+
 /**
  * Where each wanted book lives.
  *
@@ -173,18 +230,8 @@ export async function resolveReferences(
     fetchTableAnchors(wantedTables),
   ]);
 
-  // Fragments need their parent's URL before they can be addressed at all.
-  const parentKeys = new Set<string>();
-  for (const row of rows) {
-    if (!isFragmentType(row.entityType)) continue;
-    const parentKey = parentKeyFor(row.naturalKey);
-    if (parentKey) parentKeys.add(parentKey);
-  }
-
-  const parents = new Map<string, Row>();
-  for (const row of await fetchByKeys([...parentKeys])) {
-    parents.set(row.naturalKey, row);
-  }
+  // Fragments need their ancestry before they can be addressed at all.
+  const ancestry = await fetchAncestry(rows);
 
   const index: Record<string, ResolvedReference> = {};
 
@@ -197,17 +244,11 @@ export async function resolveReferences(
   }
 
   for (const row of rows) {
-    let href: string | null;
-
-    if (isFragmentType(row.entityType)) {
-      const parentKey = parentKeyFor(row.naturalKey);
-      const parent = parentKey ? parents.get(parentKey) : undefined;
-      href = parent ? hrefFor(row, parent) : null;
-    } else {
-      href = hrefFor(row);
-    }
-
-    index[row.naturalKey] = { name: row.name, entityType: row.entityType, href };
+    index[row.naturalKey] = {
+      name: row.name,
+      entityType: row.entityType,
+      href: hrefFor(row, ...ancestorsOf(row, ancestry)),
+    };
   }
 
   return index;

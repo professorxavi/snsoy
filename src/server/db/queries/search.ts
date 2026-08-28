@@ -1,10 +1,10 @@
 import { sql, type SQL } from "drizzle-orm";
 import { MATCH_END, MATCH_START } from "@/lib/content/search";
-import { parentKeyFor } from "@/lib/content/references";
-import { hrefFor, isFragmentType } from "@/lib/routes";
+import { hrefFor } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
 import { db } from "../client";
 import { toOptions, type FacetOption } from "./facets";
+import { ancestorsOf, fetchAncestry } from "./references";
 
 /**
  * Search across the books.
@@ -353,10 +353,12 @@ interface Addressed {
 /**
  * Give every fragment row its parent's name and URL.
  *
- * The same two-step `resolveReferences` performs, and for the same reason: a
- * fragment's natural key already carries its parent's identity, so the parent
- * is one lookup by unique key rather than a join that would have to know four
- * different parent shapes.
+ * The same walk `resolveReferences` performs, through the same helper, and for
+ * the same reason: a fragment's natural key already carries its parent's
+ * identity, so ancestry is a lookup by unique key rather than a join that would
+ * have to know four different parent shapes. Sharing it is deliberate — when
+ * this was a second copy that stopped at one parent, both copies were wrong
+ * about subclass features in the same way.
  *
  * Shared by the results page and the typeahead, which need it identically —
  * both print "Sneak Attack — Rogue" and both have to reach the anchor on the
@@ -365,48 +367,15 @@ interface Addressed {
 async function withParents<T extends Addressable>(
   rows: T[],
 ): Promise<(T & Addressed)[]> {
-  const parentKeys = new Set<string>();
-  for (const row of rows) {
-    if (!isFragmentType(row.entityType)) continue;
-    const key = parentKeyFor(row.naturalKey);
-    if (key) parentKeys.add(key);
-  }
-
-  const parents = new Map<
-    string,
-    { name: string; entityType: EntityType; sourceId: string; slug: string }
-  >();
-
-  if (parentKeys.size > 0) {
-    const found = (await db.execute(sql`
-      SELECT natural_key AS "naturalKey", name, entity_type AS "entityType",
-             source_id AS "sourceId", slug
-      FROM entities
-      WHERE natural_key IN (${sql.join(
-        [...parentKeys].map((key) => sql`${key}`),
-        sql`, `,
-      )})
-    `)) as unknown as {
-      naturalKey: string;
-      name: string;
-      entityType: EntityType;
-      sourceId: string;
-      slug: string;
-    }[];
-
-    for (const row of found) parents.set(row.naturalKey, row);
-  }
+  const ancestry = await fetchAncestry(rows);
 
   return rows.map((row) => {
-    const parentKey = isFragmentType(row.entityType)
-      ? parentKeyFor(row.naturalKey)
-      : null;
-    const parent = parentKey ? parents.get(parentKey) : undefined;
+    const chain = ancestorsOf(row, ancestry);
 
     return {
       ...row,
-      href: hrefFor(row, parent),
-      parentName: parent?.name ?? null,
+      href: hrefFor(row, ...chain),
+      parentName: chain[0]?.name ?? null,
     };
   });
 }

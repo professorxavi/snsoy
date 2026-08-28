@@ -151,3 +151,46 @@ describeDb("table anchors against the seed", () => {
     expect((await resolveReferences([key]))[key]).toBeUndefined();
   });
 });
+
+/**
+ * Smoke test: a fragment whose parent is also a fragment.
+ *
+ * `{@subclassFeature}` was 0 of 42 until 2026-08-28 — the entity resolved and
+ * the href came back null, because ancestry was walked one step and a subclass
+ * feature needs two. Only the seed can show the walk still reaches the class.
+ */
+describeDb("fragment ancestry against the seed", () => {
+  const load = async () => {
+    const queries: typeof ReferenceQueries = await import("./references");
+    return queries;
+  };
+
+  it("addresses a subclass feature on its class's page", async () => {
+    const { resolveReferences } = await load();
+    const key =
+      "subclassfeature|dragon ancestor|sorcerer|phb|draconic|phb|1|phb";
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/compendium/classes/phb/sorcerer#draconic-bloodline-dragon-ancestor",
+    );
+  });
+
+  /** One step of ancestry, and still correct — the regression risk of the fix. */
+  it("leaves a class feature anchored on its bare slug", async () => {
+    const { resolveReferences } = await load();
+    const key = "classfeature|rage|barbarian|phb|1|phb";
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/compendium/classes/phb/barbarian#rage",
+    );
+  });
+
+  it("leaves a subrace anchored on its race's page", async () => {
+    const { resolveReferences } = await load();
+    const key = "subrace|hill|dwarf|phb|phb";
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/compendium/races/phb/dwarf#hill",
+    );
+  });
+});

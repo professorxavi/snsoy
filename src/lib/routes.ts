@@ -145,21 +145,42 @@ export interface FragmentParent {
 /**
  * The canonical URL for an entity.
  *
- * Returns null when the entity cannot be addressed: a type with no segment, or
- * a fragment with no parent supplied. Callers render plain text in that case.
+ * Ancestors are passed nearest first, and a fragment needs enough of them to
+ * reach a type that has a page: a subrace needs its race, a subclass feature
+ * needs its subclass *and* that subclass's class. Supplying too few returns
+ * null and the caller renders plain text.
+ *
+ * **A URL carries one fragment, so ancestry is spelled into the id rather than
+ * appended as a second `#`.** The page comes from the nearest ancestor that is
+ * not itself a fragment; every fragment passed on the way contributes its slug
+ * as a prefix. That is what the class page writes: a class feature is anchored
+ * at `#extra-attack` and a subclass feature at `#draconic-bloodline-dragon-ancestor`,
+ * so the two cannot collide when a subclass renames a feature its class already
+ * has.
  */
 export function hrefFor(
   entity: Addressable,
-  parent?: FragmentParent,
+  ...ancestors: FragmentParent[]
 ): string | null {
   if (entity.entityType === "bookSection") {
     return `/sources/${entity.sourceId.toLowerCase()}/${entity.slug}`;
   }
 
   if (isFragmentType(entity.entityType)) {
-    if (!parent) return null;
-    const parentHref = hrefFor(parent);
-    return parentHref ? `${parentHref}#${entity.slug}` : null;
+    const prefixes: string[] = [];
+    let page: string | null = null;
+
+    for (const ancestor of ancestors) {
+      if (isFragmentType(ancestor.entityType)) {
+        prefixes.push(ancestor.slug);
+        continue;
+      }
+      page = hrefFor(ancestor);
+      break;
+    }
+
+    if (!page) return null;
+    return `${page}#${[...prefixes, entity.slug].join("-")}`;
   }
 
   const segment = segmentFor(entity.entityType);

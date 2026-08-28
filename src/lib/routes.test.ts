@@ -119,17 +119,49 @@ describe("hrefFor", () => {
   });
 
   /**
-   * A subclass feature's parent is a subclass, which is itself a fragment and
-   * has no page to anchor against. Unaddressable is the honest answer — it was
-   * previously a link to a route that does not exist.
+   * A subclass feature needs two ancestors, not one: the subclass it belongs to
+   * and the class whose page carries them both. Given only the subclass there
+   * is still nothing to address — a subclass has no page of its own — so this
+   * stays null rather than inventing a route.
+   *
+   * It read as the finished answer for a while, and that is what left all 42
+   * `{@subclassFeature}` tags rendering as plain text. The subclass has no page;
+   * its class does.
    */
-  it("declines to address a fragment whose parent is one too", () => {
+  it("declines a fragment given only a parent that is one too", () => {
     expect(
       hrefFor(
         { entityType: "subclassFeature", sourceId: "TCE", slug: "song-of-defense" },
         { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
       ),
     ).toBeNull();
+  });
+
+  /**
+   * With the class as well, it resolves — and the anchor is the subclass's slug
+   * joined to the feature's, because a URL carries one fragment and the class
+   * page writes its subclass features that way. A bare `#song-of-defense` would
+   * collide with a class feature of the same name.
+   */
+  it("addresses a subclass feature through its subclass and class", () => {
+    expect(
+      hrefFor(
+        { entityType: "subclassFeature", sourceId: "TCE", slug: "song-of-defense" },
+        { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
+        { entityType: "class", sourceId: "PHB", slug: "wizard" },
+      ),
+    ).toBe("/compendium/classes/phb/wizard#bladesinging-song-of-defense");
+  });
+
+  /** Ancestors past the page are ignored rather than folded into the anchor. */
+  it("stops at the first ancestor that has a page", () => {
+    expect(
+      hrefFor(
+        { entityType: "classFeature", sourceId: "PHB", slug: "rage" },
+        { entityType: "class", sourceId: "PHB", slug: "barbarian" },
+        { entityType: "class", sourceId: "PHB", slug: "wizard" },
+      ),
+    ).toBe("/compendium/classes/phb/barbarian#rage");
   });
 
   it("declines to address a fragment with no parent, rather than guessing", () => {

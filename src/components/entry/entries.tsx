@@ -596,8 +596,14 @@ function FeatureReference({
 
   const level = ctx.headingLevel ?? 3;
 
+  /*
+   * Anchored here, because this is the only place a cited feature is drawn.
+   * It is dropped from the flat list so it is not printed twice, so without
+   * this it has no id anywhere — and an inbound `{@subclassFeature}` link would
+   * name a fragment the page does not carry and land at the top instead.
+   */
   return (
-    <Box>
+    <Box id={feature.anchorId} scrollMarginTop={feature.anchorId ? "4rem" : undefined}>
       <SubHeading
         level={level}
         tier={ctx.headingTier ?? tierFor(level)}
