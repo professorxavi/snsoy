@@ -435,6 +435,57 @@ async function fetchTableAnchors(
     }
   }
 
+  /*
+   * Last of all, a table with no caption anywhere near the top of a chapter.
+   * The PHB's skills table is the one: `{@table skills|phb}` names it, the
+   * caption sits on the "Skills" block above it, and that block is nested, so
+   * the pass above — which reads only a chapter's top-level sections — cannot
+   * see it. The block carries the data's own id, which `anchoredInBook` marks,
+   * so that is what the link lands on.
+   */
+  const nested = targets.filter(
+    (target) => !found.has(`${target.caption}|${target.source}`),
+  );
+
+  if (nested.length > 0) {
+    const blocks = (await db.execute(sql`
+      SELECT DISTINCT ON (lower(n->>'name'), lower(e.source_id))
+             lower(n->>'name') AS caption,
+             lower(e.source_id) AS source,
+             n->>'name'         AS display,
+             e.slug             AS slug,
+             n->>'id'           AS anchor
+      FROM book_sections bs
+      JOIN entities e ON e.id = bs.entity_id,
+           LATERAL jsonb_path_query(bs.data, '$.**') n
+      WHERE lower(e.source_id) = ANY(${sql.param([...new Set(nested.map((t) => t.source))])})
+        AND lower(n->>'name') = ANY(${sql.param([...new Set(nested.map((t) => t.caption))])})
+        AND n ? 'id'
+        AND EXISTS (
+          SELECT 1 FROM jsonb_array_elements(n->'entries') child
+          WHERE child->>'type' = 'table' AND NOT (child ? 'caption')
+        )
+      ORDER BY lower(n->>'name'), lower(e.source_id), bs.sort_order
+    `)) as unknown as {
+      caption: string;
+      source: string;
+      display: string;
+      slug: string;
+      anchor: string;
+    }[];
+
+    for (const block of blocks) {
+      found.set(`${block.caption}|${block.source}`, {
+        caption: block.caption,
+        source: block.source,
+        display: block.display,
+        slug: block.slug,
+        anchor: block.anchor,
+        classHref: null,
+      });
+    }
+  }
+
   return targets.flatMap((target) => {
     const row = found.get(`${target.caption}|${target.source}`);
     if (!row) return [];
@@ -539,8 +590,30 @@ async function anchoredInBook(sourceId: string): Promise<AnchoredIds> {
     WHERE e.source_id = ${sourceId}
   `)) as unknown as { id: string | null }[];
 
+  /*
+   * The blocks a `{@table}` can land on, marked whether or not anything points
+   * at one. A table the books print without a caption has no anchor of its own
+   * — `tableAnchorId` derives one from the caption, and there is none — so the
+   * named block above it is what a link has to reach. There are 370 in the
+   * books against the 55,969 ids an area could name, which is why these are
+   * marked outright and area targets are not.
+   */
+  const blocks = (await db.execute(sql`
+    SELECT DISTINCT n->>'id' AS id
+    FROM book_sections bs
+    JOIN entities e ON e.id = bs.entity_id,
+         LATERAL jsonb_path_query(bs.data, '$.**') n
+    WHERE e.source_id = ${sourceId}
+      AND n ? 'name'
+      AND n ? 'id'
+      AND EXISTS (
+        SELECT 1 FROM jsonb_array_elements(n->'entries') child
+        WHERE child->>'type' = 'table' AND NOT (child ? 'caption')
+      )
+  `)) as unknown as { id: string | null }[];
+
   const anchored: Record<string, true> = {};
-  for (const row of rows) if (row.id) anchored[row.id] = true;
+  for (const row of [...rows, ...blocks]) if (row.id) anchored[row.id] = true;
 
   return Object.keys(anchored).length ? anchored : EMPTY_ANCHORS;
 }

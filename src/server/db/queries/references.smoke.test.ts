@@ -61,12 +61,21 @@ describeDb("area anchors against the seed", () => {
     expect(anchored["159"]).toBe(true);
   });
 
-  it("has nothing to mark in a book that writes no area tags", async () => {
+  /**
+   * The PHB writes no `{@area}` tags at all, so nothing here is an area target.
+   * What it does still carry is the handful of blocks a `{@table}` can land on
+   * — a table printed without a caption has no anchor of its own, so the named
+   * block above it is marked whether or not anything points at one.
+   */
+  it("marks only table-landing blocks in a book that writes no area tags", async () => {
     const { resolveAreas } = await load();
     const { anchored, hrefs } = await resolveAreas("PHB", "equipment", []);
 
-    expect(anchored).toEqual({});
     expect(hrefs).toEqual({});
+    // "109" is the Skills block in Using Ability Scores, which holds the
+    // uncaptioned skills table `{@table skills|phb}` names.
+    expect(anchored["109"]).toBe(true);
+    expect(Object.keys(anchored).length).toBeLessThan(10);
   });
 
   /**
@@ -141,6 +150,20 @@ describeDb("table anchors against the seed", () => {
 
     expect((await resolveReferences([key]))[key]?.href).toBe(
       "/sources/phb/equipment#tools",
+    );
+  });
+
+  /**
+   * The PHB's skills table carries no caption *and* sits in a nested block, so
+   * neither the caption pass nor the top-level section pass can see it. The
+   * block's own id is what the link lands on.
+   */
+  it("sends an uncaptioned table in a nested block to that block", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("skills", "phb");
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/sources/phb/using-ability-scores#109",
     );
   });
 
