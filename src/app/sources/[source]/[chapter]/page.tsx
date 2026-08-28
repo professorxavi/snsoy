@@ -192,6 +192,15 @@ export default async function ChapterPage({ params }: RouteParams) {
             anchored={anchored}
             selfKey={found.naturalKey}
             context={found.name}
+            /*
+             * The heading above is this page's, not the renderer's:
+             * `splitSections` lifts a named section out so the page can set its
+             * own rule and anchor, which means nothing downstream would
+             * otherwise know the name a reader can see. Anything inside that
+             * needs naming — an uncaptioned table's scroll region — takes it
+             * from here until a nested section supplies a nearer one.
+             */
+            sectionName={section.title}
             headingLevel={3}
           />
         </Box>

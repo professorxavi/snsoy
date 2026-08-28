@@ -35,3 +35,19 @@ if (!window.matchMedia) {
       dispatchEvent: () => false,
     }) as MediaQueryList;
 }
+
+/**
+ * jsdom implements no `ResizeObserver`, and `TableScrollers` uses one to decide
+ * whether a table's region overflows — which is a fact about a laid-out box, so
+ * jsdom could not answer it even if the class existed. The stub lets the app
+ * shell mount; a component test asserts on structure and semantics, and
+ * overflow behaviour is checked in the browser tier where boxes have real
+ * widths. The enhancer's own test installs a stub it can drive.
+ */
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}

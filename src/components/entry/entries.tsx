@@ -2,7 +2,6 @@ import { Box, Stack, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { Illustration, isLandscape } from "@/components/compendium/entity-image";
-import { SIDEWAYS_SCROLLBAR } from "@/components/layout/constants";
 import {
   featureReferenceKey,
   type FeatureIndex,
@@ -19,12 +18,21 @@ import {
 import {
   candidateKeysForStatblock,
   lookupReference,
+  plainText,
   type AnchoredIds,
   type AreaIndex,
   type ReferenceIndex,
 } from "@/lib/content/references";
-import { columnStyles, tableAnchorId } from "@/lib/content/tables";
+import {
+  columnMinWidths,
+  columnRole,
+  columnStyles,
+  tableAnchorId,
+  tableLabel,
+  tablePresentation,
+} from "@/lib/content/tables";
 import { reportGap } from "./coverage";
+import { TableFrame } from "./table-frame";
 import { Inline } from "./inline";
 import {
   cellsOf,
@@ -77,6 +85,12 @@ interface RenderContext {
   selfKey?: string;
   /** Entity name, for the coverage report. */
   context?: string;
+  /**
+   * The nearest named section a block sits in, which is what an uncaptioned
+   * table is named after when it turns out to scroll. Every uncaptioned table
+   * in the books has one.
+   */
+  sectionName?: string;
   /** Where this book's `{@area}` tags point. Chapter pages only. */
   areas?: AreaIndex;
   /** Which entry ids this page has to mark, so a link elsewhere can reach them. */
@@ -100,6 +114,22 @@ type HeadingLevel = 2 | 3 | 4 | 5;
 
 /** 2 is a ruled section head, 3 a plain one, 4 the side-head. */
 type HeadingTier = 2 | 3 | 4;
+
+/**
+ * The context inside a block that shows a name.
+ *
+ * Anything nested needs to know the nearest name a reader can actually see, and
+ * the only place that is known is the block that drew it. Every renderer that
+ * puts a heading on the page passes its name through here, so the rule is one
+ * rule rather than a habit each of them has to remember.
+ *
+ * Nearest wins, and nearest is by nesting rather than by heading level: the
+ * books nest deeper than the type scale has steps, so a side-head inside a
+ * section is nearer than the section, whatever size it is set at.
+ */
+function under(ctx: RenderContext, name: string | undefined): RenderContext {
+  return name?.trim() ? { ...ctx, sectionName: name } : ctx;
+}
 
 export interface EntriesProps extends RenderContext {
   entries?: Entry[];
@@ -529,7 +559,7 @@ function SubSection({
   const level = ctx.headingLevel ?? 3;
   const tier = ctx.headingTier ?? tierFor(level);
   const nested: RenderContext = {
-    ...ctx,
+    ...under(ctx, entry.name),
     headingLevel: level < 5 ? ((level + 1) as HeadingLevel) : 5,
     headingTier: tier < 4 ? ((tier + 1) as HeadingTier) : 4,
   };
@@ -611,7 +641,10 @@ function FeatureReference({
       >
         {feature.name}
       </SubHeading>
-      <Entries entries={feature.entries as Entry[] | undefined} {...ctx} />
+      <Entries
+        entries={feature.entries as Entry[] | undefined}
+        {...under(ctx, feature.name)}
+      />
     </Box>
   );
 }
@@ -790,7 +823,10 @@ export function OptionBody({
           </Text>
         ) : null}
       </SubHeading>
-      <Entries entries={option.entries as Entry[] | undefined} {...ctx} />
+      <Entries
+        entries={option.entries as Entry[] | undefined}
+        {...under(ctx, option.name)}
+      />
     </Box>
   );
 }
@@ -859,7 +895,17 @@ function ItemBlock({
             {inline(String(child), ctx)}
           </Text>
         ) : (
-          <EntryNode key={index} entry={child} {...ctx} />
+          /*
+           * Named context only where the name was set as a heading. The other
+           * branch is a run-in label — "**Fire.** The blade ignites" — which is
+           * the first words of a sentence rather than something a block sits
+           * under, and naming a region after it would read as a fragment.
+           */
+          <EntryNode
+            key={index}
+            entry={child}
+            {...(opensWithBlock ? under(ctx, entry.name) : ctx)}
+          />
         ),
       )}
     </Box>
@@ -893,6 +939,68 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
   const sized = styles.some((style) => style.width);
 
   /*
+   * The headings, as plain text, for the two questions that need them: whether
+   * there is a real header row at all, and whether it names the first column.
+   * Both were assumed before, and the activity-page word searches — fifteen
+   * columns of single letters with no headings — were given a sticky heading
+   * row that did not exist and a row identity made out of the first letter.
+   */
+  const headerText = headerRows.map((row) =>
+    headerCells(row).map((cell) => ({
+      ...cell,
+      text: cell.label == null ? "" : String(cell.label).trim(),
+    })),
+  );
+
+  /*
+   * A heading over one column at the inline start is what makes that column the
+   * row's name. Looked for in every header row rather than only the last: the
+   * terrain tables put "Encounter" above a group row that leaves the same
+   * column blank, and taking the last row alone lost the identity.
+   */
+  const namesFirstColumn = headerText.some((row) =>
+    row.some((cell) => cell.column === 0 && cell.span === 1 && cell.text),
+  );
+
+  // The lowest row that says anything, which is the one nearest the data.
+  const headings =
+    [...headerText]
+      .reverse()
+      .find((row) => row.some((cell) => cell.text))
+      ?.map((cell) => cell.text) ?? [];
+
+  const presentation = tablePresentation({
+    columns,
+    rows: entry.rows.length,
+    header: headings.length > 0,
+    namesFirstColumn,
+  });
+
+  /*
+   * What each column may be squeezed to, from what it holds.
+   *
+   * Read off the cells the renderer already has. A cell it cannot reduce to
+   * text — a nested entry, an image — comes through as null and keeps the
+   * column at prose width, which is the safe way to be wrong.
+   */
+  const roles = Array.from({ length: columns }, (_, column) =>
+    columnRole(
+      entry.rows!.map((row) => {
+        const cell = cellsOf(row)[column];
+        if (cell === undefined || cell === null) return "";
+        if (isCell(cell)) return rollLabel(cell);
+        return typeof cell === "string" ? cell : null;
+      }),
+      styles[column]?.share,
+    ),
+  );
+
+  // A column that names its rows is that width whatever its cells look like.
+  if (presentation.rowHeader === "first") roles[0] = "rowHeader";
+
+  const minWidths = columnMinWidths(roles, presentation.width);
+
+  /*
    * Every captioned table is anchored, not only the ones something points at.
    * An `{@area}` is gated on that, because the books hang 55,969 ids and a page
    * would otherwise carry an anchor per paragraph — but a chapter holds a
@@ -900,52 +1008,31 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
    * of them are cited from other books.
    */
   return (
-    <Box
-      my="1"
-      id={entry.caption ? tableAnchorId(entry.caption) : undefined}
-      scrollMarginTop={entry.caption ? "4rem" : undefined}
+    <TableFrame
+      presentation={presentation}
+      anchorId={entry.caption ? tableAnchorId(entry.caption) : undefined}
+      caption={entry.caption ? inline(entry.caption, ctx) : undefined}
+      label={tableLabel({
+        // Nothing a screen reader is handed may still be markup.
+        caption: entry.caption ? plainText(entry.caption) : undefined,
+        section: ctx.sectionName ?? ctx.context,
+        headings: headings.map(plainText),
+      })}
+      footnotes={
+        entry.footnotes?.length ? (
+          <TableFootnotes notes={entry.footnotes} ctx={ctx} />
+        ) : undefined
+      }
     >
-      {entry.caption ? (
-        <Text
-          fontFamily="ui"
-          fontSize="xs"
-          fontWeight="medium"
-          textTransform="uppercase"
-          letterSpacing="wide"
-          color="fg.subtle"
-          mb="1.5"
-        >
-          {inline(entry.caption, ctx)}
-        </Text>
-      ) : null}
-
-      <Box
-        overflowX="auto"
-        css={SIDEWAYS_SCROLLBAR}
-        borderWidth="1px"
-        borderColor="border"
-        rounded="l1"
-      >
-        <Table.Root
+      <Table.Root
           size="sm"
           variant="line"
-          width="100%"
           /*
-           * A floor, so the printed shares mean something.
-           *
-           * The shares are percentages under `table-layout: auto`, which means
-           * a column whose content cannot shrink further takes its room first
-           * and the flexible ones divide what is left. Squeezed into the
-           * reading measure that turns a four-twelfths column of sentences into
-           * 129px beside a one-word column of 83 — the collapse the shares
-           * exist to prevent. Given a floor the proportions come back, and what
-           * does not fit is reached by scrolling the table rather than by
-           * pushing it out past the column.
-           *
-           * Only where widths are declared: a table without them is sized by
-           * its content and has nothing to be squeezed out of.
+           * A table with nothing in it that stretches does not need to fill the
+           * line. The two word-search grids are fifteen columns of one letter,
+           * and filling the breakout made each square 76px of nothing.
            */
-          minW={sized ? `min(${(columns * 7.5).toFixed(1)}rem, 60rem)` : undefined}
+          width={roles.every((role) => role === "token") ? "auto" : "100%"}
         >
           {/*
            * Declared widths, not `table-layout: fixed`. The layout stays auto so
@@ -984,6 +1071,14 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
                       whiteSpace={
                         span === 1 && styles[column]?.noWrap ? "nowrap" : undefined
                       }
+                      minW={span === 1 ? minWidths[column] : undefined}
+                      data-row-header={
+                        presentation.rowHeader === "first" &&
+                        column === 0 &&
+                        span === 1
+                          ? ""
+                          : undefined
+                      }
                       // A heading over several columns sits over the middle of
                       // them; one over a single column takes that column's own
                       // alignment.
@@ -1003,6 +1098,14 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
                 {cellsOf(row).map((cell, cellIndex) => (
                   <Table.Cell
                     key={cellIndex}
+                    /*
+                     * Where a heading names the first column, that column says
+                     * which row you are reading: it is the row's heading, and
+                     * it stays put while the rest scrolls past it.
+                     */
+                    {...(presentation.rowHeader === "first" && cellIndex === 0
+                      ? { as: "th" as const, scope: "row", "data-row-header": "" }
+                      : {})}
                     fontFamily="body"
                     fontSize="sm"
                     lineHeight="1.5"
@@ -1014,6 +1117,7 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
                     }
                     fontVariantNumeric={isCell(cell) ? "tabular-nums" : undefined}
                     textAlign={styles[cellIndex]?.align}
+                    minW={minWidths[cellIndex]}
                     // The equipment tables group their rows under a plain row of
                     // headings — "Light Armor" — and indent what belongs to it.
                     ps={indentsFirstCell(row) && cellIndex === 0 ? "6" : undefined}
@@ -1028,13 +1132,8 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
               </Table.Row>
             ))}
           </Table.Body>
-        </Table.Root>
-      </Box>
-
-      {entry.footnotes?.length ? (
-        <TableFootnotes notes={entry.footnotes} ctx={ctx} />
-      ) : null}
-    </Box>
+      </Table.Root>
+    </TableFrame>
   );
 }
 
@@ -1142,7 +1241,7 @@ function TableGroupBlock({
       ) : null}
       <Stack gap="3">
         {entry.tables.map((table, index) => (
-          <TableBlock key={index} entry={table} ctx={ctx} />
+          <TableBlock key={index} entry={table} ctx={under(ctx, entry.name)} />
         ))}
       </Stack>
     </Box>
@@ -1496,7 +1595,7 @@ function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
           {inline(entry.name, ctx)}
         </Text>
       ) : null}
-      <Entries entries={entry.entries} {...ctx} />
+      <Entries entries={entry.entries} {...under(ctx, entry.name)} />
     </Box>
   );
 }

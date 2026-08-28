@@ -4,6 +4,11 @@ import { AsideLink } from "@/components/compendium/aside-link";
 import { asideKey } from "@/lib/aside";
 import { hrefFor, type BrowsableType } from "@/lib/routes";
 import type { GenericListRow } from "@/server/db/queries/generic";
+import {
+  BrowseCell,
+  BrowseHeader,
+  BrowseTable,
+} from "./browse-table";
 
 /**
  * The list for a `generic_entities` type, as a dense comparison table.
@@ -33,7 +38,6 @@ export interface GenericColumn<R> {
   nowrap?: boolean;
 }
 
-const OPTIONAL_ATTR = { "data-col-optional": "" };
 
 export function GenericTable<R extends GenericListRow>({
   rows,
@@ -55,8 +59,7 @@ export function GenericTable<R extends GenericListRow>({
   }
 
   return (
-    <Box overflowX="auto">
-      <Table.Root size="sm" interactive stickyHeader>
+    <BrowseTable label={`${noun} list`}>
         <Table.Header>
           <Table.Row bg="bg.muted">
             <Header>Name</Header>
@@ -79,8 +82,7 @@ export function GenericTable<R extends GenericListRow>({
             />
           ))}
         </Table.Body>
-      </Table.Root>
-    </Box>
+      </BrowseTable>
   );
 }
 
@@ -153,54 +155,6 @@ function GenericRowView<R extends GenericListRow>({
   );
 }
 
-function Header({
-  children,
-  optional,
-}: {
-  children: ReactNode;
-  optional?: boolean;
-}) {
-  return (
-    <Table.ColumnHeader
-      {...(optional ? OPTIONAL_ATTR : {})}
-      fontFamily="ui"
-      fontSize="2xs"
-      fontWeight="semibold"
-      letterSpacing="wide"
-      textTransform="uppercase"
-      color="fg.subtle"
-      whiteSpace="nowrap"
-    >
-      {children}
-    </Table.ColumnHeader>
-  );
-}
-
-function Cell({
-  children,
-  nowrap,
-  optional,
-  fontWeight,
-}: {
-  children: ReactNode;
-  nowrap?: boolean;
-  optional?: boolean;
-  fontWeight?: string;
-}) {
-  return (
-    <Table.Cell
-      {...(optional ? OPTIONAL_ATTR : {})}
-      fontFamily="ui"
-      fontSize="xs"
-      fontWeight={fontWeight}
-      color="fg.muted"
-      whiteSpace={nowrap ? "nowrap" : undefined}
-    >
-      {children}
-    </Table.Cell>
-  );
-}
-
 /**
  * Two different emptinesses. A list nothing narrowed is empty only with an
  * unseeded database, so it says that rather than offering to widen a search
@@ -215,3 +169,6 @@ function EmptyState({ noun, filtered }: { noun: string; filtered: boolean }) {
     </Box>
   );
 }
+
+const Header = BrowseHeader;
+const Cell = BrowseCell;

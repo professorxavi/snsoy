@@ -7,6 +7,11 @@ import { abilityLabel, skillCovers } from "@/lib/content/skills";
 import { withValue, type QueryParams } from "@/lib/query-params";
 import { hrefFor, listHrefFor } from "@/lib/routes";
 import type { SkillRow, SkillSort } from "@/server/db/queries/skills";
+import {
+  BrowseCell,
+  BrowseHeader,
+  BrowseTable,
+} from "./browse-table";
 
 /**
  * The skill list, as a dense comparison table — the same shape the spell table
@@ -45,8 +50,7 @@ export function SkillTable({
   if (rows.length === 0) return <EmptyState />;
 
   return (
-    <Box overflowX="auto">
-      <Table.Root size="sm" interactive stickyHeader>
+    <BrowseTable label="Skills list">
         <Table.Header>
           <Table.Row bg="bg.muted">
             <SortableHeader params={params} sort="name">
@@ -64,8 +68,7 @@ export function SkillTable({
             <SkillRowView key={row.id} row={row} open={open} />
           ))}
         </Table.Body>
-      </Table.Root>
-    </Box>
+      </BrowseTable>
   );
 }
 
@@ -127,30 +130,6 @@ function SkillRowView({
   );
 }
 
-function Header({
-  children,
-  sorted,
-}: {
-  children: ReactNode;
-  /** Announced on the header cell itself, which is where `aria-sort` belongs. */
-  sorted?: boolean;
-}) {
-  return (
-    <Table.ColumnHeader
-      aria-sort={sorted ? "ascending" : undefined}
-      fontFamily="ui"
-      fontSize="2xs"
-      fontWeight="semibold"
-      letterSpacing="wide"
-      textTransform="uppercase"
-      color="fg.subtle"
-      whiteSpace="nowrap"
-    >
-      {children}
-    </Table.ColumnHeader>
-  );
-}
-
 function SortableHeader({
   params,
   sort,
@@ -178,29 +157,6 @@ function SortableHeader({
   );
 }
 
-function Cell({
-  children,
-  nowrap,
-  fontWeight,
-}: {
-  children: ReactNode;
-  /** Set on the columns that must not wrap. The summary line is free to. */
-  nowrap?: boolean;
-  fontWeight?: string;
-}) {
-  return (
-    <Table.Cell
-      fontFamily="ui"
-      fontSize="xs"
-      fontWeight={fontWeight}
-      color="fg.muted"
-      whiteSpace={nowrap ? "nowrap" : undefined}
-    >
-      {children}
-    </Table.Cell>
-  );
-}
-
 /**
  * Only reachable with an unseeded database — nothing here filters — so it says
  * that rather than offering to widen a search that was never narrowed.
@@ -214,3 +170,6 @@ function EmptyState() {
     </Box>
   );
 }
+
+const Header = BrowseHeader;
+const Cell = BrowseCell;

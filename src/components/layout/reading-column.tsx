@@ -62,6 +62,12 @@ export function ReadingColumn({
         px={{ base: "5", md: "8" }}
         py="6"
         pb="20"
+        /*
+         * A size container, so a figure inside the measure can ask how wide the
+         * column actually is. Nothing else here queries it; it exists so the
+         * measure box below can publish the room going spare.
+         */
+        css={{ containerType: "inline-size" }}
       >
         {plate ? (
           <Box
@@ -96,6 +102,21 @@ export function ReadingColumn({
           // Above the plate, so text is never printed under artwork.
           position="relative"
           zIndex="1"
+          /*
+           * How wide a figure may be here, published for the tables inside.
+           *
+           * Prose keeps the measure; a wide table is a figure and may use the
+           * column's full width up to a cap. `cqi` reads the `main` above, so
+           * the value can never reach past the column into the outline gutter,
+           * and it collapses to the measure on a narrow screen where there is
+           * no room going spare.
+           *
+           * Declared here rather than in the table because only the layout
+           * knows this. Anywhere else — an aside, a stat block — the property
+           * is simply undefined and a table stays exactly as wide as its
+           * container, which is the behaviour to fall back to.
+           */
+          css={{ "--table-room": "min(72rem, 100cqi)" }}
         >
           {children}
         </Box>

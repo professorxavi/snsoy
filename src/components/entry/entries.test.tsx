@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OptionalFeatureIndex } from "@/lib/content/optional-features";
-import { render, screen } from "@/test/render";
+import { render, screen, within } from "@/test/render";
 import { resetCoverage, coverageReport } from "./coverage";
 import { Entries } from "./entries";
 import type { Entry } from "./types";
@@ -577,6 +577,121 @@ describe("a run-in label", () => {
 });
 
 /**
+ * The anchor a `{@table}` link lands on.
+ *
+ * Derived from the caption by `tableAnchorId`, and the only thing on the page
+ * that carries it — 526 of the 537 table references in the books address a
+ * table this way. Pinned here because the layout work ahead rewrites this
+ * component, and an anchor that quietly stops being emitted breaks every one of
+ * those links without failing anything else.
+ */
+describe("a table's anchor", () => {
+  it("anchors a captioned table on its caption", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "table",
+            caption: "Magic Item Table C",
+            colLabels: ["d100", "Item"],
+            rows: [["01", "Potion of healing"]],
+          } as Entry,
+        ]}
+      />,
+    );
+
+    expect(
+      container.querySelector("#table-magic-item-table-c"),
+    ).toBeInTheDocument();
+  });
+
+  it("leaves an uncaptioned table unanchored, having nothing to derive from", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "table",
+            colLabels: ["d100", "Item"],
+            rows: [["01", "Potion of healing"]],
+          } as Entry,
+        ]}
+      />,
+    );
+
+    expect(container.querySelector("[id^='table-']")).toBeNull();
+  });
+});
+
+/**
+ * A table's row identity.
+ *
+ * A cell that stays put while the rest scrolls has to be that row's heading —
+ * both so a screen reader reads it back with every value on the line, and so
+ * the frame knows which cell to pin.
+ *
+ * What decides it is whether a heading names the first column, not the table's
+ * shape. Deciding it by shape gave the two activity-page word searches — fifteen
+ * columns of single letters, no headings at all — a row identity made out of
+ * the first letter of each row, which names nothing.
+ */
+describe("a table's row identity", () => {
+  const wide = (rows: number, headings?: string[]) => ({
+    type: "table",
+    caption: "Wilderness Encounters",
+    ...(headings ? { colLabels: headings } : {}),
+    rows: Array.from({ length: rows }, (_, i) => [
+      `Creature ${i}`,
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+    ]),
+  }) as Entry;
+
+  const named = ["Encounter", "Beach", "Rivers", "Ruins", "Swamp", "Waste"];
+
+  // The last rowgroup is the body; a table with no headings has no other.
+  const firstRow = () => {
+    const groups = screen.getAllByRole("rowgroup");
+    return within(groups[groups.length - 1]!).getAllByRole("row")[0]!;
+  };
+
+  it("makes the first column a row header where a heading names it", () => {
+    render(<Entries entries={[wide(15, named)]} />);
+
+    expect(within(firstRow()).getByRole("rowheader")).toHaveTextContent(
+      "Creature 0",
+    );
+  });
+
+  /**
+   * The 20-column Multiple Monsters table is five rows deep, so nothing about
+   * it is tall — but every column past the third is off the edge, and the
+   * identity has to stay put while you pan across them.
+   */
+  it("keeps it on a table too wide to see at once but short enough to read", () => {
+    render(<Entries entries={[wide(4, named)]} />);
+
+    expect(within(firstRow()).getByRole("rowheader")).toHaveTextContent(
+      "Creature 0",
+    );
+  });
+
+  it("gives none to a table with no headings at all", () => {
+    render(<Entries entries={[wide(15)]} />);
+
+    expect(within(firstRow()).queryByRole("rowheader")).toBeNull();
+  });
+
+  it("gives none where the headings leave the first column unnamed", () => {
+    render(<Entries entries={[wide(15, ["", ...named.slice(1)])]} />);
+
+    expect(within(firstRow()).queryByRole("rowheader")).toBeNull();
+  });
+});
+
+/**
  * The notes printed under a table.
  *
  * 129 tables carry `footnotes` and the field was never declared, so the note
@@ -944,5 +1059,87 @@ describe("a name printed on a line of its own", () => {
     expect(
       screen.getByRole("heading", { level: 4, name: "Light Armor" }),
     ).toBeInTheDocument();
+  });
+});
+
+/**
+ * What an uncaptioned table's scroll region is called.
+ *
+ * The name is computed here, on the server, and the enhancer only copies it —
+ * so this is where the rule lives and where it has to be held. Every uncaptioned
+ * table in the books sits inside something named, and the nearest of those
+ * names is the one a reader can see above it.
+ *
+ * Nearest is by nesting, not by heading size. The books nest deeper than the
+ * type scale has steps, so a block set as a side-head can still be the closest
+ * thing to the table.
+ */
+describe("a table's region name", () => {
+  const table = {
+    type: "table",
+    colLabels: ["d20", "Encounter"],
+    rows: [["01", "A goblin"]],
+  } as Entry;
+
+  const label = (container: HTMLElement) =>
+    container.querySelector("[data-table-scroll]")?.getAttribute("data-table-label");
+
+  it("takes the nearest named block it sits inside", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "section",
+            name: "Activity Pages",
+            entries: [{ type: "section", name: "Word Find", entries: [table] }],
+          } as Entry,
+        ]}
+      />,
+    );
+
+    expect(label(container)).toBe("Word Find — d20 and Encounter table");
+  });
+
+  it("lets an inner name win over the one outside it", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "section",
+            name: "Random Encounters",
+            entries: [
+              // An inset is a sidebar, not a section, and is still nearer.
+              { type: "inset", name: "Wandering Monsters", entries: [table] },
+            ],
+          } as Entry,
+        ]}
+      />,
+    );
+
+    expect(label(container)).toBe("Wandering Monsters — d20 and Encounter table");
+  });
+
+  it("falls back to the page's own name when nothing nearer is named", () => {
+    const { container } = render(
+      <Entries entries={[table]} context="Into Darkness" />,
+    );
+
+    expect(label(container)).toBe("Into Darkness — d20 and Encounter table");
+  });
+
+  it("keeps a caption ahead of any of it", () => {
+    const { container } = render(
+      <Entries
+        entries={[
+          {
+            type: "section",
+            name: "Word Find",
+            entries: [{ ...(table as object), caption: "Beach Encounters" }],
+          } as Entry,
+        ]}
+      />,
+    );
+
+    expect(label(container)).toBe("Beach Encounters table");
   });
 });

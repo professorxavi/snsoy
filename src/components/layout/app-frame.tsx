@@ -1,6 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { AsideProvider } from "@/components/compendium/aside-context";
+import { TableScrollers } from "@/components/entry/table-scrollers";
 import { TopNav } from "./top-nav";
 
 /**
@@ -37,6 +38,13 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </Box>
         <TopNav />
         {children}
+        {/*
+          One pass over every table on the page, wherever a layout put it.
+          Mounted here rather than beside the tables because the point is that
+          there is one of it: a chapter can carry 88 tables, and none of them
+          needs an observer of its own to find out that it fits.
+        */}
+        <TableScrollers />
       </Box>
     </AsideProvider>
   );

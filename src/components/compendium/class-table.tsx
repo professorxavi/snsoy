@@ -1,6 +1,6 @@
 import { Box, Table, Text } from "@chakra-ui/react";
 import { Inline } from "@/components/entry";
-import { SIDEWAYS_SCROLLBAR } from "@/components/layout/constants";
+import { TableFrame } from "@/components/entry/table-frame";
 import {
   CLASS_LEVELS,
   ordinal,
@@ -8,6 +8,11 @@ import {
   type ProgressionColumn,
 } from "@/lib/content/classes";
 import type { ReferenceIndex } from "@/lib/content/references";
+import {
+  columnMinWidth,
+  tableLabel,
+  tablePresentation,
+} from "@/lib/content/tables";
 
 /**
  * The class progression table: twenty levels down, everything the class gains
@@ -57,12 +62,19 @@ export function ClassTable({
     <Box>
       {heading}
 
-      <Box
-        overflowX="auto"
-        css={SIDEWAYS_SCROLLBAR}
-        borderWidth="1px"
-        borderColor="border"
-        rounded="l1"
+      <TableFrame
+        /*
+         * A progression is read as a grid whatever its shape, and `Level` is
+         * its row identity whatever the headings above happen to say — so both
+         * are stated here rather than inferred from the cells.
+         */
+        presentation={tablePresentation({
+          columns: columns.length + 3,
+          rows: rows.length,
+          header: true,
+          intent: "progression",
+        })}
+        label={tableLabel({ explicit: `${className} progression` })}
       >
         <Table.Root size="sm" variant="line" width="100%">
           <Table.Header>
@@ -74,7 +86,14 @@ export function ClassTable({
                     colSpan={group.span}
                     textAlign="center"
                     fontFamily="ui"
-                    fontSize="2xs"
+                    /*
+                     * The shared header size, as every other heading in every
+                     * other table. It was a step smaller, which was the last
+                     * piece of typography a single renderer decided for itself:
+                     * the group reads as a heading through its uppercase, its
+                     * colour and the rule beneath it, not by being quieter.
+                     */
+                    fontSize="xs"
                     fontWeight="semibold"
                     letterSpacing="wide"
                     textTransform="uppercase"
@@ -90,7 +109,7 @@ export function ClassTable({
             <Table.Row bg="bg.muted">
               <HeadCell sticky>Level</HeadCell>
               <HeadCell align="center">Bonus</HeadCell>
-              <HeadCell>Features</HeadCell>
+              <HeadCell prose>Features</HeadCell>
               {columns.map((column, index) => (
                 <HeadCell key={index} align="center">
                   <Inline text={column.label} refs={refs} context={className} />
@@ -110,7 +129,7 @@ export function ClassTable({
                 <BodyCell align="center" nowrap>
                   +{proficiencyBonus(level)}
                 </BodyCell>
-                <BodyCell>
+                <BodyCell prose>
                   {byLevel.get(level)?.features.join(", ") || "—"}
                 </BodyCell>
                 {columns.map((column, index) => (
@@ -132,7 +151,7 @@ export function ClassTable({
             ))}
           </Table.Body>
         </Table.Root>
-      </Box>
+      </TableFrame>
     </Box>
   );
 }
@@ -159,24 +178,26 @@ function groupSpans(columns: ProgressionColumn[]) {
 const STANDARD_COLUMNS = 3;
 
 /**
- * The level column stays put while the rest scrolls. It carries its own
- * background: a sticky cell sits over the row it came from, and a transparent
- * one would let the scrolling cells show through it.
+ * The level column stays put while the rest scrolls — the level is the row's
+ * identity, and a Wizard's thirteen columns are read by panning across them.
+ *
+ * Marked here, styled by `TableFrame`: pinning needs an opaque surface and a
+ * stacking order that lets the head cross the column at the corner, and those
+ * are the frame's to know so that every matrix pins its column the same way.
  */
-const stickyCell = {
-  position: "sticky" as const,
-  left: "0",
-  zIndex: 1,
-};
+const rowHeader = { "data-row-header": "" };
 
 function HeadCell({
   children,
   align,
   sticky,
+  prose,
 }: {
   children: React.ReactNode;
   align?: "center";
   sticky?: boolean;
+  /** The features column, which carries the same floor as its cells. */
+  prose?: boolean;
 }) {
   return (
     <Table.ColumnHeader
@@ -184,15 +205,21 @@ function HeadCell({
       /*
        * Not uppercased, unlike every other table head in the app. These are
        * `nowrap` and several are long — "Invocations Known" — so they set the
-       * table's width outright, and uppercasing costs more width than the
-       * smaller size saves.
+       * table's width outright, and uppercasing costs more width than the size
+       * saves.
+       *
+       * At the shared header size since the table stopped being held inside the
+       * reading measure. It was a step smaller to buy width it no longer has to
+       * find, and a heading two sizes under its own body text read as a label
+       * for something else.
        */
-      fontSize="2xs"
+      fontSize="xs"
       fontWeight="semibold"
       textAlign={align}
       whiteSpace="nowrap"
       px="2"
-      {...(sticky ? { ...stickyCell, bg: "bg.muted" } : {})}
+      minW={prose ? columnMinWidth("prose") : undefined}
+      {...(sticky ? rowHeader : {})}
     >
       {children}
     </Table.ColumnHeader>
@@ -204,33 +231,47 @@ function BodyCell({
   align,
   nowrap,
   sticky,
+  prose,
 }: {
   children: React.ReactNode;
   align?: "center";
   nowrap?: boolean;
   sticky?: boolean;
+  /** The features column: a sentence, and read at the size sentences are read. */
+  prose?: boolean;
 }) {
   return (
     <Table.Cell
       fontFamily="body"
       /*
-       * A step below the prose, and tighter than a default cell.
+       * Data at the compact size, prose at the size prose is read.
        *
-       * This is the widest thing in the app — a Warlock's progression is eight
-       * columns — and it now lives inside the reading measure rather than
-       * reaching out past it. Set at the body size it overflowed by about a
-       * column; at the size the browse table already uses for data it fits,
-       * which is the difference between reading a level's row across and
-       * scrolling to finish it.
+       * The whole table used to be a step below the body text. That bought
+       * width while it was held inside the reading measure — set larger it
+       * overflowed by about a column — but it also set feature names, which are
+       * the only sentences here, two sizes under the paragraphs above them. The
+       * table now takes the width of the column it sits in, so the room does
+       * not have to come out of the words.
        */
-      fontSize="xs"
+      fontSize={prose ? "sm" : "xs"}
       lineHeight="1.45"
       px="2"
       verticalAlign="top"
       textAlign={align}
       whiteSpace={nowrap ? "nowrap" : undefined}
+      /*
+       * The same floor every other prose column in a table that reaches past
+       * the measure is given. Without it the column claimed whatever the
+       * compact columns left over — about 113px on a phone — and a feature
+       * called "Font of Magic" came out three lines tall, which made the
+       * twenty-level progression far longer than it needs to be.
+       *
+       * It buys that back with sideways travel, which the table already has and
+       * which keeps Level in view. Width is never taken out of the words.
+       */
+      minW={prose ? columnMinWidth("prose") : undefined}
       fontVariantNumeric="tabular-nums"
-      {...(sticky ? { ...stickyCell, bg: "bg.panel" } : {})}
+      {...(sticky ? { as: "th" as const, scope: "row", ...rowHeader } : {})}
     >
       {children}
     </Table.Cell>

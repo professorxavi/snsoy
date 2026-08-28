@@ -47,34 +47,49 @@ test("sets a table's columns to the shares it was printed with", async ({
 });
 
 /**
- * A wide table keeps to the reading measure and scrolls in its own box.
+ * A wide table reaches past the measure, and never past the column.
  *
- * It used to reach out into the margins instead. That stopped the columns being
- * cut off, but left the table half again the width of the prose around it,
- * which is conspicuous in a layout whose whole point is one measured column.
- * Nothing is lost by keeping it in: what does not fit is reachable by scrolling
- * the table, and the page itself never scrolls sideways.
+ * This has been decided twice. Reaching into the margins was tried and pulled
+ * back once, because a table half again the width of the prose was conspicuous
+ * in a layout whose whole point is one measured column. The table plan re-takes
+ * it deliberately: a wide table is a figure rather than a paragraph, and
+ * holding one to 68 characters was costing Wilderness Encounters a third of its
+ * columns and the Sorcerer's feature names two type sizes.
+ *
+ * What makes it safe this time is the cap and the centring. The width comes
+ * from `--table-room`, which the reading column derives from its own `main`, so
+ * it can reach into the margins either side and never into the outline gutter.
  */
-test("keeps a wide table inside the reading measure", async ({ page }) => {
+test("lets a wide table reach past the measure, but not past the column", async ({
+  page,
+}) => {
   await page.goto(CLASSES);
   await expectHydrated(page);
 
   // A paragraph on the same page is the measure, measured rather than assumed.
   const paragraph = (await page.locator("p.prose").first().boundingBox())!;
 
-  // The scroll container, not the table: the table may be wider than the
-  // measure and scroll inside it, which is the point. What must line up with
-  // the prose is the box it scrolls in.
-  const container = await page
-    .locator("table")
+  const { container, main } = await page
+    .locator("[data-table-profile] table")
     .first()
     .evaluate((el) => {
-      const { x, width } = el.closest("div")!.getBoundingClientRect();
-      return { x, width };
+      const box = el.closest("div")!.getBoundingClientRect();
+      const region = document.querySelector("main#main")!;
+      const style = getComputedStyle(region);
+      const rect = region.getBoundingClientRect();
+      return {
+        container: { x: box.x, right: box.right, width: box.width },
+        main: {
+          left: rect.left + parseFloat(style.paddingLeft),
+          right: rect.right - parseFloat(style.paddingRight),
+        },
+      };
     });
 
-  expect(Math.abs(container.x - paragraph.x)).toBeLessThanOrEqual(1);
-  expect(Math.abs(container.width - paragraph.width)).toBeLessThanOrEqual(1);
+  expect(container.width).toBeGreaterThan(paragraph.width);
+  // Inside the column's own padding, so the outline gutter is never crossed.
+  expect(container.x).toBeGreaterThanOrEqual(main.left - 1);
+  expect(container.right).toBeLessThanOrEqual(main.right + 1);
 
   expect(
     await page.evaluate(
@@ -86,13 +101,18 @@ test("keeps a wide table inside the reading measure", async ({ page }) => {
 });
 
 /**
- * Whatever does not fit is still reachable. The container scrolls rather than
- * clipping, which is what makes keeping the table inside the measure honest
- * rather than a way of hiding columns.
+ * Whatever does not fit is still reachable — and on a narrow screen the
+ * Sorcerer's thirteen columns never will.
+ *
+ * At the desktop viewport the progression now fits the column it was given, so
+ * the case worth pinning has moved to the phone. What must hold is that the
+ * columns are reached by scrolling the table rather than by losing them, and
+ * that the page itself never scrolls sideways to offer them.
  */
 test("leaves an over-wide table scrollable rather than clipped", async ({
   page,
 }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/compendium/classes/phb/sorcerer");
   await expectHydrated(page);
 
@@ -100,16 +120,23 @@ test("leaves an over-wide table scrollable rather than clipped", async ({
     const table = document.querySelector("main table");
     const wrap = table?.closest("div");
     if (!wrap) return null;
+
+    wrap.scrollLeft = wrap.scrollWidth;
     return {
       overflows: wrap.scrollWidth > wrap.clientWidth,
       canScroll: getComputedStyle(wrap).overflowX,
+      // Nothing left unreachable once scrolled to the end.
+      unreached: wrap.scrollWidth - wrap.clientWidth - wrap.scrollLeft,
+      page:
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
     };
   });
 
-  // A Sorcerer carries nine spell-slot columns and does not fit; that is the
-  // case worth pinning, since it is the one a reader has to scroll.
   expect(box?.overflows).toBe(true);
   expect(box?.canScroll).toBe("auto");
+  expect(box?.unreached).toBe(0);
+  expect(box?.page).toBe(0);
 });
 
 /**
@@ -274,4 +301,75 @@ test("a deep link into a chapter section scrolls to it", async ({ page }) => {
   await expectHydrated(page);
 
   await expectInView(page, "making-an-attack");
+});
+
+/**
+ * A long lookup table keeps its headings without being put in a box.
+ *
+ * A table of 113 rows is arrived at with a number, and by the time you find the
+ * row the headings are far above it. Bounding the table would fix that and cost
+ * the chapter a nested scroller in the middle of its prose, so the headings
+ * stick to the page instead, under the top bar.
+ *
+ * This only works because the table has no horizontal wrapper. `overflow-x:
+ * auto` makes a box scroll in the block axis too, and a heading inside one
+ * holds against that box rather than the page — so the absence of the wrapper
+ * is half of the behaviour, and is asserted with it.
+ */
+const PINEBROOK = "/sources/pip/peril-in-pinebrook";
+
+test("holds a long table's headings against the page as it scrolls", async ({
+  page,
+}) => {
+  await page.goto(PINEBROOK);
+  await expectHydrated(page);
+
+  const frame = page
+    .locator("[data-table-profile]")
+    .filter({ has: page.locator("tbody tr:nth-child(100)") })
+    .first();
+
+  // No wrapper, so the page is the only thing that scrolls around it.
+  await expect(frame.locator("[data-table-scroll]")).toHaveCount(0);
+
+  const heading = frame.locator("thead th").first();
+  await heading.scrollIntoViewIfNeeded();
+  await page.mouse.wheel(0, 800);
+  await page.waitForTimeout(150);
+
+  const box = await heading.boundingBox();
+  const bar = await page.locator("header").first().boundingBox();
+
+  // Still on screen, and resting on the bar rather than under it.
+  expect(box!.y).toBeGreaterThanOrEqual(bar!.height - 1);
+  expect(box!.y).toBeLessThan(bar!.height + 8);
+});
+
+/**
+ * A scroll region is named after the heading a reader can see above it.
+ *
+ * The word-search grid has no caption and no column headings, so its name can
+ * only come from the section it sits in — and the chapter page draws that
+ * heading itself, which is how the name came to be the chapter's rather than
+ * the section's. Only a browser shows it, because the name is applied when the
+ * region turns out to overflow.
+ */
+test("names an uncaptioned region after the section it is printed under", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/sources/awm/activity-pages");
+  await expectHydrated(page);
+
+  await expect(page.getByRole("region", { name: "Word Find table" })).toHaveCount(
+    1,
+  );
+
+  // And the nearer name wins without displacing the others on the page.
+  const named = await page
+    .locator("[data-table-scroll]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-table-label")),
+    );
+  expect(new Set(named).size).toBe(named.length);
 });

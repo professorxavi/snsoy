@@ -14,6 +14,11 @@ import {
 import { withValue, type QueryParams } from "@/lib/query-params";
 import { hrefFor } from "@/lib/routes";
 import type { SpellRow, SpellSort } from "@/server/db/queries/spells";
+import {
+  BrowseCell,
+  BrowseHeader,
+  BrowseTable,
+} from "./browse-table";
 
 /**
  * The spell list, as a dense comparison table.
@@ -40,8 +45,7 @@ export function SpellTable({
   if (rows.length === 0) return <EmptyState />;
 
   return (
-    <Box overflowX="auto">
-      <Table.Root size="sm" interactive stickyHeader>
+    <BrowseTable label="Spells list">
         <Table.Header>
           <Table.Row bg="bg.muted">
             <SortableHeader params={params} sort="name">
@@ -65,8 +69,7 @@ export function SpellTable({
             <SpellRowView key={row.id} row={row} open={open} />
           ))}
         </Table.Body>
-      </Table.Root>
-    </Box>
+      </BrowseTable>
   );
 }
 
@@ -152,37 +155,6 @@ function formatDurationShort(row: SpellRow): string {
 }
 
 /** Columns the browse frame's CSS hides while the aside is open. */
-const OPTIONAL_ATTR = { "data-col-optional": "" };
-
-function Header({
-  children,
-  optional,
-  numeric,
-  sorted,
-}: {
-  children: ReactNode;
-  optional?: boolean;
-  numeric?: boolean;
-  /** Announced on the header cell itself, which is where `aria-sort` belongs. */
-  sorted?: boolean;
-}) {
-  return (
-    <Table.ColumnHeader
-      {...(optional ? OPTIONAL_ATTR : {})}
-      aria-sort={sorted ? "ascending" : undefined}
-      fontFamily="ui"
-      fontSize="2xs"
-      fontWeight="semibold"
-      letterSpacing="wide"
-      textTransform="uppercase"
-      color="fg.subtle"
-      whiteSpace="nowrap"
-      textAlign={numeric ? "end" : undefined}
-    >
-      {children}
-    </Table.ColumnHeader>
-  );
-}
 
 function SortableHeader({
   params,
@@ -213,35 +185,6 @@ function SortableHeader({
   );
 }
 
-function Cell({
-  children,
-  optional,
-  numeric,
-  muted,
-  fontWeight,
-}: {
-  children: ReactNode;
-  optional?: boolean;
-  numeric?: boolean;
-  muted?: boolean;
-  fontWeight?: string;
-}) {
-  return (
-    <Table.Cell
-      {...(optional ? OPTIONAL_ATTR : {})}
-      fontFamily="ui"
-      fontSize="xs"
-      fontWeight={fontWeight}
-      color={muted ? "fg.subtle" : "fg.muted"}
-      whiteSpace="nowrap"
-      textAlign={numeric ? "end" : undefined}
-      fontVariantNumeric={numeric ? "tabular-nums" : undefined}
-    >
-      {children}
-    </Table.Cell>
-  );
-}
-
 /** A one-letter flag; the title attribute spells it out. */
 function Marker({ children, title }: { children: ReactNode; title: string }) {
   return (
@@ -269,3 +212,10 @@ function EmptyState() {
     </Box>
   );
 }
+
+/** A value, kept on one line: these lists are read by scanning down a column. */
+function Cell(props: React.ComponentProps<typeof BrowseCell>) {
+  return <BrowseCell nowrap {...props} />;
+}
+
+const Header = BrowseHeader;

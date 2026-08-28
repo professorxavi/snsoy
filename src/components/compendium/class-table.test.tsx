@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ProgressionColumn } from "@/lib/content/classes";
 import { render, screen, within } from "@/test/render";
 import { ClassTable } from "./class-table";
+import { columnMinWidth } from "@/lib/content/tables";
 
 /**
  * The class table's structure.
@@ -33,10 +34,21 @@ const CANTRIPS: ProgressionColumn = {
 
 const rows = () => screen.getAllByRole("row");
 
-const cellsOf = (row: HTMLElement) =>
-  within(row)
+/**
+ * Everything in the row, its identity included.
+ *
+ * The level is a `rowheader` rather than a `cell` — it names the row, it is the
+ * column that stays put while the rest scrolls, and a screen reader reads it
+ * back with every value on the line.
+ */
+const cellsOf = (row: HTMLElement) => [
+  ...within(row)
+    .queryAllByRole("rowheader")
+    .map((cell) => cell.textContent),
+  ...within(row)
     .getAllByRole("cell")
-    .map((cell) => cell.textContent);
+    .map((cell) => cell.textContent),
+];
 
 describe("the class table", () => {
   it("prints all twenty levels, whatever the class fills in", () => {
@@ -108,5 +120,53 @@ describe("the class table", () => {
         .getAllByRole("columnheader")
         .map((cell) => cell.textContent),
     ).toEqual(["Level", "Bonus", "Features", "Cantrips Known"]);
+  });
+});
+
+/**
+ * The Features column is prose, and is given the floor prose is given.
+ *
+ * It is the one column here made of sentences, and it had none — so it took
+ * whatever the compact columns left, about 113px on a phone, and set feature
+ * names three lines deep. That makes the twenty-level progression far taller,
+ * which is the one thing this table is not allowed to be.
+ *
+ * Asserted against the shared value rather than "12rem", because a second
+ * literal here is exactly what would drift from the one the book tables use.
+ */
+describe("the features column's width", () => {
+  const table = () =>
+    render(
+      <ClassTable
+        columns={[CANTRIPS]}
+        rows={[{ level: 1, features: ["Font of Magic"] }]}
+        className="Sorcerer"
+      />,
+    );
+
+  /*
+   * The shared floor is declared in rem and reported in px. Sixteen is the
+   * browser default root size rather than a value of ours, and converting here
+   * is what lets the assertion name the shared constant instead of repeating
+   * the number it holds — which is the whole point of the constant.
+   */
+  const floorInPx = `${Number.parseFloat(columnMinWidth("prose")) * 16}px`;
+
+  // Level is a row header, so the cells after it are Bonus, Features, Cantrips.
+  const featuresHeading = () => document.querySelector("thead th:nth-child(3)")!;
+  const featuresCell = () => document.querySelector("tbody td:nth-child(3)")!;
+  const bonusCell = () => document.querySelector("tbody td:nth-child(2)")!;
+
+  it("gives the heading and its cells the shared prose floor", () => {
+    table();
+    expect(getComputedStyle(featuresHeading()).minWidth).toBe(floorInPx);
+    expect(getComputedStyle(featuresCell()).minWidth).toBe(floorInPx);
+  });
+
+  /** And nothing else claims it: the compact columns stay content-sized. */
+  it("leaves the compact columns without one", () => {
+    table();
+
+    expect(getComputedStyle(bonusCell()).minWidth).not.toBe(floorInPx);
   });
 });

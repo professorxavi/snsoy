@@ -79,7 +79,11 @@ export function SubraceList({ items }: { items: SubraceItem[] }) {
                 fontSize="2xs"
                 letterSpacing="wide"
                 color="fg.subtle"
-                whiteSpace="nowrap"
+                /*
+                 * Wraps. A book's name is not an atomic value: "Dragonlance:
+                 * Shadow of the Dragon Queen · p. 34" held on one line was the
+                 * only thing scrolling the Sorcerer page sideways at 320px.
+                 */
               >
                 {item.meta}
               </Text>

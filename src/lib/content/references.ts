@@ -639,6 +639,29 @@ function attackLabel(codes: string): string {
 }
 
 /**
+ * A tagged string as plain text, for the places markup cannot go — an
+ * `aria-label` above all.
+ *
+ * Nested tags stay raw inside a parent's parts, so the flattened text can come
+ * back still carrying one; the pass repeats until there is nothing left to
+ * unwrap. A heading like `{@dice d6|🎲}` is the reason this exists: read
+ * straight it named a region after its own markup.
+ */
+export function plainText(input: string): string {
+  let text = input;
+
+  for (let pass = 0; pass < 4 && text.includes("{@"); pass++) {
+    text = splitByTags(text)
+      .map((segment) =>
+        segment.kind === "tag" ? labelForTag(segment) : segment.value,
+      )
+      .join("");
+  }
+
+  return text.trim();
+}
+
+/**
  * The text a tag shows to a reader. Most tags carry an optional display
  * override, as in `{@condition blinded||blind}`.
  */
