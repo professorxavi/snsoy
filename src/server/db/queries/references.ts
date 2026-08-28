@@ -12,6 +12,7 @@ import {
   type ReferenceIndex,
   type ResolvedReference,
 } from "@/lib/content/references";
+import { splitSections } from "@/lib/content/outline";
 import { tableAnchorId } from "@/lib/content/tables";
 import { hrefFor, isFragmentType } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
@@ -229,6 +230,19 @@ interface TableRow {
   display: string;
   slug: string | null;
   classHref: string | null;
+  /** Set only where the section above an uncaptioned table is the target. */
+  anchor?: string;
+}
+
+/** Whether a section holds a table anywhere beneath it. */
+function holdsTable(entries: unknown): boolean {
+  if (Array.isArray(entries)) return entries.some(holdsTable);
+  if (!entries || typeof entries !== "object") return false;
+
+  const node = entries as Record<string, unknown>;
+  if (node["type"] === "table" || node["type"] === "tableGroup") return true;
+
+  return Object.values(node).some(holdsTable);
 }
 
 /**
@@ -331,6 +345,55 @@ async function fetchTableAnchors(
     }
   }
 
+  /*
+   * Last, a table the books print without a caption. The PHB's tools table is
+   * one: `{@table tools|phb}` names it, but the caption lives on the section
+   * above it rather than on the table, so neither lookup above can see it. The
+   * section is what the reader is sent to, at the anchor `splitSections` gives
+   * it — the same function the chapter page renders from, so the two cannot
+   * drift apart.
+   */
+  const stillMissing = targets.filter(
+    (target) => !found.has(`${target.caption}|${target.source}`),
+  );
+
+  if (stillMissing.length > 0) {
+    const captionsLeft = [...new Set(stillMissing.map((t) => t.caption))];
+
+    const chapters = (await db.execute(sql`
+      SELECT lower(e.source_id) AS source,
+             e.slug             AS slug,
+             bs.data->'entries' AS entries
+      FROM book_sections bs
+      JOIN entities e ON e.id = bs.entity_id
+      WHERE lower(e.source_id) = ANY(${sql.param([...new Set(stillMissing.map((t) => t.source))])})
+        AND EXISTS (
+          SELECT 1
+          FROM jsonb_array_elements(bs.data->'entries') top
+          WHERE lower(top->>'name') = ANY(${sql.param(captionsLeft)})
+        )
+    `)) as unknown as { source: string; slug: string; entries: unknown[] }[];
+
+    for (const chapter of chapters) {
+      for (const section of splitSections(chapter.entries).sections) {
+        const caption = section.title.toLowerCase();
+        if (!captionsLeft.includes(caption)) continue;
+        if (found.has(`${caption}|${chapter.source}`)) continue;
+        // A section only answers for a table tag if it actually holds a table.
+        if (!holdsTable(section.entries)) continue;
+
+        found.set(`${caption}|${chapter.source}`, {
+          caption,
+          source: chapter.source,
+          display: section.title,
+          slug: chapter.slug,
+          anchor: section.id,
+          classHref: null,
+        });
+      }
+    }
+  }
+
   return targets.flatMap((target) => {
     const row = found.get(`${target.caption}|${target.source}`);
     if (!row) return [];
@@ -341,7 +404,7 @@ async function fetchTableAnchors(
       {
         key: target.key,
         name: row.display,
-        href: `${page}#${tableAnchorId(row.display)}`,
+        href: `${page}#${row.anchor ?? tableAnchorId(row.display)}`,
       },
     ];
   });

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { collectAreaTargets } from "@/lib/content/references";
+import {
+  collectAreaTargets,
+  tableKeyFor,
+} from "@/lib/content/references";
 import type * as ReferenceQueries from "./references";
 
 /**
@@ -81,5 +84,70 @@ describeDb("area anchors against the seed", () => {
 
     expect(wanted.length).toBeGreaterThan(90);
     expect(wanted.filter((id) => !hrefs[id])).toEqual([]);
+  });
+});
+
+/**
+ * Smoke test: resolve `{@table}` against the seeded database.
+ *
+ * A table is the second thing that addresses a position inside a chapter rather
+ * than an entity, and it reaches one of three ways — a captioned table in a
+ * chapter, a table inside a class feature, or the section above a table the
+ * books print without a caption. Each is a separate lookup, and only the seed
+ * can show they all still hit.
+ */
+describeDb("table anchors against the seed", () => {
+  const load = async () => {
+    const queries: typeof ReferenceQueries = await import("./references");
+    return queries;
+  };
+
+  it("sends a captioned table to the chapter that prints it", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("magic item table c", "dmg");
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/sources/dmg/treasure#table-magic-item-table-c",
+    );
+  });
+
+  /** The tag names the block and the caption; only the caption is the table. */
+  it("takes the caption out of a qualified name", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("minor beneficial properties", "dmg");
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/sources/dmg/treasure#table-minor-beneficial-properties",
+    );
+  });
+
+  /** Wild Magic Surge is printed in a class feature, not in any chapter. */
+  it("falls back to the class page for a table inside a feature", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("wild magic surge", "phb");
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/compendium/classes/phb/sorcerer#table-wild-magic-surge",
+    );
+  });
+
+  /**
+   * The PHB's tools table carries no caption of its own — the name is on the
+   * section above it, which is what the reader is sent to.
+   */
+  it("sends an uncaptioned table to the section that names it", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("tools", "phb");
+
+    expect((await resolveReferences([key]))[key]?.href).toBe(
+      "/sources/phb/equipment#tools",
+    );
+  });
+
+  it("leaves a table the books do not carry unresolved", async () => {
+    const { resolveReferences } = await load();
+    const key = tableKeyFor("no such table", "dmg");
+
+    expect((await resolveReferences([key]))[key]).toBeUndefined();
   });
 });
