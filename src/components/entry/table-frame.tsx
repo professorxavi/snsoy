@@ -125,6 +125,18 @@ export function TableFrame({
         data-table-scroll=""
         data-table-label={label}
         /*
+         * `TableScrollers` writes `tabindex`, `role`, `aria-label` and the
+         * overflow marks onto this box as soon as it mounts — which, because a
+         * chapter is streamed, is while React is still hydrating the tables
+         * further down the page. React then finds attributes on a node it is
+         * part-way through claiming and reports a mismatch it cannot patch up.
+         *
+         * The attributes are right and the warning is not: this box is owned
+         * from outside React by design. Saying so here says it about this one
+         * element rather than about the page.
+         */
+        suppressHydrationWarning
+        /*
          * Only a bounded box can be scrolled downwards. One in normal flow
          * grows to its content, so whatever block overflow it reports is the
          * box measuring itself rather than something a reader could reach.
