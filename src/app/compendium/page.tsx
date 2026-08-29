@@ -54,7 +54,7 @@ export default function CompendiumPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            Everything the rules name, and everywhere they name it.
+            Browse rules, creatures, equipment and character options.
           </Text>
         </Stack>
 

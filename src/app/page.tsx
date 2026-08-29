@@ -125,7 +125,7 @@ export default async function Home() {
               maxW="measure"
               mt={{ base: "6", md: "8" }}
             >
-              The game you know, kept together.
+              The game stays yours.
             </Text>
 
             <Text

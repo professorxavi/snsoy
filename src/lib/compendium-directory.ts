@@ -158,7 +158,7 @@ export const DIRECTORY: DirectoryGroup[] = [
       {
         type: "race",
         label: "Races",
-        blurb: "Ancestries and the subraces beneath them.",
+        blurb: "Traits, abilities and subraces.",
       },
       {
         type: "class",
@@ -167,7 +167,7 @@ export const DIRECTORY: DirectoryGroup[] = [
       },
       {
         label: "Sidekicks",
-        blurb: "The three companion classes, for a party of one.",
+        blurb: "Companion classes that level up alongside a small party.",
         route: "/compendium/sidekicks",
         ready: true,
       },
@@ -179,7 +179,7 @@ export const DIRECTORY: DirectoryGroup[] = [
       {
         type: "feat",
         label: "Feats",
-        blurb: "Talents taken in place of an ability score increase.",
+        blurb: "Talents your character can choose as they grow.",
       },
     ],
   },
@@ -190,7 +190,7 @@ export const DIRECTORY: DirectoryGroup[] = [
       {
         type: "monster",
         label: "Monsters",
-        blurb: "Statblocks by challenge rating, type and size.",
+        blurb: "Creatures by challenge rating, type and size.",
       },
       /*
        * One card, not three. `baseitem` and `itemGroup` used to have their own,
@@ -232,7 +232,7 @@ export const DIRECTORY: DirectoryGroup[] = [
       {
         type: "language",
         label: "Languages",
-        blurb: "Scripts, and who you can talk to.",
+        blurb: "Scripts and who you can talk to.",
       },
     ],
   },

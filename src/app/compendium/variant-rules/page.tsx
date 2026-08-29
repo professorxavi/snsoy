@@ -53,7 +53,14 @@ export default async function VariantRulesPage({
   const rows = await listGeneric("variantrule", FIELDS, q);
 
   return (
-    <Box as="main" id="main" maxW="4xl" px={{ base: "5", md: "8" }} pb="16">
+    <Box
+      as="main"
+      id="main"
+      maxW="4xl"
+      mx="auto"
+      px={{ base: "5", md: "8" }}
+      pb="16"
+    >
       <Stack
         gap="3"
         maxW="measure"

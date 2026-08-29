@@ -43,10 +43,18 @@ export default async function ActionsPage() {
   return (
     /*
      * Held to a column rather than the page's full width — see the skills page,
-     * which sets the same measure for the same reason. The space the table does
-     * not use is where the aside opens.
+     * which sets the same measure for the same reason, and centred in whatever
+     * width it is given. The aside takes a grid column of its own rather than
+     * the space beside the table, so centring costs it nothing.
      */
-    <Box as="main" id="main" maxW="4xl" px={{ base: "5", md: "8" }} pb="16">
+    <Box
+      as="main"
+      id="main"
+      maxW="4xl"
+      mx="auto"
+      px={{ base: "5", md: "8" }}
+      pb="16"
+    >
       <Stack
         gap="3"
         maxW="measure"
@@ -70,7 +78,7 @@ export default async function ActionsPage() {
           lineHeight="1.65"
           color="fg.muted"
         >
-          What a turn can be spent on, and what each one costs.
+          What you can do on your turn, and what it costs.
         </Text>
       </Stack>
 

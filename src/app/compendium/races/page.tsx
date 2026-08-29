@@ -56,7 +56,7 @@ export default async function RacesPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            What your character is born with, before they choose anything.
+            The traits, movement and abilities your character starts with.
           </Text>
         </Stack>
 

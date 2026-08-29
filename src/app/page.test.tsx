@@ -66,7 +66,7 @@ describe("the landing page", () => {
   it("states what the product is for", async () => {
     await renderPage();
 
-    expect(screen.getByText(/The game you know, kept together\./)).toBeInTheDocument();
+    expect(screen.getByText(/The game stays yours\./)).toBeInTheDocument();
   });
 
   /**

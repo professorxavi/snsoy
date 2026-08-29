@@ -55,7 +55,7 @@ export default async function SidekicksPage() {
             lineHeight="1.65"
             color="fg.muted"
           >
-            A creature a small party takes along, and levels up beside them.
+            Companions that join a small party and level up alongside it.
           </Text>
         </Stack>
 

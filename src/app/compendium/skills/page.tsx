@@ -33,14 +33,17 @@ export default async function SkillsPage({
     /*
      * Held to a column rather than the page's full width. Four narrow columns
      * stretched across a wide screen put a foot of empty space between a skill's
-     * name and what it covers, and the eye has to travel it on every row. The
-     * table takes the heading's own measure and left edge, and the space it does
-     * not use is where the aside opens.
+     * name and what it covers, and the eye has to travel it on every row.
+     *
+     * Centred in whatever width it is given, as the class, race and sidekick
+     * indexes are. `BrowseFrame` gives the aside a grid column of its own, so
+     * the room beside the table was never being held for it.
      */
     <Box
       as="main"
       id="main"
       maxW="4xl"
+      mx="auto"
       px={{ base: "5", md: "8" }}
       pb="16"
     >
@@ -67,7 +70,7 @@ export default async function SkillsPage({
           lineHeight="1.65"
           color="fg.muted"
         >
-          Every ability check narrows to one of these.
+          What each skill covers, and the ability behind it.
         </Text>
       </Stack>
 

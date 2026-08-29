@@ -142,3 +142,63 @@ describe("IMPLEMENTED", () => {
     expect(IMPLEMENTED.has("spell")).toBe(true);
   });
 });
+
+/**
+ * What a card promises the destination behind it.
+ *
+ * The structural tests above ask whether a card points somewhere real. This
+ * asks whether it describes what the reader will find, which is the half a
+ * copy audit decides and nothing else can check.
+ *
+ * Every card is listed, revised and kept alike. The kept ones matter more: a
+ * blurb nobody argued about is the one a later edit rewords on the way past,
+ * and the audit's decision to leave it alone was a decision.
+ */
+const BLURBS: Record<string, string> = {
+  // Revised by the headline voice audit.
+  Races: "Traits, abilities and subraces.",
+  Sidekicks: "Companion classes that level up alongside a small party.",
+  Feats: "Talents your character can choose as they grow.",
+  Monsters: "Creatures by challenge rating, type and size.",
+  Languages: "Scripts and who you can talk to.",
+
+  // Kept by it.
+  Spells: "By level, school, casting time and class.",
+  Classes: "Progression, features and subclasses.",
+  Backgrounds: "Origins, proficiencies and the features they grant.",
+  Items: "Weapons, armour, treasure and gear, by rarity and attunement.",
+  Conditions: "Blinded, charmed, prone and the rest.",
+  Actions: "What you can do on your turn.",
+  Skills: "What each skill actually covers.",
+  "Variant Rules": "Optional rules a table can choose to adopt.",
+  Deities: "Pantheons, domains and holy symbols.",
+  Diseases: "Afflictions and how they worsen.",
+  Vehicles: "Ships, mounts and war machines.",
+  Decks: "Decks of many things, and the cards they deal.",
+};
+
+describe("what the cards say", () => {
+  it("gives every card the blurb the audit settled on", () => {
+    for (const entry of entries) {
+      expect(BLURBS[entry.label], `no expected blurb for ${entry.label}`).toBeDefined();
+      expect(entry.blurb).toBe(BLURBS[entry.label]);
+    }
+  });
+
+  /** A card added without a decision about its words would slip past above. */
+  it("covers every card and no others", () => {
+    expect(entries.map((entry) => entry.label).sort()).toEqual(
+      Object.keys(BLURBS).sort(),
+    );
+  });
+
+  /**
+   * "Statblock" was the one piece of rendering vocabulary that had reached the
+   * cards. A reader chooses a creature; the structure it is drawn in is ours.
+   */
+  it("keeps rendering vocabulary out of them", () => {
+    for (const entry of entries) {
+      expect(entry.blurb.toLowerCase()).not.toMatch(/statblock|stat block|record|entry|database/);
+    }
+  });
+});
