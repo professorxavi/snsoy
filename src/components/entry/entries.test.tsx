@@ -1031,6 +1031,83 @@ describe("the heading over a named sub-section", () => {
   });
 });
 
+/**
+ * A sidebar's place in the outline.
+ *
+ * The box is the only thing on the page that says a sidebar contains its own
+ * text, and a reader moving by headings never sees the box. So the levels have
+ * to carry it. They used to say the opposite: the name was fixed at `h4` while
+ * the blocks inside it kept rendering at the page's own level, so a named block
+ * in a sidebar came out as an `h3` beneath an `h4` — a sibling of the sidebar's
+ * parent rather than part of the sidebar.
+ */
+describe("the heading over a sidebar", () => {
+  const SIDEBAR: Entry = {
+    type: "inset",
+    name: "Customizing Dragons",
+    entries: [
+      {
+        type: "entries",
+        name: "Languages",
+        entries: ["A dragon can be given languages it does not normally know."],
+      },
+    ],
+  };
+
+  const outline = () =>
+    screen.getAllByRole("heading").map((node) => node.tagName);
+
+  /*
+   * Every surface, because each starts somewhere different: a chapter body opens
+   * at 2, and a creature or a race passes nothing and opens at 3.
+   */
+  for (const [level, expected] of [
+    [2, ["H2", "H3"]],
+    [3, ["H3", "H4"]],
+    [4, ["H4", "H5"]],
+  ] as const) {
+    it(`puts a sidebar's contents beneath it, opening at ${level}`, () => {
+      render(<Entries entries={[SIDEBAR]} headingLevel={level} />);
+
+      expect(outline()).toEqual([...expected]);
+    });
+  }
+
+  /** Bottoming out where the elements do, as a named section already does. */
+  it("stops descending at 5", () => {
+    render(<Entries entries={[SIDEBAR]} headingLevel={5} />);
+
+    expect(outline()).toEqual(["H5", "H5"]);
+  });
+
+  /**
+   * The element is the whole of the change. A sidebar's name is set in the
+   * display face at one size wherever it appears, and the level it happens to
+   * take says nothing about how it looks.
+   */
+  it("keeps the name's styling when its element changes", () => {
+    const classesAt = (level: 2 | 4) => {
+      const { container, unmount } = render(
+        <Entries entries={[SIDEBAR]} headingLevel={level} />,
+      );
+      const className = container.querySelector(`h${level}`)?.className;
+      unmount();
+      return className;
+    };
+
+    expect(classesAt(2)).toBe(classesAt(4));
+  });
+
+  /** No name, no heading — and nothing inside it is promoted to stand in. */
+  it("emits no heading for a sidebar that only boxes", () => {
+    const { container } = render(
+      <Entries entries={[{ type: "inset", entries: ["Just prose."] }]} />,
+    );
+
+    expect(container.querySelector("h1,h2,h3,h4,h5,h6")).toBeNull();
+  });
+});
+
 describe("a name printed on a line of its own", () => {
   const OPTION: OptionalFeatureIndex = {
     "optionalfeature|archery|phb": {

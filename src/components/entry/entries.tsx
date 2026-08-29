@@ -1650,8 +1650,28 @@ function SpellcastingBlock({
   );
 }
 
-/** A sidebar. Boxed, as it is in print. */
+/**
+ * A sidebar. Boxed, as it is in print.
+ *
+ * The name takes the level the context is at and the contents go one below it,
+ * as they do everywhere else. The name used to be fixed at `h4` while the blocks
+ * inside it kept rendering at the context's own level, so a named block in a
+ * sidebar came out as an `h3` under an `h4` — an outline that says the block is
+ * a sibling of the sidebar's parent rather than something the sidebar contains.
+ * The box says otherwise, and the box is not available to everyone reading it.
+ *
+ * Only the element changes. The tier is passed through untouched rather than
+ * stepped, so the name keeps the display face it has always had and nothing
+ * inside the box moves.
+ */
 function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
+  const level = ctx.headingLevel ?? 3;
+  const nested: RenderContext = {
+    ...under(ctx, entry.name),
+    headingLevel: level < 5 ? ((level + 1) as HeadingLevel) : 5,
+    headingTier: ctx.headingTier ?? tierFor(level),
+  };
+
   return (
     <Box
       bg="bg.muted"
@@ -1665,7 +1685,7 @@ function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
     >
       {entry.name ? (
         <Text
-          as="h4"
+          as={`h${level}`}
           fontFamily="display"
           fontSize="sm"
           lineHeight="1.2"
@@ -1674,7 +1694,7 @@ function InsetBlock({ entry, ctx }: { entry: InsetEntry; ctx: RenderContext }) {
           {inline(entry.name, ctx)}
         </Text>
       ) : null}
-      <Entries entries={entry.entries} {...under(ctx, entry.name)} />
+      <Entries entries={entry.entries} {...nested} />
     </Box>
   );
 }
