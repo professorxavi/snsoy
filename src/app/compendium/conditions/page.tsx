@@ -66,6 +66,7 @@ export default async function ConditionsPage() {
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           What being blinded, grappled or frightened actually does to you.
         </Text>

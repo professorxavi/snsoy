@@ -79,6 +79,7 @@ export default async function DecksPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           Every deck the books print, and what it deals.
         </Text>

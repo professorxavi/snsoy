@@ -82,6 +82,7 @@ export default async function LanguagesPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           What your character can speak, read and overhear.
         </Text>

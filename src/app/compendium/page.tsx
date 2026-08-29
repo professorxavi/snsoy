@@ -53,6 +53,7 @@ export default function CompendiumPage() {
             fontSize="md"
             lineHeight="1.65"
             color="fg.muted"
+            textWrap="pretty"
           >
             Browse rules, creatures, equipment and character options.
           </Text>
@@ -113,6 +114,7 @@ function TypeCard({ entry }: { entry: DirectoryEntry }) {
         fontSize="xs"
         lineHeight="1.5"
         color="fg.muted"
+        textWrap="pretty"
       >
         {entry.blurb}
       </Text>

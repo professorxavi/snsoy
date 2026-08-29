@@ -136,6 +136,7 @@ export default async function Home() {
               color="fg.muted"
               maxW="measure"
               mt="5"
+              textWrap="pretty"
             >
               Read the books, build characters, and run your table with the
               rules your group chose.
@@ -284,6 +285,7 @@ function LedgerRow({ entry }: { entry: (typeof ENTRIES)[number] }) {
           lineHeight="1.6"
           color="fg.muted"
           mt="1"
+          textWrap="pretty"
         >
           {entry.body}
         </Text>

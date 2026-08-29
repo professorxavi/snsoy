@@ -77,6 +77,7 @@ export default async function ActionsPage() {
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           What you can do on your turn, and what it costs.
         </Text>

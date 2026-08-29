@@ -69,6 +69,7 @@ export default async function SkillsPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           What each skill covers, and the ability behind it.
         </Text>

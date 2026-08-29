@@ -55,6 +55,7 @@ export default async function RacesPage() {
             fontSize="md"
             lineHeight="1.65"
             color="fg.muted"
+            textWrap="pretty"
           >
             The traits, movement and abilities your character starts with.
           </Text>

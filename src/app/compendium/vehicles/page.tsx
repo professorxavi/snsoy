@@ -108,6 +108,7 @@ export default async function VehiclesPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           Everything a party can crew, from a rowboat to a nautiloid.
         </Text>

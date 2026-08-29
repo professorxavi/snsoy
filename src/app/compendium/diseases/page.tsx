@@ -67,6 +67,7 @@ export default async function DiseasesPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           Afflictions a party can catch, and how each one worsens.
         </Text>

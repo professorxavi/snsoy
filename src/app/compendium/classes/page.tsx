@@ -49,6 +49,7 @@ export default async function ClassesPage() {
             fontSize="md"
             lineHeight="1.65"
             color="fg.muted"
+            textWrap="pretty"
           >
             What your character can do, and when they learn it.
           </Text>

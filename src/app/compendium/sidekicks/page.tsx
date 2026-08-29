@@ -54,6 +54,7 @@ export default async function SidekicksPage() {
             fontSize="md"
             lineHeight="1.65"
             color="fg.muted"
+            textWrap="pretty"
           >
             Companions that join a small party and level up alongside it.
           </Text>

@@ -83,6 +83,7 @@ export default async function VariantRulesPage({
           fontSize="md"
           lineHeight="1.65"
           color="fg.muted"
+          textWrap="pretty"
         >
           Rules a table can choose to adopt, replace or ignore.
         </Text>
