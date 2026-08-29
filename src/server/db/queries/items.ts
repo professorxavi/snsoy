@@ -316,17 +316,32 @@ export interface ItemVocabulary {
  * re-ingest. Cached per request, because every list row and every open item
  * needs the same two maps.
  *
- * A property's display name is usually the name of its first entry — the rules
- * text that defines it — and only "special" carries a top-level `name`.
+ * The two kinds name themselves differently, which is why the label is a case
+ * rather than one expression.
+ *
+ * A *property* usually has no `name` at all — 13 of the 14 carry only the rules
+ * text that defines them, so its first entry's name is the property's name, and
+ * only "special" has one of its own.
+ *
+ * A *type* always has one. Reading its first entry instead labelled 432 ranged
+ * weapons "Range" and every ship "Crew", because those two rows open with an
+ * entry describing an aspect of the type rather than restating it. The other
+ * four types with entries happen to repeat their own name, which is what kept
+ * it to two visible faults.
  */
 export const itemVocabulary = cache(async (): Promise<ItemVocabulary> => {
   const rows = await db
     .select({
       kind: supportData.kind,
       key: supportData.key,
-      name: sql<
-        string | null
-      >`coalesce(${supportData.data}->'entries'->0->>'name', ${supportData.data}->>'name')`,
+      name: sql<string | null>`CASE
+        WHEN ${supportData.kind} = 'itemType'
+          THEN ${supportData.data}->>'name'
+        ELSE coalesce(
+          ${supportData.data}->'entries'->0->>'name',
+          ${supportData.data}->>'name'
+        )
+      END`,
     })
     .from(supportData)
     .where(inArray(supportData.kind, ["itemType", "itemProperty"]));

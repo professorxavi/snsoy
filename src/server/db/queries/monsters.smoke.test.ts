@@ -445,15 +445,18 @@ describeDb("monster queries against the seed", () => {
     /**
      * Exact, because ingest runs once and every instance restores the same dump.
      *
-     * All 223 creatures naming a group resolve, and **214 have something to
-     * show**. `Umbraxakar` was the one that did not: it named a group the books
-     * do not carry, the source data was corrected on 2026-08-29 to `Bronze
-     * Dragon|MM`, and the seed re-cut.
+     * All 223 creatures naming a group resolve, and **all 223 have something to
+     * show**. Two faults had to be cleared to get there, both on 2026-08-29:
      *
-     * The nine that still show nothing are hags, whose five groups keep their
-     * lair text inside an upstream `_copy` directive ingest never applied.
-     * That is an ingest gap rather than bad data, so correcting the books
-     * would not fix it; see the plan.
+     * - `Umbraxakar` named a group the books do not carry. Bad data, corrected
+     *   in the source to `Bronze Dragon|MM`.
+     * - Sixteen groups kept their lair text inside an upstream `_copy`
+     *   directive that support data was never run through, unlike every other
+     *   collection. Nine hags showed nothing and eleven archdevils showed
+     *   regional effects with their lair actions missing — the worse half,
+     *   because the page looked complete. Ingest now resolves support copies.
+     *
+     * If any of these three numbers falls, one of those has come back.
      *
      * The condition matches the page: it renders a mythic encounter as well as
      * lair actions and regional effects, so a group carrying only that one is
@@ -476,7 +479,7 @@ describeDb("monster queries against the seed", () => {
 
       expect(row.named).toBe(223);
       expect(row.resolved).toBe(223);
-      expect(row.renders).toBe(214);
+      expect(row.renders).toBe(223);
     });
   });
 });

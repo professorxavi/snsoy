@@ -316,6 +316,53 @@ describeDb("item queries against the seed", () => {
       expect(properties.get("2H")).toBe("Two-Handed");
     });
 
+    /**
+     * A type is named by its own `name`, not by its first entry.
+     *
+     * These two are why the rule is a case. Both open with an entry describing
+     * an aspect of the type rather than restating it, so reading the entry
+     * labelled 432 ranged weapons "Range" — the longbow row read
+     * "+1 Longbow · Range · Uncommon" — and all seven ships "Crew". Four other
+     * types carry entries too and happen to repeat their own name, which is
+     * what kept the fault down to these two and hid it for months.
+     */
+    it("names a type after itself, not after its first entry", async () => {
+      const { types } = await queries.itemVocabulary();
+
+      expect(types.get("R")).toBe("Ranged Weapon");
+      expect(types.get("SHP")).toBe("Vehicle (Water)");
+      // Inherits SHP's rules text, so its first entry is "Crew" as well.
+      expect(types.get("AIR")).toBe("Vehicle (Air)");
+    });
+
+    /**
+     * And the fallback stays, because a property is the other way round: 13 of
+     * the 14 carry no `name` at all and would vanish from the table without it.
+     */
+    it("still names a property after the entry that defines it", async () => {
+      const { properties } = await queries.itemVocabulary();
+
+      expect(properties.get("F")).toBe("Finesse");
+      expect(properties.get("LD")).toBe("Loading");
+      expect(properties.get("T")).toBe("Thrown");
+    });
+
+    /** Every type an item cites resolves to something, as properties must. */
+    it("covers every type abbreviation items cite", async () => {
+      const { types } = await queries.itemVocabulary();
+
+      const cited = (await db.execute(
+        sql`select distinct split_part(upper(data->>'type'), '|', 1) as code
+            from items where data ? 'type'`,
+      )) as unknown as { code: string }[];
+
+      const missing = cited
+        .map((row) => row.code)
+        .filter((code) => code && !types.get(code));
+
+      expect(missing).toEqual([]);
+    });
+
     /** A property's name is the name of the rules entry that defines it. */
     it("covers every property abbreviation items cite", async () => {
       const { properties } = await queries.itemVocabulary();
