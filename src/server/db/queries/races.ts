@@ -1,5 +1,9 @@
 import { and, asc, eq, ilike, sql } from "drizzle-orm";
-import { NPC_RACE_TAG, type AbilityBonus, type RaceSpeed } from "@/lib/content/races";
+import {
+  NPC_RACE_TAG,
+  type AbilityBonus,
+  type RaceSpeed,
+} from "@/lib/content/races";
 import { db } from "../client";
 import { races } from "../schema/content";
 import { entities } from "../schema/entities";
@@ -21,7 +25,9 @@ const displayColumns = {
   ability: sql<AbilityBonus[] | null>`${races.data}->'ability'`,
 };
 
-export type RaceListGroup = Awaited<ReturnType<typeof listRacesBySource>>[number];
+export type RaceListGroup = Awaited<
+  ReturnType<typeof listRacesBySource>
+>[number];
 export type RaceListItem = RaceListGroup["races"][number];
 
 /**
@@ -49,6 +55,38 @@ const GROUP_RANK = sql<number>`
  */
 const IS_NPC_RACE = sql<boolean>`
   coalesce(${races.traitTags}, '{}') @> ARRAY[${NPC_RACE_TAG}]::text[]
+`;
+
+/**
+ * A subrace that carries no rules of its own.
+ *
+ * Mordenkainen's names the nine tiefling bloodlines, and eight of them change
+ * something — Zariel trades the Charisma and Intelligence for Charisma and
+ * Strength, and swaps the spells. Asmodeus is the one printed to say that the
+ * tiefling in the *Player's Handbook* was his all along, so its entry carries a
+ * name, a page and nothing else: no size, no speed, no ability spread, no
+ * traits. Opening it shows an empty panel, and listing it says a choice exists
+ * where there is none. D&D Beyond does not show it either.
+ *
+ * Written as the absence of every field a subrace could contribute rather than
+ * as that one name, because that is the actual reason it is hidden — and if a
+ * later book prints another placeholder it disappears for the same reason
+ * without anyone having to notice. It matches exactly one row today.
+ *
+ * `has_ability_choice` is in there because a subrace may offer only a choice,
+ * with `ability_bonuses` empty, and that is a rule like any other.
+ */
+export const SAYS_NOTHING = sql`
+  ${races.parentRaceId} IS NOT NULL
+  AND ${races.size} IS NULL
+  AND ${races.speedWalk} IS NULL
+  AND ${races.speedFly} IS NULL
+  AND ${races.speedSwim} IS NULL
+  AND ${races.abilityBonuses} IS NULL
+  AND ${races.hasAbilityChoice} = false
+  AND ${races.traitTags} IS NULL
+  AND ${races.languageProficiencies} IS NULL
+  AND NOT (${races.data} ? 'entries')
 `;
 
 /**
@@ -149,7 +187,9 @@ export async function getRace(sourceId: string, slug: string) {
     .from(races)
     .innerJoin(entities, eq(entities.id, races.entityId))
     .innerJoin(sources, eq(sources.id, entities.sourceId))
-    .where(eq(races.parentRaceId, race.id))
+    // A subrace with nothing to say is left out entirely rather than rendered
+    // as an empty disclosure — see `SAYS_NOTHING`.
+    .where(and(eq(races.parentRaceId, race.id), sql`NOT (${SAYS_NOTHING})`))
     .orderBy(asc(entities.name));
 
   return { ...race, subraces };

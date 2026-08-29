@@ -8,7 +8,7 @@ import { SubraceList } from "./subrace-accordion";
  * Two decisions here are load-bearing and neither is visible in a diff:
  *
  *  - the body is rendered into the document even while collapsed, so a
- *    Tiefling's thirteen subraces are all in the HTML, findable with the
+ *    Tiefling's twelve subraces are all in the HTML, findable with the
  *    browser's own find-in-page and readable without JavaScript;
  *  - the anchor sits *inside* the disclosure rather than on it, because
  *    browsers expand a closed `<details>` when the fragment targets its

@@ -14,7 +14,7 @@ import { TraitSummary } from "./trait-summary";
  * A race at aside width.
  *
  * The same bargain the class aside strikes. A race page carries its named
- * traits in full and every subrace under it — a PHB Tiefling has 13 — and none
+ * traits in full and every subrace under it — a PHB Tiefling has 12 — and none
  * of that reads in a 400px column. What belongs here is the question someone
  * meeting the word "Aasimar" mid-chapter actually has: what is it, what does it
  * do to my numbers, and is it what I want.

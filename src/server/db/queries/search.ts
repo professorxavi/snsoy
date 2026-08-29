@@ -2,8 +2,10 @@ import { sql, type SQL } from "drizzle-orm";
 import { MATCH_END, MATCH_START } from "@/lib/content/search";
 import { hrefFor } from "@/lib/routes";
 import type { EntityType } from "@/server/db/schema/enums";
+import { races } from "../schema/content";
 import { db } from "../client";
 import { toOptions, type FacetOption } from "./facets";
+import { SAYS_NOTHING } from "./races";
 import { ancestorsOf, fetchAncestry } from "./references";
 
 /**
@@ -121,6 +123,25 @@ const ESCAPED_QUERY: SQL = sql`
 `;
 
 /**
+ * Rows the reader has no way to open, kept out of the results.
+ *
+ * The index is built at ingest and knows nothing about what the pages choose to
+ * render, so anything hidden downstream has to be excluded here too — otherwise
+ * searching finds a row whose link lands on an anchor that is no longer on the
+ * page. One thing meets this today: the tiefling's Asmodeus bloodline, which
+ * carries no rules and is left off its parent's page. See `SAYS_NOTHING`.
+ *
+ * Applied to the counts as well as the rows, or the facet rail would offer a
+ * subrace that the result list then declines to show.
+ */
+const REACHABLE: SQL = sql`
+  NOT EXISTS (
+    SELECT 1 FROM ${races}
+    WHERE ${races.entityId} = si.entity_id AND (${SAYS_NOTHING})
+  )
+`;
+
+/**
  * Which tier a row matched in. `LIKE` rather than a regular expression because
  * the pattern is user text either way, and `LIKE` has two metacharacters to
  * defuse where a regex has a dozen.
@@ -215,7 +236,9 @@ interface ScoredRow {
  * query in the books ("damage") reaches 6,726 rows. Running it before the
  * limit would mean paying that 6,726 times to print twenty snippets.
  */
-export async function searchEntities(params: SearchParams): Promise<SearchPage> {
+export async function searchEntities(
+  params: SearchParams,
+): Promise<SearchPage> {
   const perPage = params.perPage ?? RESULTS_PER_PAGE;
   const requested = Math.max(1, params.page ?? 1);
   const offset = (requested - 1) * perPage;
@@ -239,6 +262,7 @@ export async function searchEntities(params: SearchParams): Promise<SearchPage> 
           + ${prominenceCase()} AS score
       FROM search_index si, q
       WHERE (si.tsv @@ q.tsq OR si.name % q.raw)
+        AND ${REACHABLE}
         ${typeClause(params.types)}
     ),
     paged AS (
@@ -438,7 +462,8 @@ export async function suggestEntities(
           + 0.5 * ts_rank(si.tsv, q.tsq)
           + ${prominenceCase()} AS score
       FROM search_index si, q
-      WHERE si.tsv @@ q.tsq OR si.name % q.raw
+      WHERE (si.tsv @@ q.tsq OR si.name % q.raw)
+        AND ${REACHABLE}
     ),
     literal AS (
       SELECT bool_or(tier > 0) AS any FROM scored
@@ -516,7 +541,8 @@ export async function searchFacets(
     )
     SELECT si.entity_type AS "value", count(*) AS "n"
     FROM search_index si, q
-    WHERE si.tsv @@ q.tsq OR si.name % q.raw
+    WHERE (si.tsv @@ q.tsq OR si.name % q.raw)
+      AND ${REACHABLE}
     GROUP BY si.entity_type
   `)) as unknown as { value: EntityType; n: string }[];
 

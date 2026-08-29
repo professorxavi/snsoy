@@ -8,7 +8,7 @@ import { RaceAside } from "./race-aside";
  *
  * As with the class aside, the assertions that matter are the absences: the
  * named traits and the subraces belong to the full page, and a PHB Tiefling's
- * thirteen subraces in a 400px column would be worse than not opening it.
+ * twelve subraces in a 400px column would be worse than not opening it.
  */
 
 const race = (over: Partial<RaceDetail> = {}): RaceDetail =>
@@ -102,7 +102,7 @@ describe("the race aside", () => {
     expect(screen.queryByText(/You see in the dark/)).not.toBeInTheDocument();
   });
 
-  /** Subraces belong to the full page; a Tiefling has thirteen. */
+  /** Subraces belong to the full page; a Tiefling has twelve. */
   it("leaves the subraces to the full page", () => {
     render(<RaceAside race={race()} refs={{}} />);
 

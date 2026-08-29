@@ -2,7 +2,7 @@ import { Box, Stack, Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 
 /**
- * Collapsible subrace list. A PHB Tiefling has thirteen subraces, which would
+ * Collapsible subrace list. A PHB Tiefling has twelve subraces, which would
  * otherwise push the race's own traits off screen.
  *
  * Built on `<details>` rather than Chakra's Accordion, which does not respond
