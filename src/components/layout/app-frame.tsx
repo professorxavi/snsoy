@@ -1,6 +1,7 @@
 import { Box } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { AsideProvider } from "@/components/compendium/aside-context";
+import { ImageViewer } from "@/components/entry/image-viewer";
 import { TableScrollers } from "@/components/entry/table-scrollers";
 import { TopNav } from "./top-nav";
 
@@ -45,6 +46,12 @@ export function AppFrame({ children }: { children: ReactNode }) {
           needs an observer of its own to find out that it fits.
         */}
         <TableScrollers />
+        {/*
+          The window a printed map opens into. One of it, for the same reason as
+          the scrollers above: the page may carry thirty images and needs one
+          shared window, not thirty.
+        */}
+        <ImageViewer />
       </Box>
     </AsideProvider>
   );

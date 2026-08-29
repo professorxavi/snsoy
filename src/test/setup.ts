@@ -37,6 +37,24 @@ if (!window.matchMedia) {
 }
 
 /**
+ * jsdom has the `<dialog>` element but not its modal behaviour, so `showModal`
+ * is missing outright. The stub does the one part a component test can observe
+ * — the element opens, and closing it fires `close` the way Escape and the
+ * close button do. The top layer, the focus trap and the backdrop are the
+ * browser's, and are checked in the browser.
+ */
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    if (!this.open) return;
+    this.open = false;
+    this.dispatchEvent(new Event("close"));
+  };
+}
+
+/**
  * jsdom implements no `ResizeObserver`, and `TableScrollers` uses one to decide
  * whether a table's region overflows — which is a fact about a laid-out box, so
  * jsdom could not answer it even if the class existed. The stub lets the app

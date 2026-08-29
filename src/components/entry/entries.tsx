@@ -32,6 +32,7 @@ import {
   tablePresentation,
 } from "@/lib/content/tables";
 import { reportGap } from "./coverage";
+import { zoomAttrs } from "./zoom";
 import { TableFrame } from "./table-frame";
 import { Inline } from "./inline";
 import {
@@ -1279,6 +1280,60 @@ function TableGroupBlock({
 }
 
 /**
+ * An image in prose, as a link that opens it at a readable size.
+ *
+ * A real anchor to the full-size file, which `ImageViewer` catches on the way
+ * up — the same arrangement as `AsideLinks` and for the same reason. It is
+ * reachable from the keyboard without the viewer inventing focus handling, it
+ * works before the script has hydrated, and a middle click still puts the map
+ * in its own tab.
+ *
+ * An image the data gives no path for has nothing to open and stays a picture.
+ */
+function Zoomable({
+  image,
+  entityName,
+  wide,
+  children,
+}: {
+  image: ImageEntry;
+  entityName: string;
+  /** Landscape art runs the column; the rest is only as wide as it is. */
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  const attrs = zoomAttrs(image, entityName);
+  const width = wide ? "100%" : "auto";
+
+  if (!attrs) {
+    return (
+      <Box w={width} maxW="100%">
+        {children}
+      </Box>
+    );
+  }
+
+  return (
+    <Box
+      asChild
+      display="block"
+      w={width}
+      maxW="100%"
+      cursor="zoom-in"
+      rounded="l1"
+      _focusVisible={{ outlineWidth: "2px", outlineOffset: "2px" }}
+    >
+      <a
+        aria-label={`View ${image.title ?? image.altText ?? entityName} at full size`}
+        {...attrs}
+      >
+        {children}
+      </a>
+    </Box>
+  );
+}
+
+/**
  * Art printed inside body text. Wide images run the full column; taller ones are
  * height-capped and centred, so a portrait plate cannot push a page of prose
  * off the screen.
@@ -1294,14 +1349,14 @@ function ImageBlock({ entry, ctx }: { entry: ImageEntry; ctx: RenderContext }) {
       alignItems="center"
       my="2"
     >
-      <Box w={wide ? "100%" : "auto"} maxW="100%">
+      <Zoomable image={entry} entityName={ctx.context ?? ""} wide={wide}>
         <Illustration
           image={entry}
           entityName={ctx.context ?? ""}
           maxHeight={wide ? 420 : 520}
           sizes="(max-width: 48em) 100vw, 36rem"
         />
-      </Box>
+      </Zoomable>
       {entry.title ? (
         <Text
           as="figcaption"
@@ -1349,12 +1404,14 @@ function GalleryBlock({
           key={image.href?.path ?? index}
           id={areaAnchor((image as { id?: unknown }).id, ctx)}
         >
-          <Illustration
-            image={image}
-            entityName={ctx.context ?? ""}
-            maxHeight={320}
-            sizes="(max-width: 48em) 100vw, 18rem"
-          />
+          <Zoomable image={image} entityName={ctx.context ?? ""}>
+            <Illustration
+              image={image}
+              entityName={ctx.context ?? ""}
+              maxHeight={320}
+              sizes="(max-width: 48em) 100vw, 18rem"
+            />
+          </Zoomable>
         </Anchored>
       ))}
     </Box>
