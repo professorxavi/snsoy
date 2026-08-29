@@ -339,20 +339,7 @@ function Block({
 
   return (
     <Box>
-      {heading ? (
-        <Text
-          as="h2"
-          fontFamily="display"
-          fontSize="md"
-          letterSpacing="tight"
-          borderBottomWidth="1px"
-          borderColor="border.emphasized"
-          pb="0.5"
-          mb="2"
-        >
-          {heading}
-        </Text>
-      ) : null}
+      {heading ? <StatblockHeading>{heading}</StatblockHeading> : null}
 
       {intro?.length ? (
         <Box mb="2">
@@ -371,6 +358,33 @@ function Block({
         {...ctx}
       />
     </Box>
+  );
+}
+
+/**
+ * A heading in the block's own voice — `Actions`, `Legendary Actions`.
+ *
+ * Exported because the monster page prints one more of these beneath the block
+ * itself: a creature's lair actions are the same kind of thing, read the same
+ * way, and are stored on the legendary group rather than the creature. Sharing
+ * the heading rather than copying it is what keeps the two from drifting; the
+ * lair content stays on the page so the aside, which has no room for it, is
+ * unchanged.
+ */
+export function StatblockHeading({ children }: { children: ReactNode }) {
+  return (
+    <Text
+      as="h2"
+      fontFamily="display"
+      fontSize="md"
+      letterSpacing="tight"
+      borderBottomWidth="1px"
+      borderColor="border.emphasized"
+      pb="0.5"
+      mb="2"
+    >
+      {children}
+    </Text>
   );
 }
 

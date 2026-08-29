@@ -13,6 +13,7 @@ import { db } from "../client";
 import { monsters } from "../schema/content";
 import { entities } from "../schema/entities";
 import { sources } from "../schema/sources";
+import { supportData } from "../schema/support";
 import { flagOption, toOptions, type FacetOption } from "./facets";
 
 /**
@@ -172,10 +173,31 @@ export async function getMonster(sourceId: string, slug: string) {
       isLegendary: monsters.isLegendary,
       data: monsters.data,
       fluff: entities.fluff,
+      /*
+       * What the creature does in its own lair, which the books print beside
+       * the block and this app showed nowhere.
+       *
+       * Joined on the key the creature names — `aboleth|mm` — and deliberately
+       * **not** through `monsters.legendary_group_id`. That column is set on
+       * 147 creatures and resolves for none of them: 112 point at the creature
+       * itself and the other 35 at a different creature altogether, so
+       * Exethanter would show the Lich's block and Mad Maggie the Night Hag's.
+       * There is no `legendaryGroup` in the `entity_type` enum for it to have
+       * pointed at. Left join, because 3,405 creatures have no lair at all.
+       */
+      lair: supportData.data,
     })
     .from(monsters)
     .innerJoin(entities, eq(entities.id, monsters.entityId))
     .innerJoin(sources, eq(sources.id, entities.sourceId))
+    .leftJoin(
+      supportData,
+      and(
+        eq(supportData.kind, "legendaryGroup"),
+        sql`${supportData.key} = lower(${monsters.data}->'legendaryGroup'->>'name')
+            || '|' || lower(${monsters.data}->'legendaryGroup'->>'source')`,
+      ),
+    )
     // Source ids are mixed case in the data ("TftYP-ToH") but lowercase in
     // URLs, so match case-insensitively rather than forcing the caller to know.
     .where(

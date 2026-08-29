@@ -167,6 +167,185 @@ describe("the creature page", () => {
     expect(outline()).toBeUndefined();
   });
 
+  /**
+   * What the creature does on its own ground.
+   *
+   * Stored on a legendary group rather than on the creature, because a lair is
+   * shared — every black dragon reads the same one — and the app showed none of
+   * it until now. `monsters.smoke.test.ts` owns where it comes from; these own
+   * where it lands, which is above the lore rule, because a lair action is
+   * something a DM reads mid-encounter and not narrative.
+   */
+  describe("its lair", () => {
+    const withLair = (lair: unknown) =>
+      renderPage({ lair } as Partial<MonsterDetail>);
+
+    const LAIR = {
+      name: "Aboleth",
+      lairActions: ["On initiative count 20, the aboleth takes a lair action."],
+      regionalEffects: ["Water within 1 mile is fouled."],
+    };
+
+    it("prints the lair actions and the regional effects", async () => {
+      await withLair(LAIR);
+
+      expect(
+        screen.getByRole("heading", { name: "Lair Actions", level: 2 }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/takes a lair action/)).toBeInTheDocument();
+      expect(
+        screen.getByRole("heading", { name: "Regional Effects", level: 2 }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Water within 1 mile/)).toBeInTheDocument();
+    });
+
+    /** Mechanics, so above the rule that says the mechanics have ended. */
+    it("puts them above the lore", async () => {
+      const { container } = await withLair(LAIR);
+
+      const heading = screen.getByRole("heading", { name: "Lair Actions" });
+      const lore = container.querySelector("#monster-lore-heading")!;
+      expect(
+        heading.compareDocumentPosition(lore) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    /** 24 groups carry lair actions and no regional effects, 23 the reverse. */
+    it("prints only the half a group carries", async () => {
+      await withLair({ name: "Kraken", lairActions: ["It calls a storm."] });
+
+      expect(screen.getByRole("heading", { name: "Lair Actions" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Regional Effects" })).toBeNull();
+    });
+
+    /** Three groups carry one, and it is rendered rather than dropped. */
+    it("prints a mythic encounter where there is one", async () => {
+      await withLair({ name: "Arasta", mythicEncounter: ["To make it mythic…"] });
+
+      expect(
+        screen.getByRole("heading", { name: "Mythic Encounter", level: 2 }),
+      ).toBeInTheDocument();
+    });
+
+    it("prints nothing for a creature with no group", async () => {
+      await withLair(null);
+
+      for (const name of ["Lair Actions", "Regional Effects", "Mythic Encounter"]) {
+        expect(screen.queryByRole("heading", { name })).toBeNull();
+      }
+    });
+
+    /**
+     * Six of the 144 groups carry neither list — five hags whose upstream
+     * `_copy` inheritance ingest never applied. A resolved group is not a
+     * promise of content, so an empty one must draw no heading.
+     */
+    it("draws no heading for a group with nothing in it", async () => {
+      await withLair({ name: "Night Hag" });
+
+      expect(screen.queryByRole("heading", { name: "Lair Actions" })).toBeNull();
+      expect(screen.queryByRole("heading", { name: "Regional Effects" })).toBeNull();
+    });
+
+    /**
+     * The lair joins the page's single reference pass rather than getting one
+     * of its own — an aboleth's lair action casts `phantasmal force`, and until
+     * the lair was added to the collection that tag resolved against nothing.
+     */
+    it("collects the lair's references in the page's one pass", async () => {
+      await withLair({
+        name: "Aboleth",
+        lairActions: ["The aboleth casts {@spell phantasmal force}."],
+      });
+
+      expect(resolveReferences).toHaveBeenCalledTimes(1);
+      const asked = vi.mocked(resolveReferences).mock.calls[0]![0];
+      expect([...asked]).toContain("spell|phantasmal force|phb");
+    });
+  });
+
+  /**
+   * Where the numbers stop.
+   *
+   * The stat block and the lore share a face, a size and a measure, so before
+   * this opener the only thing between them was a gap — and on a phone the last
+   * action and the first line of lore read as two paragraphs of one thing. The
+   * label is the part that has to be there whatever the theme or the colour
+   * settings do, so it is what these assert.
+   */
+  describe("the boundary between the block and the lore", () => {
+    const opener = () => screen.queryByRole("heading", { name: "Lore", level: 2 });
+
+    it("opens the lore with a heading of its own", async () => {
+      await renderPage();
+
+      expect(opener()).toBeInTheDocument();
+    });
+
+    /** The wrapper is named by that heading, so the section announces itself. */
+    it("names the whole of the lore after it", async () => {
+      const { container } = await renderPage();
+
+      const section = container.querySelector(
+        "section[aria-labelledby='monster-lore-heading']",
+      );
+      expect(section).not.toBeNull();
+      expect(opener()).toHaveAttribute("id", "monster-lore-heading");
+      expect(section).toContainElement(opener());
+      expect(section!.textContent).toContain("black-hearted humanoids");
+      expect(section!.textContent).toContain("abandoned mines");
+    });
+
+    /**
+     * A step down, and only that. The outline and every inbound anchor point at
+     * the id, which is why the id is asserted beside the level.
+     */
+    it("steps the named sections down beneath it", async () => {
+      await renderPage();
+
+      const heading = screen.getByRole("heading", { name: "Goblin Warrens" });
+      expect(heading.tagName).toBe("H3");
+      expect(document.getElementById("goblin-warrens")).not.toBeNull();
+    });
+
+    it("opens prose-only lore just the same", async () => {
+      await renderPage({
+        fluff: { entries: ["Just prose, no sections."] },
+      } as Partial<MonsterDetail>);
+
+      expect(opener()).toBeInTheDocument();
+      expect(screen.getByText("Just prose, no sections.")).toBeInTheDocument();
+    });
+
+    /** And lore that is all sections, which leaves no prose above them. */
+    it("opens section-only lore without an empty gap above it", async () => {
+      await renderPage({
+        fluff: {
+          entries: [
+            {
+              type: "entries",
+              name: "Goblin Warrens",
+              entries: ["They lair in caves."],
+            },
+          ],
+        },
+      } as Partial<MonsterDetail>);
+
+      expect(opener()).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Goblin Warrens" }).tagName).toBe("H3");
+    });
+
+    /** Nothing to divide, so nothing is drawn. */
+    it("draws no boundary for a creature with no lore", async () => {
+      const { container } = await renderPage({ fluff: undefined } as Partial<MonsterDetail>);
+
+      expect(opener()).toBeNull();
+      expect(
+        container.querySelector("section[aria-labelledby='monster-lore-heading']"),
+      ).toBeNull();
+    });
+  });
+
   it("names where the creature is found", async () => {
     await renderPage();
 

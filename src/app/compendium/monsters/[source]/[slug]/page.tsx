@@ -14,7 +14,10 @@ import {
   isLandscape,
   TokenPortrait,
 } from "@/components/compendium/entity-image";
-import { MonsterStatblock } from "@/components/compendium/monster-statblock";
+import {
+  MonsterStatblock,
+  StatblockHeading,
+} from "@/components/compendium/monster-statblock";
 import {
   OutlineNav,
   type OutlineItem,
@@ -104,12 +107,13 @@ export default async function MonsterPage({ params }: RouteParams) {
    * One resolve for the whole page, the stat block and the lore together.
    *
    * The aside resolves `data` alone because it prints the block and nothing
-   * else. This page prints the lore too, and a lore paragraph cites spells and
-   * creatures like any other text — resolving them separately would mean two
+   * else. This page prints the lore and the lair too, and both cite spells and
+   * creatures like any other text — an aboleth's lair action casts
+   * {@spell phantasmal force} — so resolving them separately would mean three
    * round trips for one document.
    */
   const refs = await resolveReferences(
-    collectReferences([monster.data, monster.fluff]),
+    collectReferences([monster.data, monster.fluff, monster.lair]),
   );
 
   const images = fluffImages(monster.fluff);
@@ -155,6 +159,23 @@ export default async function MonsterPage({ params }: RouteParams) {
     id: section.id,
     label: section.title,
   }));
+
+  /* Both shapes count: 1,988 of the creatures with lore have prose and no
+     named section, and a few carry sections with no prose above them. */
+  const hasLore = intro.length > 0 || sections.length > 0;
+
+  /*
+   * The lair, in the order the books print it. Only the parts a group actually
+   * carries: of the 144 groups, 24 have lair actions and no regional effects,
+   * 23 the reverse, and six have neither — five of those being hags whose
+   * upstream `_copy` inheritance ingest never resolved, which is why a resolved
+   * group is still not a guarantee of anything to show.
+   */
+  const lair = [
+    { heading: "Lair Actions", entries: entryList(monster.lair, "lairActions") },
+    { heading: "Regional Effects", entries: entryList(monster.lair, "regionalEffects") },
+    { heading: "Mythic Encounter", entries: entryList(monster.lair, "mythicEncounter") },
+  ].filter((section) => section.entries.length > 0);
 
   return (
     <ReadingColumn
@@ -240,28 +261,22 @@ export default async function MonsterPage({ params }: RouteParams) {
           <MonsterStatblock monster={monster} refs={refs} />
         </Box>
 
-        {intro.length > 0 ? (
-          <Box mb="6">
-            <Entries
-              entries={intro}
-              refs={refs}
-              selfKey={monster.naturalKey}
-              context={monster.name}
-            />
-          </Box>
-        ) : null}
+        {/*
+          What the creature does on its own ground, which the books print beside
+          the block and this app showed nowhere.
+          
+          Above the lore rule on purpose: these are mechanics a DM reads mid
+          encounter, and putting them below it would file them as narrative —
+          the exact confusion the rule was drawn to remove. They are headed in
+          the block's own voice for the same reason.
 
-        {sections.map((section) => (
-          <Box
-            as="section"
-            key={section.id}
-            id={section.id}
-            scrollMarginTop="4rem"
-            mb="6"
-          >
-            <SectionHeading>
-              <Inline text={section.title} refs={refs} context={monster.name} />
-            </SectionHeading>
+          Stored on a legendary group rather than on the creature, because a
+          lair is shared: every adult and ancient black dragon reads the same
+          one. `getMonster` resolves it by the key the creature names.
+        */}
+        {lair.map((section) => (
+          <Box as="section" key={section.heading} mb="6">
+            <StatblockHeading>{section.heading}</StatblockHeading>
             <Entries
               entries={section.entries}
               refs={refs}
@@ -270,6 +285,76 @@ export default async function MonsterPage({ params }: RouteParams) {
             />
           </Box>
         ))}
+
+        {/*
+          Where the creature stops being numbers and starts being writing.
+          Until this had an opener the two met at a gap: the last action and the
+          first line of lore share Literata at the same size, colour and
+          measure, so on a phone they read as consecutive paragraphs of one
+          thing, and a reader looking something up mid-play could not tell where
+          the reference ended.
+
+          Three signals rather than one, because any of them can be the one a
+          given reader has: the space, the rule and the word. Colour is the
+          least of them — the boundary has to survive greyscale and forced
+          colours, so cyan supplies the character and carries none of the
+          meaning. Cyan and not purple because what follows is the book
+          speaking, and purple is this application speaking.
+        */}
+        {hasLore ? (
+          <Box as="section" aria-labelledby={LORE_HEADING_ID} mt="10">
+            <Box borderTopWidth="2px" borderColor="reference" pt="2" mb="4">
+              <Text
+                as="h2"
+                id={LORE_HEADING_ID}
+                fontFamily="ui"
+                fontSize="2xs"
+                fontWeight="semibold"
+                letterSpacing="widest"
+                textTransform="uppercase"
+                color="fg.muted"
+              >
+                Lore
+              </Text>
+            </Box>
+
+            {intro.length > 0 ? (
+              <Box mb="6">
+                <Entries
+                  entries={intro}
+                  refs={refs}
+                  selfKey={monster.naturalKey}
+                  context={monster.name}
+                />
+              </Box>
+            ) : null}
+
+            {sections.map((section) => (
+              <Box
+                as="section"
+                key={section.id}
+                id={section.id}
+                scrollMarginTop="4rem"
+                mb="6"
+              >
+                {/*
+                  A step down now that they sit under `Lore`, and only that: the
+                  size, rule and ids are the ones the outline and every inbound
+                  anchor already point at.
+                */}
+                <SectionHeading level={3}>
+                  <Inline text={section.title} refs={refs} context={monster.name} />
+                </SectionHeading>
+                <Entries
+                  entries={section.entries}
+                  refs={refs}
+                  selfKey={monster.naturalKey}
+                  context={monster.name}
+                />
+              </Box>
+            ))}
+          </Box>
+        ) : null}
 
         {rest.length > 0 ? (
           <Box mb="6">
@@ -291,6 +376,18 @@ export default async function MonsterPage({ params }: RouteParams) {
       </AsideLinks>
     </ReadingColumn>
   );
+}
+
+/**
+ * One of a legendary group's entry arrays, if it is there and is one.
+ *
+ * Guarded rather than cast: a group is stored as an opaque blob, six of the 144
+ * carry neither list, and the shape is upstream's rather than ours.
+ */
+function entryList(lair: unknown, field: string): Entry[] {
+  if (!lair || typeof lair !== "object") return [];
+  const value = (lair as Record<string, unknown>)[field];
+  return Array.isArray(value) ? (value as Entry[]) : [];
 }
 
 /** What this page reads off the creature's blob, beyond what the block takes. */
@@ -337,10 +434,20 @@ function FootNote({
   );
 }
 
-function SectionHeading({ children }: { children: ReactNode }) {
+/** The id the lore wrapper is named by, shared by both ends of that pairing. */
+const LORE_HEADING_ID = "monster-lore-heading";
+
+function SectionHeading({
+  children,
+  level = 2,
+}: {
+  children: ReactNode;
+  /** Only the element changes. A lore heading looks the same at either. */
+  level?: 2 | 3;
+}) {
   return (
     <Text
-      as="h2"
+      as={`h${level}`}
       // `flow-root` so the rule under the heading does not run behind the
       // floated plate — see the race page, where the same thing bit.
       display="flow-root"

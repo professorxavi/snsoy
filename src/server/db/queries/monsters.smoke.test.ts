@@ -388,4 +388,95 @@ describeDb("monster queries against the seed", () => {
       expect(unpriced).toEqual(['Mechanical Bird: "Unknown"']);
     });
   });
+
+  /**
+   * The lair, and the column that must never be used to find it.
+   *
+   * `monsters.legendary_group_id` is set on 147 creatures and resolves for none
+   * of them: 112 point at the creature itself and the other 35 at a *different*
+   * creature — Exethanter at the Lich, Mad Maggie at the Night Hag. There is no
+   * `legendaryGroup` in the `entity_type` enum for it to have pointed at.
+   *
+   * The 35 are the dangerous half. A self-reference is an obvious loop that
+   * anyone would catch; "Mad Maggie shows the Night Hag's block" looks almost
+   * right, which is exactly how a future tidy-up would reintroduce it. Hence a
+   * test that names one and asserts the shape it must not have.
+   */
+  describe("a creature's lair", () => {
+    it("comes from the group the creature names", async () => {
+      const aboleth = await queries.getMonster("mm", "aboleth");
+
+      const lair = aboleth?.lair as { name?: string; lairActions?: unknown[] } | null;
+      expect(lair?.name).toBe("Aboleth");
+      expect(lair?.lairActions?.length).toBeGreaterThan(0);
+    });
+
+    /** A lair is shared: every black dragon reads the one group. */
+    it("is shared by the creatures that share a lair", async () => {
+      const adult = await queries.getMonster("mm", "adult-black-dragon");
+      const ancient = await queries.getMonster("mm", "ancient-black-dragon");
+
+      expect((adult?.lair as { name?: string })?.name).toBe("Black Dragon");
+      expect((ancient?.lair as { name?: string })?.name).toBe("Black Dragon");
+    });
+
+    it("is absent for a creature that names no group", async () => {
+      const goblin = await queries.getMonster("mm", "goblin");
+
+      expect(goblin?.lair).toBeNull();
+    });
+
+    /**
+     * The guard. Mad Maggie's `legendary_group_id` points at the Night Hag
+     * *creature*; her `data.legendaryGroup` names the Night Hag *group*. Those
+     * resolve to different rows, and only one of them is a lair.
+     */
+    it("never follows legendary_group_id to another creature", async () => {
+      const maggie = await queries.getMonster("bgdia", "mad-maggie");
+      const lair = maggie?.lair as Record<string, unknown> | null;
+
+      expect(lair?.name).toBe("Night Hag");
+      // A creature's blob carries these; a legendary group's does not.
+      expect(lair).not.toHaveProperty("ac");
+      expect(lair).not.toHaveProperty("hp");
+      expect(lair).not.toHaveProperty("action");
+    });
+
+    /**
+     * Exact, because ingest runs once and every instance restores the same dump.
+     *
+     * All 223 creatures naming a group resolve, and **214 have something to
+     * show**. `Umbraxakar` was the one that did not: it named a group the books
+     * do not carry, the source data was corrected on 2026-08-29 to `Bronze
+     * Dragon|MM`, and the seed re-cut.
+     *
+     * The nine that still show nothing are hags, whose five groups keep their
+     * lair text inside an upstream `_copy` directive ingest never applied.
+     * That is an ingest gap rather than bad data, so correcting the books
+     * would not fix it; see the plan.
+     *
+     * The condition matches the page: it renders a mythic encounter as well as
+     * lair actions and regional effects, so a group carrying only that one is
+     * not silent. Counting on the other two put this number at 212 and made it
+     * mean something the page does not do.
+     */
+    it("resolves for every creature that names a group", async () => {
+      const [row] = (await db.execute(sql`
+        SELECT
+          count(*) FILTER (WHERE m.data->'legendaryGroup' IS NOT NULL)::int AS named,
+          count(*) FILTER (WHERE s.key IS NOT NULL)::int AS resolved,
+          count(*) FILTER (WHERE s.data ? 'lairActions'
+                              OR s.data ? 'regionalEffects'
+                              OR s.data ? 'mythicEncounter')::int AS renders
+        FROM monsters m
+        LEFT JOIN support_data s ON s.kind = 'legendaryGroup'
+          AND s.key = lower(m.data->'legendaryGroup'->>'name')
+                   || '|' || lower(m.data->'legendaryGroup'->>'source')
+      `)) as unknown as { named: number; resolved: number; renders: number }[];
+
+      expect(row.named).toBe(223);
+      expect(row.resolved).toBe(223);
+      expect(row.renders).toBe(214);
+    });
+  });
 });
