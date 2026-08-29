@@ -181,6 +181,10 @@ export async function getRace(sourceId: string, slug: string) {
       // subraces come from a different book than their parent race.
       sourceName: sources.name,
       page: entities.page,
+      // What the books say a subrace *is*, as opposed to what it grants. It is
+      // filed under the pair — "Tiefling (Glasya)" — and is a line or two, not
+      // the parent's whole entry; see `subraceFluffIndex` in the ingest.
+      fluff: entities.fluff,
       data: races.data,
       ...displayColumns,
     })

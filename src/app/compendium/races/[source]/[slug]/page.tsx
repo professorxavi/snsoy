@@ -121,6 +121,7 @@ export default async function RacePage({ params }: RouteParams) {
       // rest — a fluff paragraph cites spells and creatures like any other.
       race.fluff,
       ...race.subraces.map((s) => s.data),
+      ...race.subraces.map((s) => s.fluff),
     ]),
   );
 
@@ -382,7 +383,6 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-
 /** A subrace's contents. No header: the disclosure trigger is the header. */
 function SubraceBody({
   subrace,
@@ -395,8 +395,34 @@ function SubraceBody({
 }) {
   const data = subrace.data as { entries?: Entry[] };
 
+  /*
+   * What the subrace *is*, ahead of what it grants.
+   *
+   * Without it a bloodline is a spell list and an ability spread, and the thing
+   * that distinguishes one tiefling from another — Glasya is Hell's criminal
+   * mastermind, Zariel's are stronger and built for battle — is nowhere on the
+   * page. 45 of the 69 subraces in the books carry a line of it; the rest have
+   * none and open on their numbers as before.
+   *
+   * The parent's own flavour text is not repeated here. The books store a
+   * subrace's fluff as a copy of the parent's with its line prepended, and only
+   * that line is kept — see `subraceFluffIndex` in the ingest.
+   */
+  const about = entriesOf<Entry>(subrace.fluff);
+
   return (
     <Box>
+      {about.length > 0 ? (
+        <Box mb="3">
+          <Entries
+            entries={about}
+            refs={refs}
+            selfKey={subrace.naturalKey}
+            context={`${parentName}: ${subrace.name}`}
+          />
+        </Box>
+      ) : null}
+
       <TraitSummary race={subrace} borderTop={false} />
       <Box mt="3">
         <Entries

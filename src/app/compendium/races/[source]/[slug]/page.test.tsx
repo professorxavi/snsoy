@@ -262,6 +262,50 @@ describe("a race page", () => {
       );
     });
 
+    /**
+     * A subrace that is only its numbers says nothing about what it *is*, which
+     * is the half a reader is choosing between: Glasya grants magic for
+     * committing heists, Zariel's are built for battle.
+     */
+    it("opens a subrace with what the books say it is", async () => {
+      const { container } = await renderPage({
+        subraces: [
+          subrace("glasya", "Glasya", {
+            ability: [{ cha: 2, dex: 1 }],
+            fluff: {
+              entries: [
+                "Glasya, Hell's criminal mastermind, grants her tieflings magic that is useful for committing heists.",
+              ],
+            },
+          }),
+        ],
+      });
+
+      const body = container.querySelector("details")!.textContent!;
+
+      expect(body).toContain("criminal mastermind");
+      // Ahead of the mechanics, which is the whole point of putting it here.
+      expect(body.indexOf("criminal mastermind")).toBeLessThan(
+        body.indexOf("Ability Scores"),
+      );
+    });
+
+    /** 24 of the 69 subraces have no such record in the books. */
+    it("opens on the numbers for a subrace the books describe nowhere", async () => {
+      const { container } = await renderPage({
+        subraces: [
+          subrace("winged", "Winged", {
+            ability: [{ cha: 2 }],
+            fluff: null,
+          }),
+        ],
+      });
+
+      expect(container.querySelector("details")!.textContent).toContain(
+        "Ability Scores",
+      );
+    });
+
     it("omits the whole section when a race has none", async () => {
       const { container } = await renderPage({ subraces: [] });
 

@@ -119,6 +119,40 @@ describeDb("race queries against the seed", () => {
       expect(names).toContain("Zariel");
     });
 
+    /**
+     * The books file a subrace's flavour under the name of the pair —
+     * "Tiefling (Glasya)" — so it was never found and a subrace read as
+     * nothing but its numbers.
+     */
+    it("carries the prose that says what a subrace is", async () => {
+      const tiefling = await queries.getRace("PHB", "tiefling");
+      const glasya = tiefling!.subraces.find((sub) => sub.name === "Glasya");
+
+      expect(JSON.stringify(glasya!.fluff)).toContain(
+        "Hell's criminal mastermind",
+      );
+    });
+
+    /** The parent's own entry is not repeated inside each of its subraces. */
+    it("keeps a subrace's prose to the subrace", async () => {
+      const tiefling = await queries.getRace("PHB", "tiefling");
+      const glasya = tiefling!.subraces.find((sub) => sub.name === "Glasya");
+
+      expect(JSON.stringify(glasya!.fluff).length).toBeLessThan(
+        JSON.stringify(tiefling!.fluff).length / 4,
+      );
+    });
+
+    /** 24 of the 69 have no record in the books at all. */
+    it("leaves a subrace the books say nothing about without prose", async () => {
+      const tiefling = await queries.getRace("PHB", "tiefling");
+      const winged = tiefling!.subraces.find(
+        (sub) => sub.name === "Variant; Winged",
+      );
+
+      expect(winged!.fluff).toBeNull();
+    });
+
     /** The rule is emptiness, and today exactly one subrace is empty. */
     it("keeps every other subrace in the books", async () => {
       const groups = await queries.listRacesBySource();
