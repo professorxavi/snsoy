@@ -12,6 +12,13 @@ export const TOPBAR = "var(--chakra-sizes-topbar)";
 export const BELOW_TOPBAR = `calc(100dvh - ${TOPBAR})`;
 
 /**
+ * The reading layout's outline gutter, as a raw variable for the same reason as
+ * `TOPBAR`: it is composed into a grid template and a `calc`, neither of which
+ * Chakra resolves a size token inside.
+ */
+export const OUTLINE = "var(--chakra-sizes-outline)";
+
+/**
  * A visible, slim scrollbar for a container that scrolls sideways.
  *
  * A wide table stays inside the reading measure and scrolls in its own box, so

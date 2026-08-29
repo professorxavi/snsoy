@@ -104,6 +104,8 @@ const config = defineConfig({
         railCollapsed: { value: "46px" },
         /** Entity detail aside. Below this the aside becomes a full-height sheet. */
         aside: { value: "400px" },
+        /** The reading layout's trailing gutter, which holds the page outline. */
+        outline: { value: "13rem" },
         /** Reading measure, in `ch` so it tracks the font. Targets 65-70 characters. */
         measure: { value: "68ch" },
       },

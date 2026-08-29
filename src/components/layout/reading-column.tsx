@@ -1,6 +1,7 @@
 import { Box, Grid } from "@chakra-ui/react";
 import type { ReactNode } from "react";
-import { BELOW_TOPBAR, TOPBAR } from "./constants";
+import { BackToTop } from "./back-to-top";
+import { BELOW_TOPBAR, OUTLINE, TOPBAR } from "./constants";
 import { FragmentTarget } from "./fragment-target";
 
 /**
@@ -50,13 +51,16 @@ export function ReadingColumn({
     <Grid
       templateColumns={{
         base: "1fr",
-        lg: outline ? "minmax(0, 1fr) 13rem" : "minmax(0, 1fr)",
+        lg: outline ? `minmax(0, 1fr) ${OUTLINE}` : "minmax(0, 1fr)",
       }}
       justifyContent="center"
     >
       <Box
         as="main"
         id="main"
+        // Takes focus, so the skip link and `BackToTop` put the keyboard where
+        // they put the page.
+        tabIndex={-1}
         position="relative"
         minW="0"
         px={{ base: "5", md: "8" }}
@@ -123,6 +127,13 @@ export function ReadingColumn({
 
         <FragmentTarget />
       </Box>
+
+      {/*
+        Fixed, so it takes no column here whatever the grid is doing. It belongs
+        to this layout rather than to a page because every route that reads long
+        enough to need it is one of these.
+      */}
+      <BackToTop clearsOutline={Boolean(outline)} />
 
       {outline ? (
         <Box

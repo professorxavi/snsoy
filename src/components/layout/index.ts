@@ -1,4 +1,5 @@
 export { AppFrame } from "./app-frame";
+export { BackToTop } from "./back-to-top";
 export {
   AsideDrawer,
   BrowseAside,
