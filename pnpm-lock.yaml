@@ -11,6 +11,9 @@ importers:
       '@chakra-ui/react':
         specifier: ^3.34.0
         version: 3.34.0(@emotion/react@11.14.0(@types/react@19.2.14)(react@19.2.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@emotion/cache':
+        specifier: ^11.14.0
+        version: 11.14.0
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.2.14)(react@19.2.3)
