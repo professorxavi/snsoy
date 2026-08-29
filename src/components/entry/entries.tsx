@@ -1,11 +1,11 @@
 import { Box, Stack, Table, Text } from "@chakra-ui/react";
 import NextLink from "next/link";
 import { Fragment, type ReactNode } from "react";
-import { Illustration, isLandscape } from "@/components/compendium/entity-image";
 import {
-  featureReferenceKey,
-  type FeatureIndex,
-} from "@/lib/content/classes";
+  Illustration,
+  isLandscape,
+} from "@/components/compendium/entity-image";
+import { featureReferenceKey, type FeatureIndex } from "@/lib/content/classes";
 import { abilityPhrase } from "@/lib/content/dnd";
 import type { ImageEntry } from "@/lib/content/media";
 import { spellFrequencyLabel, spellLevelLabel } from "@/lib/content/monsters";
@@ -96,6 +96,15 @@ interface RenderContext {
   /** Which entry ids this page has to mark, so a link elsewhere can reach them. */
   anchored?: AnchoredIds;
   /**
+   * The anchor each entry the chapter outline lists was given, keyed by the
+   * entry itself. Chapter pages only.
+   *
+   * Keyed by identity rather than by id because the entries that need this most
+   * are the ones the source data left without an id — nothing else addresses
+   * them. Built by `chapterOutline` in `lib/content/outline`.
+   */
+  outlineAnchors?: WeakMap<object, string>;
+  /**
    * Heading level for the outermost named sub-section. Chapter bodies start at
    * 2, since the chapter title is the page's `h1`; a spell or race detail passes
    * nothing and starts at 3, below its own section headings.
@@ -149,18 +158,12 @@ export function Entries({ entries, ...ctx }: EntriesProps) {
 }
 
 /**
- * One entry, marked as an anchor when the book points at it.
+ * One entry, marked as an anchor when something can reach it.
  *
- * `{@area}` addresses an entry by the `id` the source data hangs on the node
- * itself, and the mark goes here rather than on each block type so that every
- * shape a tag can target gets it in one place — a named `entries`, a `section`,
- * an `inset`, and the handful that are bare images with no name at all. Read
- * off the node rather than declared per type, because the field means the same
- * thing on all of them.
- *
- * Only ids something actually points at are marked. The books hang 55,969 of
- * them and one page carries 1,014; wrapping every one would be a great deal of
- * markup for anchors nothing can reach.
+ * The mark goes here rather than on each block type so that every shape a link
+ * or an outline row can address gets it in one place — a named `entries`, a
+ * `section`, an `inset`, and the handful that are bare images with no name at
+ * all. Which id it takes, if any, is `anchorFor`'s decision.
  */
 function EntryNode({
   entry,
@@ -168,34 +171,41 @@ function EntryNode({
   ...ctx
 }: { entry: Entry; first?: boolean } & RenderContext) {
   return (
-    <Anchored
-      id={isEntryObject(entry) ? (entry as { id?: unknown }).id : undefined}
-      anchored={ctx.anchored}
-    >
+    <Anchored id={anchorFor(entry, ctx)}>
       <EntryBody entry={entry} first={first} {...ctx} />
     </Anchored>
   );
 }
 
 /**
- * The element an `{@area}` link lands on, where the book has one pointing here.
+ * The id this entry's element carries, if any.
  *
- * Ids are read off the node rather than declared per entry type, because the
- * field means the same thing wherever it appears. Anything the book does not
- * point at is left alone: 55,969 ids are hung on entries across the books and
- * one page carries 1,014 of them, so marking every one would be a great deal
- * of markup for anchors nothing can reach.
+ * Two things want an anchor here and they agree far more often than not: the
+ * chapter outline needs every heading it lists to be reachable, and `{@area}`
+ * needs the ids the books point at. An entry wanted by both gets one element,
+ * since the outline uses the entry's own id wherever it has one.
+ *
+ * Nothing else is marked. The books hang 55,969 ids on entries and one page
+ * carries 1,014 of them, so wrapping every one would be a great deal of markup
+ * for anchors nothing can reach.
  */
-function Anchored({
-  id,
-  anchored,
-  children,
-}: {
-  id?: unknown;
-  anchored?: AnchoredIds;
-  children: ReactNode;
-}) {
-  if (typeof id !== "string" || !anchored?.[id]) return <>{children}</>;
+function anchorFor(entry: Entry, ctx: RenderContext): string | undefined {
+  if (!isEntryObject(entry)) return undefined;
+
+  return (
+    ctx.outlineAnchors?.get(entry) ??
+    areaAnchor((entry as { id?: unknown }).id, ctx)
+  );
+}
+
+/** The anchor for an id read off a node, where the book points at it. */
+function areaAnchor(id: unknown, ctx: RenderContext): string | undefined {
+  return typeof id === "string" && ctx.anchored?.[id] ? id : undefined;
+}
+
+/** The element a link or an outline row lands on. */
+function Anchored({ id, children }: { id?: string; children: ReactNode }) {
+  if (!id) return <>{children}</>;
 
   return (
     <Box id={id} scrollMarginTop="4rem">
@@ -219,7 +229,9 @@ function EntryBody({
   switch (entry.type) {
     case "entries":
     case "section":
-      return <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />;
+      return (
+        <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />
+      );
 
     case "list":
       return <ListBlock entry={entry as ListEntry} ctx={ctx} />;
@@ -292,7 +304,9 @@ function EntryBody({
     // headings rather than boxes of their own.
     case "variantInner":
     case "variantSub":
-      return <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />;
+      return (
+        <SubSection entry={entry as EntriesEntry} ctx={ctx} first={first} />
+      );
 
     case "spellcasting":
       return <SpellcastingBlock entry={entry as SpellcastingEntry} ctx={ctx} />;
@@ -390,7 +404,13 @@ function InlineStatblock({ entry }: { entry: EntryObject }) {
  *
  * `attackType` is the `{@atk}` code in upper case, and the tag lower-cases it.
  */
-function AttackLine({ entry, ctx }: { entry: AttackEntry; ctx: RenderContext }) {
+function AttackLine({
+  entry,
+  ctx,
+}: {
+  entry: AttackEntry;
+  ctx: RenderContext;
+}) {
   const attack = (entry.attackEntries ?? []).join(" ");
   const hit = (entry.hitEntries ?? []).join(" ");
 
@@ -412,7 +432,13 @@ function AttackLine({ entry, ctx }: { entry: AttackEntry; ctx: RenderContext }) 
  * a link, a formula — and the pieces have to close back up. Rendering the
  * children normally would break the sentence across two paragraphs mid-clause.
  */
-function InlineRun({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) {
+function InlineRun({
+  entry,
+  ctx,
+}: {
+  entry: EntriesEntry;
+  ctx: RenderContext;
+}) {
   return (
     <Paragraph>
       {entry.entries?.map((child, index) =>
@@ -428,10 +454,7 @@ function InlineRun({ entry, ctx }: { entry: EntriesEntry; ctx: RenderContext }) 
   );
 }
 
-function reportUnsupportedInlineChild(
-  child: EntryObject,
-  ctx: RenderContext,
-) {
+function reportUnsupportedInlineChild(child: EntryObject, ctx: RenderContext) {
   reportGap("entry", String(child.type), ctx.context);
   return null;
 }
@@ -633,7 +656,10 @@ function FeatureReference({
    * name a fragment the page does not carry and land at the top instead.
    */
   return (
-    <Box id={feature.anchorId} scrollMarginTop={feature.anchorId ? "4rem" : undefined}>
+    <Box
+      id={feature.anchorId}
+      scrollMarginTop={feature.anchorId ? "4rem" : undefined}
+    >
       <SubHeading
         level={level}
         tier={ctx.headingTier ?? tierFor(level)}
@@ -743,13 +769,7 @@ function OptionsBlock({
   if (!entry.entries?.length) return null;
 
   return (
-    <Stack
-      gap="2.5"
-      mt="2"
-      pl="4"
-      borderLeftWidth="1px"
-      borderColor="border"
-    >
+    <Stack gap="2.5" mt="2" pl="4" borderLeftWidth="1px" borderColor="border">
       {entry.entries.map((child, index) => (
         <EntryNode key={index} entry={child} first={index === 0} {...ctx} />
       ))}
@@ -1025,113 +1045,117 @@ function TableBlock({ entry, ctx }: { entry: TableEntry; ctx: RenderContext }) {
       }
     >
       <Table.Root
-          size="sm"
-          variant="line"
-          /*
-           * A table with nothing in it that stretches does not need to fill the
-           * line. The two word-search grids are fifteen columns of one letter,
-           * and filling the breakout made each square 76px of nothing.
-           */
-          width={roles.every((role) => role === "token") ? "auto" : "100%"}
-        >
-          {/*
-           * Declared widths, not `table-layout: fixed`. The layout stays auto so
-           * a column whose content cannot fit its printed share still takes the
-           * room it needs, and the shares apply to everything that is left.
-           */}
-          {/*
-           * Plain elements with an inline width, not `Table.Column` with a
-           * style prop. A styled component emits its rule as a `<style>` tag
-           * beside itself, and the HTML parser throws out anything inside a
-           * `<colgroup>` that is not a `<col>` — so the parsed DOM loses them,
-           * and every table on the page fails to hydrate.
-           */}
-          {sized ? (
-            <colgroup>
-              {styles.map((style, index) => (
-                <col key={index} style={{ width: style.width }} />
-              ))}
-            </colgroup>
-          ) : null}
+        size="sm"
+        variant="line"
+        /*
+         * A table with nothing in it that stretches does not need to fill the
+         * line. The two word-search grids are fifteen columns of one letter,
+         * and filling the breakout made each square 76px of nothing.
+         */
+        width={roles.every((role) => role === "token") ? "auto" : "100%"}
+      >
+        {/*
+         * Declared widths, not `table-layout: fixed`. The layout stays auto so
+         * a column whose content cannot fit its printed share still takes the
+         * room it needs, and the shares apply to everything that is left.
+         */}
+        {/*
+         * Plain elements with an inline width, not `Table.Column` with a
+         * style prop. A styled component emits its rule as a `<style>` tag
+         * beside itself, and the HTML parser throws out anything inside a
+         * `<colgroup>` that is not a `<col>` — so the parsed DOM loses them,
+         * and every table on the page fails to hydrate.
+         */}
+        {sized ? (
+          <colgroup>
+            {styles.map((style, index) => (
+              <col key={index} style={{ width: style.width }} />
+            ))}
+          </colgroup>
+        ) : null}
 
-          {headerRows.length ? (
-            <Table.Header>
-              {headerRows.map((labels, rowIndex) => (
-                <Table.Row key={rowIndex} bg="bg.muted">
-                  {headerCells(labels).map(({ label, column, span }, index) => (
-                    <Table.ColumnHeader
-                      key={index}
-                      colSpan={span > 1 ? span : undefined}
-                      fontFamily="ui"
-                      fontSize="xs"
-                      fontWeight="semibold"
-                      // A long heading wraps. Holding it on one line makes it the
-                      // column's minimum width, which is how "Saving Throw
-                      // Proficiencies" came to be wider than the sentence beside it.
-                      whiteSpace={
-                        span === 1 && styles[column]?.noWrap ? "nowrap" : undefined
-                      }
-                      minW={span === 1 ? minWidths[column] : undefined}
-                      data-row-header={
-                        presentation.rowHeader === "first" &&
-                        column === 0 &&
-                        span === 1
-                          ? ""
-                          : undefined
-                      }
-                      // A heading over several columns sits over the middle of
-                      // them; one over a single column takes that column's own
-                      // alignment.
-                      textAlign={span > 1 ? "center" : styles[column]?.align}
-                    >
-                      {label == null ? null : inline(String(label), ctx)}
-                    </Table.ColumnHeader>
-                  ))}
-                </Table.Row>
-              ))}
-            </Table.Header>
-          ) : null}
-
-          <Table.Body>
-            {entry.rows.map((row, rowIndex) => (
-              <Table.Row key={rowIndex}>
-                {cellsOf(row).map((cell, cellIndex) => (
-                  <Table.Cell
-                    key={cellIndex}
-                    /*
-                     * Where a heading names the first column, that column says
-                     * which row you are reading: it is the row's heading, and
-                     * it stays put while the rest scrolls past it.
-                     */
-                    {...(presentation.rowHeader === "first" && cellIndex === 0
-                      ? { as: "th" as const, scope: "row", "data-row-header": "" }
-                      : {})}
-                    fontFamily="body"
-                    fontSize="sm"
-                    lineHeight="1.5"
-                    verticalAlign="top"
+        {headerRows.length ? (
+          <Table.Header>
+            {headerRows.map((labels, rowIndex) => (
+              <Table.Row key={rowIndex} bg="bg.muted">
+                {headerCells(labels).map(({ label, column, span }, index) => (
+                  <Table.ColumnHeader
+                    key={index}
+                    colSpan={span > 1 ? span : undefined}
+                    fontFamily="ui"
+                    fontSize="xs"
+                    fontWeight="semibold"
+                    // A long heading wraps. Holding it on one line makes it the
+                    // column's minimum width, which is how "Saving Throw
+                    // Proficiencies" came to be wider than the sentence beside it.
                     whiteSpace={
-                      isCell(cell) || styles[cellIndex]?.noWrap
+                      span === 1 && styles[column]?.noWrap
                         ? "nowrap"
                         : undefined
                     }
-                    fontVariantNumeric={isCell(cell) ? "tabular-nums" : undefined}
-                    textAlign={styles[cellIndex]?.align}
-                    minW={minWidths[cellIndex]}
-                    // The equipment tables group their rows under a plain row of
-                    // headings — "Light Armor" — and indent what belongs to it.
-                    ps={indentsFirstCell(row) && cellIndex === 0 ? "6" : undefined}
+                    minW={span === 1 ? minWidths[column] : undefined}
+                    data-row-header={
+                      presentation.rowHeader === "first" &&
+                      column === 0 &&
+                      span === 1
+                        ? ""
+                        : undefined
+                    }
+                    // A heading over several columns sits over the middle of
+                    // them; one over a single column takes that column's own
+                    // alignment.
+                    textAlign={span > 1 ? "center" : styles[column]?.align}
                   >
-                    {isCell(cell) ? (
-                      rollLabel(cell)
-                    ) : (
-                      <EntryNode entry={cell} {...ctx} />
-                    )}
-                  </Table.Cell>
+                    {label == null ? null : inline(String(label), ctx)}
+                  </Table.ColumnHeader>
                 ))}
               </Table.Row>
             ))}
-          </Table.Body>
+          </Table.Header>
+        ) : null}
+
+        <Table.Body>
+          {entry.rows.map((row, rowIndex) => (
+            <Table.Row key={rowIndex}>
+              {cellsOf(row).map((cell, cellIndex) => (
+                <Table.Cell
+                  key={cellIndex}
+                  /*
+                   * Where a heading names the first column, that column says
+                   * which row you are reading: it is the row's heading, and
+                   * it stays put while the rest scrolls past it.
+                   */
+                  {...(presentation.rowHeader === "first" && cellIndex === 0
+                    ? { as: "th" as const, scope: "row", "data-row-header": "" }
+                    : {})}
+                  fontFamily="body"
+                  fontSize="sm"
+                  lineHeight="1.5"
+                  verticalAlign="top"
+                  whiteSpace={
+                    isCell(cell) || styles[cellIndex]?.noWrap
+                      ? "nowrap"
+                      : undefined
+                  }
+                  fontVariantNumeric={isCell(cell) ? "tabular-nums" : undefined}
+                  textAlign={styles[cellIndex]?.align}
+                  minW={minWidths[cellIndex]}
+                  // The equipment tables group their rows under a plain row of
+                  // headings — "Light Armor" — and indent what belongs to it.
+                  ps={
+                    indentsFirstCell(row) && cellIndex === 0 ? "6" : undefined
+                  }
+                >
+                  {isCell(cell) ? (
+                    rollLabel(cell)
+                  ) : (
+                    <EntryNode entry={cell} {...ctx} />
+                  )}
+                </Table.Cell>
+              ))}
+            </Table.Row>
+          ))}
+        </Table.Body>
       </Table.Root>
     </TableFrame>
   );
@@ -1164,7 +1188,13 @@ function headerCells(row: (Entry | CellHeaderEntry)[]) {
  * The notes printed under a table, keyed to its cells by asterisk. Set smaller
  * and apart, as print sets them; they are entries, so their tags stay live.
  */
-function TableFootnotes({ notes, ctx }: { notes: Entry[]; ctx: RenderContext }) {
+function TableFootnotes({
+  notes,
+  ctx,
+}: {
+  notes: Entry[];
+  ctx: RenderContext;
+}) {
   return (
     <Stack gap="1" mt="1.5">
       {notes.map((note, index) =>
@@ -1317,8 +1347,7 @@ function GalleryBlock({
       {entry.images.map((image, index) => (
         <Anchored
           key={image.href?.path ?? index}
-          id={(image as { id?: unknown }).id}
-          anchored={ctx.anchored}
+          id={areaAnchor((image as { id?: unknown }).id, ctx)}
         >
           <Illustration
             image={image}
@@ -1508,18 +1537,11 @@ function SpellcastingBlock({
 
   return (
     <Box>
-      {entry.name ? (
-        <RunInLabel>{inline(entry.name, ctx)} </RunInLabel>
-      ) : null}
+      {entry.name ? <RunInLabel>{inline(entry.name, ctx)} </RunInLabel> : null}
 
       {/* Inline with the name, so the trait opens as one sentence. */}
       {entry.headerEntries?.length ? (
-        <Text
-          as="span"
-          className="prose"
-          fontFamily="body"
-          lineHeight="1.65"
-        >
+        <Text as="span" className="prose" fontFamily="body" lineHeight="1.65">
           {entry.headerEntries.map((child, index) =>
             typeof child === "string" || typeof child === "number" ? (
               <Box as="span" key={index}>

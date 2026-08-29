@@ -5,14 +5,11 @@ import { notFound } from "next/navigation";
 import { openEntityAside } from "@/app/aside-actions";
 import { AsideLinks } from "@/components/compendium/aside-links";
 import { ChapterBar, ChapterNav } from "@/components/compendium/chapter-nav";
-import {
-  OutlineNav,
-  type OutlineItem,
-} from "@/components/compendium/outline-nav";
+import { ChapterOutline } from "@/components/compendium/chapter-outline";
 import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import { chapterLabel } from "@/lib/content/chapters";
-import { splitSections } from "@/lib/content/outline";
+import { chapterOutline, splitSections } from "@/lib/content/outline";
 import {
   collectAreaTargets,
   collectReferences,
@@ -73,16 +70,16 @@ export default async function ChapterPage({ params }: RouteParams) {
     collectAreaTargets(found.data),
   );
 
-  const outline: OutlineItem[] = sections.map((section) => ({
-    id: section.id,
-    label: section.title,
-  }));
+  // Three levels, so the outline names what is actually in the chapter rather
+  // than the handful of sections it divides into. `anchors` is the other half
+  // of that: a heading nothing links to still has to be reachable from a row.
+  const outline = chapterOutline(sections);
 
   return (
     <ReadingColumn
       outline={
-        outline.length > 0 ? (
-          <OutlineNav items={outline} label="In this chapter" />
+        outline.nodes.length > 0 ? (
+          <ChapterOutline items={outline.nodes} />
         ) : undefined
       }
       outlineLabel="In this chapter"
@@ -133,78 +130,80 @@ export default async function ChapterPage({ params }: RouteParams) {
         it has always emitted, caught on the way up.
       */}
       <AsideLinks load={openEntityAside}>
-      {intro.length > 0 ? (
-        <Box mb="8">
-          <Entries
-            entries={intro}
-            refs={refs}
-            areas={areas}
-            anchored={anchored}
-            selfKey={found.naturalKey}
-            context={found.name}
-            headingLevel={2}
-          />
-        </Box>
-      ) : null}
+        {intro.length > 0 ? (
+          <Box mb="8">
+            <Entries
+              entries={intro}
+              refs={refs}
+              areas={areas}
+              anchored={anchored}
+              outlineAnchors={outline.anchors}
+              selfKey={found.naturalKey}
+              context={found.name}
+              headingLevel={2}
+            />
+          </Box>
+        ) : null}
 
-      {sections.map((section) => (
-        <Box
-          as="section"
-          key={section.id}
-          id={section.id}
-          scrollMarginTop="4rem"
-          mb="8"
-        >
-          {/*
+        {sections.map((section) => (
+          <Box
+            as="section"
+            key={section.id}
+            id={section.id}
+            scrollMarginTop="4rem"
+            mb="8"
+          >
+            {/*
             The section's own id from the data, alongside the slug the outline
             uses. An element carries one id, so the second is an empty div at
             the top of the section — 713 `{@area}` tags address a top-level
             section, and `splitSections` unwraps the entry before the renderer
             can mark it. Both anchors land in the same place.
           */}
-          {section.anchorId && anchored[section.anchorId] ? (
-            <Box id={section.anchorId} scrollMarginTop="4rem" />
-          ) : null}
+            {section.anchorId && anchored[section.anchorId] ? (
+              <Box id={section.anchorId} scrollMarginTop="4rem" />
+            ) : null}
 
-          <Text
-            as="h2"
-            fontFamily="display"
-            fontSize={{ base: "xl", md: "2xl" }}
-            lineHeight="1.15"
-            letterSpacing="tight"
-            textWrap="balance"
-            mb="3"
-            pb="1.5"
-            borderBottomWidth="1px"
-            borderColor="border"
-          >
-            <Inline
-              text={section.title}
+            <Text
+              as="h2"
+              fontFamily="display"
+              fontSize={{ base: "xl", md: "2xl" }}
+              lineHeight="1.15"
+              letterSpacing="tight"
+              textWrap="balance"
+              mb="3"
+              pb="1.5"
+              borderBottomWidth="1px"
+              borderColor="border"
+            >
+              <Inline
+                text={section.title}
+                refs={refs}
+                areas={areas}
+                context={found.name}
+              />
+            </Text>
+            <Entries
+              entries={section.entries}
               refs={refs}
               areas={areas}
+              anchored={anchored}
+              outlineAnchors={outline.anchors}
+              selfKey={found.naturalKey}
               context={found.name}
+              /*
+               * The heading above is this page's, not the renderer's:
+               * `splitSections` lifts a named section out so the page can set its
+               * own rule and anchor, which means nothing downstream would
+               * otherwise know the name a reader can see. Anything inside that
+               * needs naming — an uncaptioned table's scroll region — takes it
+               * from here until a nested section supplies a nearer one.
+               */
+              sectionName={section.title}
+              headingLevel={3}
             />
-          </Text>
-          <Entries
-            entries={section.entries}
-            refs={refs}
-            areas={areas}
-            anchored={anchored}
-            selfKey={found.naturalKey}
-            context={found.name}
-            /*
-             * The heading above is this page's, not the renderer's:
-             * `splitSections` lifts a named section out so the page can set its
-             * own rule and anchor, which means nothing downstream would
-             * otherwise know the name a reader can see. Anything inside that
-             * needs naming — an uncaptioned table's scroll region — takes it
-             * from here until a nested section supplies a nearer one.
-             */
-            sectionName={section.title}
-            headingLevel={3}
-          />
-        </Box>
-      ))}
+          </Box>
+        ))}
       </AsideLinks>
 
       <ChapterNav

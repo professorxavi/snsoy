@@ -54,9 +54,7 @@ describe("a table's declared column widths", () => {
   });
 
   it("writes no column group for a table that declares no widths", () => {
-    render(
-      <Entries entries={[{ type: "table", rows: [["a", "b"]] }]} />,
-    );
+    render(<Entries entries={[{ type: "table", rows: [["a", "b"]] }]} />);
 
     expect(columns()).toHaveLength(0);
     expect(screen.getByRole("table")).toBeInTheDocument();
@@ -151,7 +149,9 @@ describe("a save DC or attack modifier a feature grants", () => {
     );
 
     expect(
-      screen.getByText(/= 8 \+ your proficiency bonus \+ your Charisma modifier/),
+      screen.getByText(
+        /= 8 \+ your proficiency bonus \+ your Charisma modifier/,
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("Spell save DC")).toBeInTheDocument();
   });
@@ -224,9 +224,9 @@ describe("a feature referenced by another feature", () => {
     const { container } = render(<Entries entries={[REFERENCE]} />);
 
     expect(container.textContent).toBe("");
-    expect(coverageReport().filter((gap) => gap.kind === "feature")).toHaveLength(
-      1,
-    );
+    expect(
+      coverageReport().filter((gap) => gap.kind === "feature"),
+    ).toHaveLength(1);
   });
 });
 
@@ -415,7 +415,9 @@ describe("a flowchart", () => {
   it("renders a block's markup rather than printing it", () => {
     render(<Entries entries={[FLOWCHART]} />);
 
-    expect(screen.getByText("For 1st to 4th-level characters")).toBeInTheDocument();
+    expect(
+      screen.getByText("For 1st to 4th-level characters"),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/\{@i/)).toBeNull();
   });
 
@@ -431,7 +433,10 @@ describe("a flowchart", () => {
     render(
       <Entries
         entries={[
-          { type: "flowchart", blocks: [{ type: "flowBlock", entries: ["Just prose."] }] },
+          {
+            type: "flowchart",
+            blocks: [{ type: "flowBlock", entries: ["Just prose."] }],
+          },
         ]}
       />,
     );
@@ -635,19 +640,20 @@ describe("a table's anchor", () => {
  * the first letter of each row, which names nothing.
  */
 describe("a table's row identity", () => {
-  const wide = (rows: number, headings?: string[]) => ({
-    type: "table",
-    caption: "Wilderness Encounters",
-    ...(headings ? { colLabels: headings } : {}),
-    rows: Array.from({ length: rows }, (_, i) => [
-      `Creature ${i}`,
-      "01",
-      "02",
-      "03",
-      "04",
-      "05",
-    ]),
-  }) as Entry;
+  const wide = (rows: number, headings?: string[]) =>
+    ({
+      type: "table",
+      caption: "Wilderness Encounters",
+      ...(headings ? { colLabels: headings } : {}),
+      rows: Array.from({ length: rows }, (_, i) => [
+        `Creature ${i}`,
+        "01",
+        "02",
+        "03",
+        "04",
+        "05",
+      ]),
+    }) as Entry;
 
   const named = ["Encounter", "Beach", "Rivers", "Ruins", "Swamp", "Waste"];
 
@@ -710,7 +716,9 @@ describe("a table's footnotes", () => {
   it("prints the note the asterisk stands for", () => {
     render(<Entries entries={[PACK]} />);
 
-    expect(screen.getByText(/strap items, such as a bedroll/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/strap items, such as a bedroll/),
+    ).toBeInTheDocument();
   });
 
   it("keeps a cross-reference inside a note live", () => {
@@ -764,10 +772,9 @@ describe("a table's multi-row header", () => {
   it("stands a grouping heading over the columns it covers", () => {
     render(<Entries entries={[ENCOUNTERS]} />);
 
-    expect(screen.getByRole("columnheader", { name: "Jungle" })).toHaveAttribute(
-      "colspan",
-      "3",
-    );
+    expect(
+      screen.getByRole("columnheader", { name: "Jungle" }),
+    ).toHaveAttribute("colspan", "3");
   });
 });
 
@@ -789,18 +796,32 @@ describe("an illustration's alt text", () => {
     render(
       <Entries
         context="Dwarf"
-        entries={[image({ title: "A Mountain Dwarf", altText: "A dwarf in mail, axe over one shoulder" })]}
+        entries={[
+          image({
+            title: "A Mountain Dwarf",
+            altText: "A dwarf in mail, axe over one shoulder",
+          }),
+        ]}
       />,
     );
 
     expect(
-      screen.getByRole("img", { name: "A dwarf in mail, axe over one shoulder" }),
+      screen.getByRole("img", {
+        name: "A dwarf in mail, axe over one shoulder",
+      }),
     ).toBeInTheDocument();
   });
 
   it("falls back to the caption, then to the entity", () => {
-    render(<Entries context="Dwarf" entries={[image({ title: "A Mountain Dwarf" })]} />);
-    expect(screen.getByRole("img", { name: "A Mountain Dwarf" })).toBeInTheDocument();
+    render(
+      <Entries
+        context="Dwarf"
+        entries={[image({ title: "A Mountain Dwarf" })]}
+      />,
+    );
+    expect(
+      screen.getByRole("img", { name: "A Mountain Dwarf" }),
+    ).toBeInTheDocument();
 
     render(<Entries context="Dwarf" entries={[image({})]} />);
     expect(screen.getByRole("img", { name: "Dwarf" })).toBeInTheDocument();
@@ -817,12 +838,21 @@ describe("an illustration's alt text", () => {
 describe("an area reference", () => {
   const ENCOUNTERS: Entry[] = [
     { type: "table", rows: [["{@area Aarakocra|59f|x}", "01–05"]] },
-    { type: "entries", id: "59f", name: "Aarakocra", entries: ["Four aarakocra."] },
+    {
+      type: "entries",
+      id: "59f",
+      name: "Aarakocra",
+      entries: ["Four aarakocra."],
+    },
   ];
 
   it("links to the entry the id addresses", () => {
     render(
-      <Entries entries={ENCOUNTERS} areas={{ "59f": "#59f" }} anchored={{ "59f": true }} />,
+      <Entries
+        entries={ENCOUNTERS}
+        areas={{ "59f": "#59f" }}
+        anchored={{ "59f": true }}
+      />,
     );
 
     expect(screen.getByRole("link", { name: "Aarakocra" })).toHaveAttribute(
@@ -833,7 +863,11 @@ describe("an area reference", () => {
 
   it("marks the entry so the link has somewhere to land", () => {
     const { container } = render(
-      <Entries entries={ENCOUNTERS} areas={{ "59f": "#59f" }} anchored={{ "59f": true }} />,
+      <Entries
+        entries={ENCOUNTERS}
+        areas={{ "59f": "#59f" }}
+        anchored={{ "59f": true }}
+      />,
     );
 
     expect(container.querySelector('[id="59f"]')).toBeInTheDocument();
@@ -971,13 +1005,21 @@ describe("the heading over a named sub-section", () => {
     const deep = (depth: number): Entry =>
       depth === 0
         ? "The bottom."
-        : { type: "entries", name: `Level ${depth}`, entries: [deep(depth - 1)] };
+        : {
+            type: "entries",
+            name: `Level ${depth}`,
+            entries: [deep(depth - 1)],
+          };
 
     render(<Entries entries={[deep(5)]} headingLevel={2} />);
 
-    expect(
-      screen.getAllByRole("heading").map((node) => node.tagName),
-    ).toEqual(["H2", "H3", "H4", "H5", "H5"]);
+    expect(screen.getAllByRole("heading").map((node) => node.tagName)).toEqual([
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H5",
+    ]);
   });
 
   it("emits no heading for a section that only groups", () => {
@@ -1006,7 +1048,9 @@ describe("a name printed on a line of its own", () => {
         entries={[
           {
             type: "options",
-            entries: [{ type: "refOptionalfeature", optionalfeature: "Archery" }],
+            entries: [
+              { type: "refOptionalfeature", optionalfeature: "Archery" },
+            ],
           },
         ]}
         options={OPTION}
@@ -1082,7 +1126,9 @@ describe("a table's region name", () => {
   } as Entry;
 
   const label = (container: HTMLElement) =>
-    container.querySelector("[data-table-scroll]")?.getAttribute("data-table-label");
+    container
+      .querySelector("[data-table-scroll]")
+      ?.getAttribute("data-table-label");
 
   it("takes the nearest named block it sits inside", () => {
     const { container } = render(
@@ -1116,7 +1162,9 @@ describe("a table's region name", () => {
       />,
     );
 
-    expect(label(container)).toBe("Wandering Monsters — d20 and Encounter table");
+    expect(label(container)).toBe(
+      "Wandering Monsters — d20 and Encounter table",
+    );
   });
 
   it("falls back to the page's own name when nothing nearer is named", () => {
@@ -1141,5 +1189,60 @@ describe("a table's region name", () => {
     );
 
     expect(label(container)).toBe("Beach Encounters table");
+  });
+});
+
+/**
+ * The chapter outline reaches headings the books never point at, and 219 of
+ * them carry no id to be pointed at by. Both have to be reachable.
+ */
+describe("outline anchors", () => {
+  const WARD = {
+    type: "entries",
+    id: "034",
+    name: "Old City",
+    entries: ["Crumbling ziggurats."],
+  };
+  const PRINCES = { type: "entries", name: "Merchant Princes" };
+
+  it("marks an entry the outline lists", () => {
+    const { container } = render(
+      <Entries
+        entries={[WARD]}
+        outlineAnchors={new WeakMap([[WARD, "034"]])}
+      />,
+    );
+
+    expect(container.querySelector('[id="034"]')).not.toBeNull();
+  });
+
+  it("marks one the outline gave a derived anchor to", () => {
+    const { container } = render(
+      <Entries
+        entries={[PRINCES]}
+        outlineAnchors={new WeakMap([[PRINCES, "merchant-princes"]])}
+      />,
+    );
+
+    expect(container.querySelector('[id="merchant-princes"]')).not.toBeNull();
+  });
+
+  /** An entry both want lands on one element, not two. */
+  it("does not double up with an `{@area}` target", () => {
+    const { container } = render(
+      <Entries
+        entries={[WARD]}
+        anchored={{ "034": true }}
+        outlineAnchors={new WeakMap([[WARD, "034"]])}
+      />,
+    );
+
+    expect(container.querySelectorAll('[id="034"]')).toHaveLength(1);
+  });
+
+  it("leaves an entry neither wants unmarked", () => {
+    const { container } = render(<Entries entries={[WARD]} />);
+
+    expect(container.querySelector('[id="034"]')).toBeNull();
   });
 });
