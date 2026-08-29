@@ -23,6 +23,12 @@ const displayColumns = {
   size: sql<string[] | null>`${races.data}->'size'`,
   speed: sql<RaceSpeed | null>`${races.data}->'speed'`,
   ability: sql<AbilityBonus[] | null>`${races.data}->'ability'`,
+  /*
+   * Which lineage rule the race follows, where it follows one. Races printed
+   * after Tasha's carry no ability spread of their own and defer to it, so a
+   * caller that shows ability scores has to read both — see `abilitySpreads`.
+   */
+  lineage: sql<string | null>`${races.data}->>'lineage'`,
 };
 
 export type RaceListGroup = Awaited<

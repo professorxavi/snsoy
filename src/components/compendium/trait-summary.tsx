@@ -1,5 +1,6 @@
 import { Box, Text } from "@chakra-ui/react";
 import {
+  abilitySpreads,
   formatAbilityBonuses,
   formatSize,
   formatSpeed,
@@ -23,7 +24,11 @@ export function TraitSummary({
   const parts = [
     { label: "Size", value: formatSize(race.size) },
     { label: "Speed", value: formatSpeed(race.speed) },
-    { label: "Ability Scores", value: formatAbilityBonuses(race.ability) },
+    {
+      label: "Ability Scores",
+      // Its own spread, or the lineage rule where the race defers to it.
+      value: formatAbilityBonuses(abilitySpreads(race)),
+    },
   ].filter((part) => part.value && part.value !== "—");
 
   if (parts.length === 0) return null;

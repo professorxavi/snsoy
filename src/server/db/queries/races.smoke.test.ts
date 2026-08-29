@@ -165,6 +165,25 @@ describeDb("race queries against the seed", () => {
       expect(total).toBe(SUBRACES);
     });
 
+    /**
+     * 46 races across seven books state no ability spread at all — they defer
+     * to the rule the books print once and mark with `lineage`. Read as the
+     * data comes, every one of them showed no ability line whatsoever.
+     */
+    it("carries the lineage a race defers to", async () => {
+      const aarakocra = await queries.getRace("MPMM", "aarakocra");
+
+      expect(aarakocra!.ability).toBeNull();
+      expect(aarakocra!.lineage).toBe("VRGR");
+    });
+
+    it("leaves a race that states its own spread with no lineage", async () => {
+      const dwarf = await queries.getRace("PHB", "dwarf");
+
+      expect(dwarf!.lineage).toBeNull();
+      expect(dwarf!.ability).not.toBeNull();
+    });
+
     it("is null for a race that does not exist", async () => {
       expect(await queries.getRace("phb", "no-such-race")).toBeNull();
     });

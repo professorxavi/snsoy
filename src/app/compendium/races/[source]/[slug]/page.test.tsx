@@ -236,6 +236,56 @@ describe("a race page", () => {
     });
   });
 
+  /**
+   * From Van Richten's onwards a race states neither an ability spread nor its
+   * languages, deferring to a rule the books print once. 46 races across seven
+   * books showed neither.
+   */
+  describe("lineage races", () => {
+    it("shows the ability choice the race defers to", async () => {
+      const { container } = await renderPage({
+        ability: null,
+        lineage: "VRGR",
+      });
+
+      expect(container.textContent).toContain(
+        "+2 and +1 to two of your choice",
+      );
+    });
+
+    it("shows the languages it is owed, as a trait like any other", async () => {
+      const { container } = await renderPage({
+        lineage: "VRGR",
+        data: {
+          entries: [{ type: "entries", name: "Flight", entries: ["Fly."] }],
+        },
+      });
+      const headings = [...container.querySelectorAll("h2")].map(
+        (h) => h.textContent,
+      );
+
+      expect(headings).toContain("Languages");
+      // Last, after the race's own.
+      expect(headings.indexOf("Languages")).toBeGreaterThan(
+        headings.indexOf("Flight"),
+      );
+    });
+
+    it("leaves a race that states its own alone", async () => {
+      const { container } = await renderPage({
+        lineage: null,
+        data: {
+          entries: [{ type: "entries", name: "Flight", entries: ["Fly."] }],
+        },
+      });
+      const headings = [...container.querySelectorAll("h2")].map(
+        (h) => h.textContent,
+      );
+
+      expect(headings).not.toContain("Languages");
+    });
+  });
+
   describe("the subraces", () => {
     it("renders one collapsed disclosure per subrace", async () => {
       const { container } = await renderPage();

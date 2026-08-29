@@ -22,7 +22,12 @@ import { Entries, Inline, type Entry } from "@/components/entry";
 import { ReadingColumn } from "@/components/layout";
 import { subjectSide } from "@/lib/content/media";
 import { splitSections } from "@/lib/content/outline";
-import { entriesOf, formatSize, formatSpeed } from "@/lib/content/races";
+import {
+  entriesOf,
+  formatSize,
+  formatSpeed,
+  raceTraits,
+} from "@/lib/content/races";
 import { collectReferences } from "@/lib/content/references";
 import { sourceHref } from "@/lib/routes";
 import { resolveReferences } from "@/server/db/queries/references";
@@ -65,7 +70,11 @@ export default async function RacePage({ params }: RouteParams) {
   if (!race) notFound();
 
   const data = race.data as { entries?: Entry[] };
-  const { intro, sections } = splitSections<Entry>(data.entries);
+  // Plus the languages a lineage race is owed, which the books print once with
+  // the ability rule and leave off every race that follows it.
+  const { intro, sections } = splitSections<Entry>(
+    raceTraits<Entry>(data.entries, race.lineage),
+  );
 
   /*
    * The book's flavour text, which the books keep in fluff rather than in the

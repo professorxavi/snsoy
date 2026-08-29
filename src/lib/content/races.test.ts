@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  abilitySpreads,
   formatAbilityBonuses,
   formatSize,
   formatSpeed,
+  raceTraits,
   walkingSpeed,
 } from "./races";
 
@@ -10,6 +12,8 @@ import {
  * Shapes taken verbatim from the source data. The two easy to get wrong are
  * speed values of `true` and negative ability bonuses; both are real races.
  */
+
+const ABILITIES = ["str", "dex", "con", "int", "wis", "cha"];
 
 describe("formatSize", () => {
   it("expands the size code", () => {
@@ -86,17 +90,131 @@ describe("formatAbilityBonuses", () => {
   it("collapses an open choice", () => {
     expect(
       formatAbilityBonuses([
-        { choose: { from: ["str", "dex", "con", "int", "wis", "cha"], count: 2 } },
+        {
+          choose: {
+            from: ["str", "dex", "con", "int", "wis", "cha"],
+            count: 2,
+          },
+        },
       ]),
     ).toBe("+1 to two of your choice");
   });
 
   it("joins alternative spreads with or", () => {
-    expect(formatAbilityBonuses([{ str: 2 }, { dex: 2 }])).toBe("+2 STR or +2 DEX");
+    expect(formatAbilityBonuses([{ str: 2 }, { dex: 2 }])).toBe(
+      "+2 STR or +2 DEX",
+    );
   });
 
   it("degrades on missing data", () => {
     expect(formatAbilityBonuses(null)).toBe("—");
     expect(formatAbilityBonuses([])).toBe("—");
+  });
+});
+
+/**
+ * From Van Richten's onwards a race stops dictating which abilities it raises.
+ * The books print the rule once and mark the race with `lineage`, so 46 races
+ * across seven books carry no `ability` at all and showed no ability line.
+ */
+describe("abilitySpreads", () => {
+  it("gives a lineage race the rule it defers to", () => {
+    const spreads = abilitySpreads({ ability: null, lineage: "VRGR" });
+
+    expect(formatAbilityBonuses(spreads)).toBe(
+      "+2 and +1 to two of your choice or +1 to three of your choice",
+    );
+  });
+
+  it("leaves a race that states its own spread alone", () => {
+    const spreads = abilitySpreads({
+      ability: [{ con: 2 }],
+      lineage: "VRGR",
+    });
+
+    expect(formatAbilityBonuses(spreads)).toBe("+2 CON");
+  });
+
+  /** `lineage: true` marks the one race that already states its own. */
+  it("substitutes nothing for the filter marker", () => {
+    expect(abilitySpreads({ ability: null, lineage: "true" })).toBeNull();
+  });
+
+  it("leaves an ordinary race with nothing to substitute", () => {
+    expect(abilitySpreads({ ability: null })).toBeNull();
+    expect(abilitySpreads({ ability: [] })).toBeNull();
+  });
+});
+
+describe("weighted choices", () => {
+  /** `count` and `amount` describe one amount repeated, which cannot say this. */
+  it("names each amount when they differ", () => {
+    expect(
+      formatAbilityBonuses([
+        { choose: { weighted: { from: ABILITIES, weights: [2, 1] } } },
+      ]),
+    ).toBe("+2 and +1 to two of your choice");
+  });
+
+  it("reads one amount repeated as an ordinary choice", () => {
+    expect(
+      formatAbilityBonuses([
+        { choose: { weighted: { from: ABILITIES, weights: [1, 1, 1] } } },
+      ]),
+    ).toBe("+1 to three of your choice");
+  });
+
+  it("names the abilities when the choice is a narrow one", () => {
+    expect(
+      formatAbilityBonuses([
+        { choose: { weighted: { from: ["str", "con"], weights: [1, 1] } } },
+      ]),
+    ).toBe("+1 to two of STR or CON");
+  });
+
+  it("says nothing for a weighting with no weights", () => {
+    expect(
+      formatAbilityBonuses([
+        { choose: { weighted: { from: ABILITIES, weights: [] } } },
+      ]),
+    ).toBe("—");
+  });
+});
+
+/**
+ * The same rule that supplies the ability spread supplies the languages, and
+ * the same 46 races were missing both.
+ */
+describe("raceTraits", () => {
+  const flight = { type: "entries", name: "Flight", entries: ["You can fly."] };
+
+  it("gives a lineage race the languages it is owed, after its own traits", () => {
+    const traits = raceTraits([flight], "VRGR");
+
+    expect(traits).toHaveLength(2);
+    expect(traits[0]).toBe(flight);
+    expect(JSON.stringify(traits[1])).toContain("one other language");
+  });
+
+  it("leaves an ordinary race exactly as the books wrote it", () => {
+    const own = [flight];
+
+    expect(raceTraits(own, null)).toBe(own);
+    expect(raceTraits(own, "true")).toBe(own);
+  });
+
+  /** A book that starts printing one would otherwise get two. */
+  it("adds nothing when the race states its own languages", () => {
+    const own = [
+      flight,
+      { type: "entries", name: "Languages", entries: ["X."] },
+    ];
+
+    expect(raceTraits(own, "VRGR")).toHaveLength(2);
+  });
+
+  it("handles a race with no traits at all", () => {
+    expect(raceTraits(undefined, "VRGR")).toHaveLength(1);
+    expect(raceTraits(undefined, null)).toEqual([]);
   });
 });

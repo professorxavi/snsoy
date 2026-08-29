@@ -4,7 +4,7 @@ import { Entries, type Entry } from "@/components/entry";
 import { AsideIdentity } from "@/components/compendium/aside-identity";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { splitSections } from "@/lib/content/outline";
-import { descriptionEntries } from "@/lib/content/races";
+import { descriptionEntries, raceTraits } from "@/lib/content/races";
 import type { ReferenceIndex } from "@/lib/content/references";
 import { hrefFor } from "@/lib/routes";
 import type { RaceDetail } from "@/server/db/queries/races";
@@ -42,9 +42,9 @@ export function RaceAside({
    * than in full: a race's traits run to paragraphs each, and the point here is
    * to say what is on offer, not to reproduce it.
    */
-  const traits = splitSections<Entry>(data.entries).sections.map(
-    (section) => section.title,
-  );
+  const traits = splitSections<Entry>(
+    raceTraits<Entry>(data.entries, race.lineage),
+  ).sections.map((section) => section.title);
 
   const href = hrefFor({
     entityType: "race",

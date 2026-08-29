@@ -2,12 +2,16 @@ import { Box, Heading, Stack, Text } from "@chakra-ui/react";
 import type { Metadata } from "next";
 import NextLink from "next/link";
 import {
+  abilitySpreads,
   formatAbilityBonuses,
   formatSize,
   formatSpeed,
 } from "@/lib/content/races";
 import { hrefFor } from "@/lib/routes";
-import { listRacesBySource, type RaceListItem } from "@/server/db/queries/races";
+import {
+  listRacesBySource,
+  type RaceListItem,
+} from "@/server/db/queries/races";
 
 export const metadata: Metadata = {
   title: "Races",
@@ -99,7 +103,10 @@ function RaceRow({ race }: { race: RaceListItem }) {
     <Box
       asChild
       display="grid"
-      gridTemplateColumns={{ base: "1fr", sm: "minmax(0, 14rem) minmax(0, 1fr)" }}
+      gridTemplateColumns={{
+        base: "1fr",
+        sm: "minmax(0, 14rem) minmax(0, 1fr)",
+      }}
       alignItems="baseline"
       gap={{ base: "0.5", sm: "4" }}
       py="2.5"
@@ -112,19 +119,19 @@ function RaceRow({ race }: { race: RaceListItem }) {
       _hover={{ bg: "bg.muted" }}
     >
       <NextLink href={href ?? "#"}>
-        <Text fontFamily="body" fontSize="md" fontWeight="medium" lineHeight="1.3">
+        <Text
+          fontFamily="body"
+          fontSize="md"
+          fontWeight="medium"
+          lineHeight="1.3"
+        >
           {race.name}
         </Text>
-        <Text
-          fontFamily="ui"
-          fontSize="xs"
-          color="fg.muted"
-          lineHeight="1.5"
-        >
+        <Text fontFamily="ui" fontSize="xs" color="fg.muted" lineHeight="1.5">
           {[
             formatSize(race.size),
             formatSpeed(race.speed),
-            formatAbilityBonuses(race.ability),
+            formatAbilityBonuses(abilitySpreads(race)),
           ]
             .filter((part) => part && part !== "—")
             .join(" · ")}

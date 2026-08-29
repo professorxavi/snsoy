@@ -10,13 +10,22 @@
  * ------------------------------------------------------------------ */
 
 export interface AbilityChoice {
-  from: string[];
+  from?: string[];
   count?: number;
   amount?: number;
+  /**
+   * Different amounts to different abilities in one spread — "+2 to one and +1
+   * to another". `count` and `amount` cannot say that: they describe one amount
+   * repeated, so the pair the Tasha's-era races use needs its own shape.
+   */
+  weighted?: { from: string[]; weights: number[] };
 }
 
 /** Fixed bonuses keyed by ability, plus an optional choice. */
-export type AbilityBonus = Record<string, number | AbilityChoice | undefined> & {
+export type AbilityBonus = Record<
+  string,
+  number | AbilityChoice | undefined
+> & {
   choose?: AbilityChoice;
 };
 
@@ -71,7 +80,8 @@ export function formatSpeed(speed: RaceSpeed | null | undefined): string {
     if (value == null || value === false) continue;
 
     // `true` means "same as walking".
-    const feet = value === true ? walk : typeof value === "number" ? value : undefined;
+    const feet =
+      value === true ? walk : typeof value === "number" ? value : undefined;
     if (feet == null) continue;
 
     parts.push(mode === "walk" ? `${feet} ft.` : `${mode} ${feet} ft.`);
@@ -81,7 +91,9 @@ export function formatSpeed(speed: RaceSpeed | null | undefined): string {
 }
 
 /** Just the walking speed, for a list row that has no room for the rest. */
-export function walkingSpeed(speed: RaceSpeed | null | undefined): number | null {
+export function walkingSpeed(
+  speed: RaceSpeed | null | undefined,
+): number | null {
   if (speed == null) return null;
   if (typeof speed === "number") return speed;
   return typeof speed.walk === "number" ? speed.walk : null;
@@ -107,16 +119,19 @@ const signed = (n: number) => (n < 0 ? `−${Math.abs(n)}` : `+${n}`);
 const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six"];
 
 function formatChoice(choice: AbilityChoice): string {
+  if (choice.weighted) return formatWeighted(choice.weighted);
+
+  const from = choice.from ?? [];
   const amount = choice.amount ?? 1;
   const count = choice.count ?? 1;
 
   // A choice from all six reads as "your choice"; a narrower one names them.
-  const isOpen = choice.from.length >= ABILITY_ORDER.length;
+  const isOpen = from.length >= ABILITY_ORDER.length;
   if (isOpen) {
     return `${signed(amount)} to ${COUNT_WORDS[count] ?? count} of your choice`;
   }
 
-  const options = [...choice.from]
+  const options = [...from]
     .sort((a, b) => ABILITY_ORDER.indexOf(a) - ABILITY_ORDER.indexOf(b))
     .map((key) => ABILITY_LABELS[key] ?? key.toUpperCase());
 
@@ -128,6 +143,39 @@ function formatChoice(choice: AbilityChoice): string {
   return count > 1
     ? `${signed(amount)} to ${COUNT_WORDS[count] ?? count} of ${list}`
     : `${signed(amount)} to ${list}`;
+}
+
+/**
+ * "+1 to three of your choice", or "+2 and +1 to two different abilities of
+ * your choice".
+ *
+ * One amount repeated is the ordinary choice and reads as one — three ones are
+ * "+1 to three". Mixed amounts have to be named individually, because which
+ * ability gets the 2 is the decision being described.
+ */
+function formatWeighted(weighted: {
+  from: string[];
+  weights: number[];
+}): string {
+  const weights = weighted.weights ?? [];
+  if (weights.length === 0) return "";
+
+  const uniform = weights.every((weight) => weight === weights[0]);
+  if (uniform) {
+    return formatChoice({
+      from: weighted.from,
+      count: weights.length,
+      amount: weights[0],
+    });
+  }
+
+  const amounts = weights.map(signed);
+  const list = `${amounts.slice(0, -1).join(", ")} and ${amounts[amounts.length - 1]}`;
+  const count = COUNT_WORDS[weights.length] ?? weights.length;
+
+  // "to two of your choice" already means two different ones, and this line
+  // shares a row with a size and a speed.
+  return `${list} to ${count} of your choice`;
 }
 
 function formatOne(bonus: AbilityBonus): string {
@@ -157,6 +205,84 @@ export function formatAbilityBonuses(
 
   const spreads = ability.map(formatOne).filter(Boolean);
   return spreads.length > 0 ? spreads.join(" or ") : "—";
+}
+
+/* ------------------------------------------------------------------ *
+ * Lineage
+ * ------------------------------------------------------------------ */
+
+/**
+ * The spread every race printed after *Tasha's* uses instead of a fixed one.
+ *
+ * From *Van Richten's* onwards a race stops dictating which abilities it
+ * raises and defers to the player: two ability scores or three, chosen freely.
+ * The books print that rule once and mark each race that follows it with
+ * `lineage`, so the race's own entry carries no `ability` at all — 46 of them,
+ * across seven books, and every one of them showed no ability line whatsoever.
+ *
+ * Two alternatives, which is what the outer array means: the reader picks one.
+ */
+export const LINEAGE_ABILITY: AbilityBonus[] = [
+  { choose: { weighted: { from: ABILITY_ORDER, weights: [2, 1] } } },
+  { choose: { weighted: { from: ABILITY_ORDER, weights: [1, 1, 1] } } },
+];
+
+/** A race whose ability spread may be the lineage rule rather than its own. */
+interface MaybeLineage {
+  ability?: AbilityBonus[] | null;
+  /**
+   * Which lineage rule the race follows. `"VRGR"` is the one the books use;
+   * `true` is a filter marker on the one race that also states its own spread,
+   * so it is not a substitution.
+   */
+  lineage?: string | null;
+}
+
+/**
+ * What a race actually offers, its own spread or the lineage rule.
+ *
+ * Its own always wins. A handful of lineage races do state a spread, and the
+ * rule is the default they fall back on rather than a replacement.
+ */
+export function abilitySpreads(race: MaybeLineage): AbilityBonus[] | null {
+  if (race.ability?.length) return race.ability;
+  return race.lineage === "VRGR" ? LINEAGE_ABILITY : null;
+}
+
+/**
+ * The languages a lineage race grants, printed once in the books alongside the
+ * ability rule and left off every race that follows it.
+ *
+ * Shaped as a named entry because that is what it is on every other race — the
+ * last of the traits, after Darkvision and the rest — so it reads, anchors and
+ * outlines like the Languages trait a reader already knows.
+ */
+export const LINEAGE_LANGUAGES = {
+  type: "entries",
+  name: "Languages",
+  entries: [
+    "You can speak, read, and write Common and one other language that you and your DM agree is appropriate for your character.",
+  ],
+};
+
+/**
+ * A race's traits, with the languages a lineage race is owed.
+ *
+ * None of the 46 state one of their own, but the check is on the trait rather
+ * than on the count: a book that starts printing it would otherwise get two.
+ */
+export function raceTraits<E>(
+  entries: E[] | undefined,
+  lineage: string | null | undefined,
+): E[] {
+  const traits = entries ?? [];
+  if (lineage !== "VRGR") return traits;
+
+  const named = traits.some(
+    (trait) => (trait as { name?: unknown } | null)?.name === "Languages",
+  );
+
+  return named ? traits : [...traits, LINEAGE_LANGUAGES as E];
 }
 
 /* ------------------------------------------------------------------ *
