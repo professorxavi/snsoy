@@ -194,6 +194,11 @@ export interface ParsedEntityHref {
   type: BrowsableType;
   sourceId: string;
   slug: string;
+  /**
+   * The anchor within that page, where the link had one. It is how a fragment
+   * type names itself: a subrace is its parent's page plus its own slug.
+   */
+  fragment?: string;
 }
 
 /**
@@ -218,7 +223,20 @@ export function parseEntityHref(href: string): ParsedEntityHref | null {
   const type = typeForSegment(parts[1]!);
   if (!type) return null;
 
-  return { type, sourceId: parts[2]!, slug: parts[3]! };
+  /*
+   * The fragment, which is the whole of what a link to a fragment type says.
+   * `hrefFor` gives a subrace its parent's page and its own slug as the
+   * anchor — a link to Glasya and a link to the tiefling itself differ by
+   * nothing else, so dropping it here is dropping which one was meant.
+   */
+  const fragment = href.split("#")[1];
+
+  return {
+    type,
+    sourceId: parts[2]!,
+    slug: parts[3]!,
+    ...(fragment ? { fragment: decodeURIComponent(fragment) } : {}),
+  };
 }
 
 /** The browse list for a type, e.g. `/compendium/spells`. */

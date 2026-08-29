@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ASIDE_TYPE_LIST, ASIDE_TYPES, isAsideType } from "./aside";
+import { asideKey, ASIDE_TYPE_LIST, ASIDE_TYPES, isAsideType } from "./aside";
 import { BROWSABLE_TYPES } from "./routes";
 
 describe("aside types", () => {
@@ -21,5 +21,25 @@ describe("aside types", () => {
    */
   it("covers every browsable type", () => {
     expect([...ASIDE_TYPES].sort()).toEqual([...BROWSABLE_TYPES].sort());
+  });
+});
+
+describe("asideKey with a fragment", () => {
+  /**
+   * Two subraces of one race share a page and differ only in the anchor.
+   * Keying without it makes them one cache entry, and the second opens
+   * whichever was looked at first.
+   */
+  it("tells two parts of one entity apart", () => {
+    expect(asideKey("race", "PHB", "tiefling", "glasya")).not.toBe(
+      asideKey("race", "PHB", "tiefling", "zariel"),
+    );
+  });
+
+  it("leaves a whole entity keyed as it always was", () => {
+    expect(asideKey("race", "PHB", "tiefling")).toBe(
+      asideKey("race", "phb", "tiefling"),
+    );
+    expect(asideKey("race", "PHB", "tiefling")).not.toContain("#");
   });
 });

@@ -17,8 +17,15 @@ export function asideKey(
   type: BrowsableType,
   sourceId: string,
   slug: string,
+  /**
+   * The fragment within that entity, where one was named. Two subraces of one
+   * race share a page and differ only here, so leaving it out would make them
+   * one cache entry and open whichever was looked at first.
+   */
+  fragment?: string,
 ): string {
-  return `${type}:${sourceId.toLowerCase()}:${slug}`;
+  const key = `${type}:${sourceId.toLowerCase()}:${slug}`;
+  return fragment ? `${key}#${fragment}` : key;
 }
 
 /**

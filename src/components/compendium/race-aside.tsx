@@ -4,10 +4,10 @@ import { Entries, type Entry } from "@/components/entry";
 import { AsideIdentity } from "@/components/compendium/aside-identity";
 import { ASIDE_IGNORE_ATTR } from "@/lib/aside";
 import { splitSections } from "@/lib/content/outline";
-import { descriptionEntries, raceTraits } from "@/lib/content/races";
+import { descriptionEntries, entriesOf, raceTraits } from "@/lib/content/races";
 import type { ReferenceIndex } from "@/lib/content/references";
 import { hrefFor } from "@/lib/routes";
-import type { RaceDetail } from "@/server/db/queries/races";
+import type { RaceDetail, SubraceDetail } from "@/server/db/queries/races";
 import { TraitSummary } from "./trait-summary";
 
 /**
@@ -124,6 +124,110 @@ export function RaceAside({
           refs={refs}
           selfKey={race.naturalKey}
           context={race.name}
+        />
+      ) : null}
+    </Stack>
+  );
+}
+
+/**
+ * One subrace at aside width.
+ *
+ * A subrace has no page and no URL — it is an anchor on its parent's — so this
+ * is the only place its own numbers are ever shown on their own. Naming the
+ * parent is the first thing it does: "Glasya" alone says nothing, and the
+ * reader has just clicked the word in a sentence about tieflings.
+ *
+ * The same shape as a race: what it is, what it does to your numbers, what it
+ * offers. What it does *not* do is repeat the parent — a subrace overrides some
+ * of the three and inherits the rest, and printing the tiefling's spread here
+ * would say Glasya grants it.
+ */
+export function SubraceAside({
+  race,
+  subrace,
+  refs,
+}: {
+  race: RaceDetail;
+  subrace: SubraceDetail;
+  refs: ReferenceIndex;
+}) {
+  const data = subrace.data as { entries?: Entry[] };
+
+  // A subrace's own line, which 45 of the 69 have. Never the parent's: the
+  // books store a subrace's fluff as a copy of its parent's with one paragraph
+  // prepended, and only that paragraph is kept.
+  const { intro } = splitSections<Entry>(entriesOf<Entry>(subrace.fluff));
+
+  const traits = splitSections<Entry>(data.entries).sections.map(
+    (section) => section.title,
+  );
+
+  const href = hrefFor(
+    {
+      entityType: "subrace",
+      sourceId: subrace.sourceId,
+      slug: subrace.slug,
+    },
+    { entityType: "race", sourceId: race.sourceId, slug: race.slug },
+  );
+
+  return (
+    <Stack gap="4" px="4" py="4">
+      <AsideIdentity
+        sourceId={subrace.sourceId}
+        sourceName={subrace.sourceName}
+        page={subrace.page}
+        name={subrace.name}
+      >
+        <Text fontFamily="ui" fontSize="xs" color="fg.muted" mt="1">
+          {race.name} subrace
+        </Text>
+
+        <TraitSummary race={subrace} />
+
+        {traits.length > 0 ? (
+          <Box mt="2">
+            <Text
+              as="span"
+              fontFamily="ui"
+              fontSize="2xs"
+              fontWeight="semibold"
+              letterSpacing="wide"
+              textTransform="uppercase"
+              color="fg.subtle"
+              mr="1.5"
+            >
+              Traits
+            </Text>
+            <Text as="span" fontFamily="body" fontSize="sm">
+              {traits.join(", ")}
+            </Text>
+          </Box>
+        ) : null}
+      </AsideIdentity>
+
+      {href ? (
+        <Text
+          asChild
+          {...{ [ASIDE_IGNORE_ATTR]: "" }}
+          fontFamily="ui"
+          fontSize="2xs"
+          letterSpacing="wide"
+          textTransform="uppercase"
+          color="brand"
+          _hover={{ textDecoration: "underline" }}
+        >
+          <NextLink href={href}>Full page — {race.name} →</NextLink>
+        </Text>
+      ) : null}
+
+      {intro.length > 0 ? (
+        <Entries
+          entries={intro}
+          refs={refs}
+          selfKey={subrace.naturalKey}
+          context={`${race.name}: ${subrace.name}`}
         />
       ) : null}
     </Stack>

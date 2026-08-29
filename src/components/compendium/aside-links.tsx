@@ -32,6 +32,8 @@ export function AsideLinks({
     type: BrowsableType,
     source: string,
     slug: string,
+    /** Which part of it, where the link named one — a subrace, say. */
+    fragment?: string,
   ) => Promise<ReactNode>;
   /**
    * True when this wraps the aside's own body rather than a page. References
@@ -78,8 +80,8 @@ export function AsideLinks({
     event.stopPropagation();
 
     open(
-      asideKey(target.type, target.sourceId, target.slug),
-      () => load(target.type, target.sourceId, target.slug),
+      asideKey(target.type, target.sourceId, target.slug, target.fragment),
+      () => load(target.type, target.sourceId, target.slug, target.fragment),
       { label: anchor?.textContent?.trim() || undefined, push: nested },
     );
   };

@@ -131,7 +131,11 @@ describe("hrefFor", () => {
   it("declines a fragment given only a parent that is one too", () => {
     expect(
       hrefFor(
-        { entityType: "subclassFeature", sourceId: "TCE", slug: "song-of-defense" },
+        {
+          entityType: "subclassFeature",
+          sourceId: "TCE",
+          slug: "song-of-defense",
+        },
         { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
       ),
     ).toBeNull();
@@ -146,7 +150,11 @@ describe("hrefFor", () => {
   it("addresses a subclass feature through its subclass and class", () => {
     expect(
       hrefFor(
-        { entityType: "subclassFeature", sourceId: "TCE", slug: "song-of-defense" },
+        {
+          entityType: "subclassFeature",
+          sourceId: "TCE",
+          slug: "song-of-defense",
+        },
         { entityType: "subclass", sourceId: "TCE", slug: "bladesinging" },
         { entityType: "class", sourceId: "PHB", slug: "wizard" },
       ),
@@ -243,13 +251,33 @@ describe("parseEntityHref", () => {
     }
   });
 
-  /** A subclass link addresses its class's page; the class is what opens. */
-  it("drops a fragment rather than refusing the URL", () => {
-    expect(parseEntityHref("/compendium/classes/phb/wizard#evocation")).toEqual({
+  /**
+   * A fragment type names itself entirely in the anchor: a link to Glasya and a
+   * link to the tiefling differ by nothing else, so dropping it was dropping
+   * which one was meant, and every bloodline in the Blood War chapter opened
+   * the plain tiefling.
+   */
+  it("keeps the fragment, which is which part was meant", () => {
+    expect(parseEntityHref("/compendium/races/phb/tiefling#glasya")).toEqual({
+      type: "race",
+      sourceId: "phb",
+      slug: "tiefling",
+      fragment: "glasya",
+    });
+  });
+
+  it("leaves a URL with no fragment saying nothing about one", () => {
+    expect(parseEntityHref("/compendium/classes/phb/wizard")).toEqual({
       type: "class",
       sourceId: "phb",
       slug: "wizard",
     });
+  });
+
+  it("reads an escaped fragment back as it was written", () => {
+    expect(
+      parseEntityHref("/compendium/races/phb/elf#mark%20of%20shadow")?.fragment,
+    ).toBe("mark of shadow");
   });
 
   it("refuses anything that is not one entity's URL", () => {

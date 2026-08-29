@@ -12,7 +12,7 @@ import { LanguageAside } from "@/components/compendium/language-aside";
 import { MonsterStatblock } from "@/components/compendium/monster-statblock";
 import { LabelledLines } from "@/components/compendium/labelled-lines";
 import { ObjectActions } from "@/components/compendium/object-actions";
-import { RaceAside } from "@/components/compendium/race-aside";
+import { RaceAside, SubraceAside } from "@/components/compendium/race-aside";
 import { SpellDetail } from "@/components/compendium/spell-detail";
 import { VehicleStatblock } from "@/components/compendium/vehicle-statblock";
 import { Entries } from "@/components/entry";
@@ -106,7 +106,10 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   skill: {
     noun: "skill",
     subtitle: (data, name) =>
-      checkName(typeof data["ability"] === "string" ? data["ability"] : null, name),
+      checkName(
+        typeof data["ability"] === "string" ? data["ability"] : null,
+        name,
+      ),
   },
   condition: { noun: "condition" },
   sense: { noun: "sense" },
@@ -117,7 +120,8 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   },
   variantrule: {
     noun: "variant rule",
-    subtitle: (data: Record<string, unknown>) => ruleTypeLabel(data["ruleType"]),
+    subtitle: (data: Record<string, unknown>) =>
+      ruleTypeLabel(data["ruleType"]),
   },
   charoption: {
     noun: "character option",
@@ -138,7 +142,8 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   },
   hazard: {
     noun: "hazard",
-    subtitle: (data: Record<string, unknown>) => trapKindLabel(data["trapHazType"]),
+    subtitle: (data: Record<string, unknown>) =>
+      trapKindLabel(data["trapHazType"]),
   },
   disease: { noun: "disease" },
   object: {
@@ -165,7 +170,10 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
     extra: (data, entity, refs) => (
       <LabelledLines
         lines={[
-          { label: "Alignment.", text: nullable(deityAlignment(data["alignment"])) },
+          {
+            label: "Alignment.",
+            text: nullable(deityAlignment(data["alignment"])),
+          },
           { label: "Domains.", text: nullable(deityDomains(data["domains"])) },
           { label: "Province.", text: text(data["province"]) },
           { label: "Symbol.", text: text(data["symbol"]) },
@@ -188,7 +196,10 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
         lines={[
           { label: "Goal.", text: entryOf(data["goal"]) },
           { label: "Typical Cultists.", text: entryOf(data["cultists"]) },
-          { label: "Signature Spells.", text: entryOf(data["signatureSpells"]) },
+          {
+            label: "Signature Spells.",
+            text: entryOf(data["signatureSpells"]),
+          },
         ]}
         refs={refs}
         selfKey={entity.naturalKey}
@@ -203,7 +214,10 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
       <LabelledLines
         lines={[
           { label: "Ability.", text: entryOf(data["ability"]) },
-          { label: "Signature Spells.", text: entryOf(data["signatureSpells"]) },
+          {
+            label: "Signature Spells.",
+            text: entryOf(data["signatureSpells"]),
+          },
         ]}
         refs={refs}
         selfKey={entity.naturalKey}
@@ -220,7 +234,9 @@ const GENERIC_ASIDE_TYPES: Record<GenericAsideType, GenericAsideConfig> = {
   card: {
     noun: "card",
     subtitle: (data: Record<string, unknown>) => cardSubtitle(data) || null,
-    extra: (data, entity) => <CardFace face={data["face"]} name={entity.name} />,
+    extra: (data, entity) => (
+      <CardFace face={data["face"]} name={entity.name} />
+    ),
   },
   deck: {
     noun: "deck",
@@ -301,7 +317,8 @@ const entryOf = (value: unknown): string | null =>
   text((value as { entry?: unknown } | null)?.entry);
 
 /** An em dash is the right cell in a table and the wrong line in a panel. */
-const nullable = (value: string): string | null => (value === "—" ? null : value);
+const nullable = (value: string): string | null =>
+  value === "—" ? null : value;
 
 const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   spell: spellAside,
@@ -331,7 +348,8 @@ const ASIDE_LOADERS: Record<AsideType, AsideLoader> = {
   card: (source, slug) => genericAside("card", source, slug),
   deck: (source, slug) => genericAside("deck", source, slug),
   vehicle: (source, slug) => genericAside("vehicle", source, slug),
-  vehicleUpgrade: (source, slug) => genericAside("vehicleUpgrade", source, slug),
+  vehicleUpgrade: (source, slug) =>
+    genericAside("vehicleUpgrade", source, slug),
   table: (source, slug) => genericAside("table", source, slug),
   background: backgroundAside,
   feat: featAside,
@@ -362,9 +380,21 @@ export async function openEntityAside(
   type: BrowsableType,
   source: string,
   slug: string,
+  fragment?: string,
 ): Promise<ReactNode> {
   if (!isAsideType(type)) {
     return <AsideMessage>Nothing to show for this yet.</AsideMessage>;
+  }
+
+  /*
+   * A subrace names itself as an anchor on its parent's page — `{@race Tiefling
+   * (Glasya)|MTF}` resolves to `/compendium/races/phb/tiefling#glasya` — so
+   * without reading the anchor, opening any of the nine bloodlines in the Blood
+   * War chapter showed the plain tiefling, which is neither what was clicked
+   * nor what the sentence was about.
+   */
+  if (type === "race" && fragment) {
+    return subraceAside(source, slug, fragment);
   }
 
   return ASIDE_LOADERS[type](source, slug);
@@ -421,6 +451,31 @@ async function raceAside(source: string, slug: string): Promise<ReactNode> {
   );
 
   return <RaceAside race={race} refs={refs} />;
+}
+
+/**
+ * One bloodline, bloodline-name and all, rather than the race it belongs to.
+ *
+ * Reached only through an anchor, because that is the only way a subrace is
+ * ever addressed: it has no page and no URL of its own. A fragment naming
+ * nothing falls back to the race, which is what a stale anchor should do.
+ */
+async function subraceAside(
+  source: string,
+  slug: string,
+  fragment: string,
+): Promise<ReactNode> {
+  const race = await getRace(source, slug);
+  if (!race) return <AsideMessage>No such race.</AsideMessage>;
+
+  const subrace = race.subraces.find((sub) => sub.slug === fragment);
+  if (!subrace) return raceAside(source, slug);
+
+  const refs = await resolveReferences(
+    collectReferences([subrace.data, subrace.fluff]),
+  );
+
+  return <SubraceAside race={race} subrace={subrace} refs={refs} />;
 }
 
 /**
@@ -489,12 +544,17 @@ async function itemAside(
    */
   const [refs, vocabulary] = await Promise.all([
     resolveReferences(
-      collectReferences([item.data, itemGroupTags(item.data as { items?: string[] })]),
+      collectReferences([
+        item.data,
+        itemGroupTags(item.data as { items?: string[] }),
+      ]),
     ),
     itemVocabulary(),
   ]);
 
-  return <ItemDetail item={item} refs={refs} vocabulary={vocabulary.properties} />;
+  return (
+    <ItemDetail item={item} refs={refs} vocabulary={vocabulary.properties} />
+  );
 }
 
 /**
@@ -546,7 +606,10 @@ async function genericAside(
  * thing a player checks; an optional feature needs both what kind of choice it
  * is and what it costs to take.
  */
-async function backgroundAside(source: string, slug: string): Promise<ReactNode> {
+async function backgroundAside(
+  source: string,
+  slug: string,
+): Promise<ReactNode> {
   const background = await getBackground(source, slug);
   if (!background) return <AsideMessage>No such background.</AsideMessage>;
 

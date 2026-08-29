@@ -24,7 +24,10 @@ import { AsideSlot } from "./aside-slot";
 
 const load = () => vi.fn(async () => <p>loaded</p>);
 
-const renderLinks = (loader: ReturnType<typeof load>, children: React.ReactNode) =>
+const renderLinks = (
+  loader: ReturnType<typeof load>,
+  children: React.ReactNode,
+) =>
   render(
     <AsideProvider>
       <AsideLinks load={loader}>{children}</AsideLinks>
@@ -66,7 +69,7 @@ describe("AsideLinks", () => {
 
     const event = await clickAndCapture(screen.getByRole("link"));
 
-    expect(loader).toHaveBeenCalledWith("spell", "phb", "fireball");
+    expect(loader).toHaveBeenCalledWith("spell", "phb", "fireball", undefined);
     expect(event?.defaultPrevented).toBe(true);
   });
 
@@ -81,7 +84,7 @@ describe("AsideLinks", () => {
 
     const event = await clickAndCapture(screen.getByRole("link"));
 
-    expect(loader).toHaveBeenCalledWith("monster", "mm", "goblin");
+    expect(loader).toHaveBeenCalledWith("monster", "mm", "goblin", undefined);
     expect(event?.defaultPrevented).toBe(true);
   });
 
@@ -95,7 +98,10 @@ describe("AsideLinks", () => {
    */
   it("leaves a compendium URL it cannot read alone", async () => {
     const loader = load();
-    renderLinks(loader, <a href="/compendium/psionics/utmc/mantle-of-awe">Mantle</a>);
+    renderLinks(
+      loader,
+      <a href="/compendium/psionics/utmc/mantle-of-awe">Mantle</a>,
+    );
 
     const event = await clickAndCapture(screen.getByRole("link"));
 
@@ -218,7 +224,9 @@ describe("AsideLinks", () => {
     await clickAndCapture(screen.getByRole("link", { name: "Light" }));
 
     expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /^←/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^←/ }),
+    ).not.toBeInTheDocument();
   });
 
   /** Following a reference from inside the aside is depth, and back returns. */
@@ -257,6 +265,23 @@ describe("AsideLinks", () => {
 
     await clickAndCapture(screen.getByText("Wizard"));
 
-    expect(loader).toHaveBeenCalledWith("class", "phb", "wizard");
+    expect(loader).toHaveBeenCalledWith("class", "phb", "wizard", undefined);
+  });
+
+  /**
+   * A subrace is an anchor on its parent's page and nothing else, so the
+   * anchor is the only thing saying which one was clicked. Without it every
+   * bloodline in a chapter opened the plain race.
+   */
+  it("says which part of an entity a fragment named", async () => {
+    const loader = load();
+    renderLinks(
+      loader,
+      <a href="/compendium/races/phb/tiefling#glasya">Tiefling (Glasya)</a>,
+    );
+
+    await clickAndCapture(screen.getByText("Tiefling (Glasya)"));
+
+    expect(loader).toHaveBeenCalledWith("race", "phb", "tiefling", "glasya");
   });
 });

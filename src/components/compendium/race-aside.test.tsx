@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@/test/render";
 import type { RaceDetail } from "@/server/db/queries/races";
-import { RaceAside } from "./race-aside";
+import { RaceAside, SubraceAside } from "./race-aside";
 
 /**
  * A race at aside width.
@@ -28,7 +28,11 @@ const race = (over: Partial<RaceDetail> = {}): RaceDetail =>
     data: {
       entries: [
         "Kingdoms rich in ancient grandeur.",
-        { type: "entries", name: "Darkvision", entries: ["You see in the dark."] },
+        {
+          type: "entries",
+          name: "Darkvision",
+          entries: ["You see in the dark."],
+        },
       ],
     },
     subraces: [
@@ -76,7 +80,9 @@ describe("the race aside", () => {
     render(
       <RaceAside
         race={race({
-          fluff: { entries: ["A winged people of the Elemental Plane of Air."] },
+          fluff: {
+            entries: ["A winged people of the Elemental Plane of Air."],
+          },
         })}
         refs={{}}
       />,
@@ -128,12 +134,15 @@ describe("the race aside", () => {
 
   it("counts a lone subrace in the singular", () => {
     render(
-      <RaceAside race={race({ subraces: [{ id: "s1" }] as never })} refs={{}} />,
+      <RaceAside
+        race={race({ subraces: [{ id: "s1" }] as never })}
+        refs={{}}
+      />,
     );
 
-    expect(
-      screen.getByRole("link", { name: /full page/i }),
-    ).toHaveTextContent(/1 subrace(?!s)/);
+    expect(screen.getByRole("link", { name: /full page/i })).toHaveTextContent(
+      /1 subrace(?!s)/,
+    );
   });
 
   /**
@@ -151,5 +160,80 @@ describe("the race aside", () => {
     render(<RaceAside race={race()} refs={{}} />);
 
     expect(screen.queryByText(/building NPCs/i)).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * A subrace has no page and no URL — it is an anchor on its parent's — so the
+ * aside is the only place its own numbers are ever shown on their own. Before
+ * this, every bloodline in the Blood War chapter opened the plain tiefling,
+ * which is neither what was clicked nor what the sentence was about.
+ */
+describe("the subrace aside", () => {
+  const glasya = {
+    naturalKey: "subrace|glasya|tiefling|phb|mtf",
+    name: "Glasya",
+    slug: "glasya",
+    sourceId: "MTF",
+    sourceName: "Mordenkainen's Tome of Foes",
+    page: 22,
+    size: null,
+    speed: null,
+    ability: [{ cha: 2, dex: 1 }],
+    lineage: null,
+    fluff: { entries: ["Hell's criminal mastermind."] },
+    data: {
+      entries: [
+        {
+          type: "entries",
+          name: "Legacy of Malbolge",
+          entries: ["Illusions."],
+        },
+      ],
+    },
+  } as never;
+
+  const tiefling = race({
+    name: "Tiefling",
+    slug: "tiefling",
+    ability: [{ cha: 2, int: 1 }],
+  });
+
+  it("names the subrace, not the race it belongs to", () => {
+    render(<SubraceAside race={tiefling} subrace={glasya} refs={{}} />);
+
+    expect(screen.getByRole("heading", { name: "Glasya" })).toBeInTheDocument();
+    expect(screen.getByText("Tiefling subrace")).toBeInTheDocument();
+  });
+
+  /** The whole complaint: the panel described the base race. */
+  it("shows the subrace's numbers rather than the race's", () => {
+    render(<SubraceAside race={tiefling} subrace={glasya} refs={{}} />);
+
+    expect(screen.getByText("+1 DEX, +2 CHA")).toBeInTheDocument();
+    expect(screen.queryByText("+1 INT, +2 CHA")).toBeNull();
+  });
+
+  it("lists the subrace's own traits", () => {
+    render(<SubraceAside race={tiefling} subrace={glasya} refs={{}} />);
+
+    expect(screen.getByText("Legacy of Malbolge")).toBeInTheDocument();
+  });
+
+  it("prints the line that says what it is", () => {
+    render(<SubraceAside race={tiefling} subrace={glasya} refs={{}} />);
+
+    expect(screen.getByText(/criminal mastermind/)).toBeInTheDocument();
+  });
+
+  /** A subrace has nowhere of its own to go; the parent's page is where it is. */
+  it("offers the parent's page as the way out", () => {
+    render(<SubraceAside race={tiefling} subrace={glasya} refs={{}} />);
+    const link = screen.getByRole("link", { name: /Full page/ });
+
+    expect(link).toHaveAttribute(
+      "href",
+      "/compendium/races/phb/tiefling#glasya",
+    );
   });
 });
