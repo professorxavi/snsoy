@@ -24,7 +24,7 @@ const LINKS = [
 ] as const;
 
 /**
- * The top bar: a ground step with a purple keyline, not a filled purple slab.
+ * The top bar: a ground step with a quiet purple keyline, not a filled purple slab.
  *
  * The app still speaks in purple — the keyline under the bar, the ampersand in
  * the wordmark, the focus ring — but as printed rules rather than a painted
@@ -48,7 +48,7 @@ export function TopNav() {
       bg="bg.panel"
       color="fg"
       borderBottomWidth="2px"
-      borderColor="brand"
+      borderColor="brand.line"
     >
       <MobileNav pathname={pathname} />
 

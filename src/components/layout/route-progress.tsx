@@ -143,7 +143,7 @@ export function RouteProgress() {
     >
       <Box
         h="100%"
-        bg="brand.contrast"
+        bg="brand"
         opacity={value >= 100 ? 0 : 0.85}
         transformOrigin="left"
         transform={`scaleX(${value / 100})`}
