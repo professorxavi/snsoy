@@ -570,6 +570,17 @@ function tierFor(level: HeadingLevel): HeadingTier {
 /**
  * A named sub-section. The name is often absent, in which case this is only a
  * grouping and must not emit an empty heading.
+ *
+ * A grouping that shows nothing also steps nothing. This used to descend a level
+ * and a tier whether or not it had a name to print, so a nameless wrapper — of
+ * which the books are full — pushed everything under it a step deeper than it
+ * belonged. The outline said a heading was nested inside something the reader
+ * could not see, and the type got smaller to match.
+ *
+ * `name` is derived once and both halves read it, so what the heading prints and
+ * what the level claims about it can never disagree. `under` has always tested
+ * `trim()`; the heading tested truthiness, so a name of one space drew an empty
+ * heading and still failed to register as a section name.
  */
 function SubSection({
   entry,
@@ -582,17 +593,18 @@ function SubSection({
 }) {
   const level = ctx.headingLevel ?? 3;
   const tier = ctx.headingTier ?? tierFor(level);
+  const name = entry.name?.trim() ? entry.name : undefined;
   const nested: RenderContext = {
-    ...under(ctx, entry.name),
-    headingLevel: level < 5 ? ((level + 1) as HeadingLevel) : 5,
-    headingTier: tier < 4 ? ((tier + 1) as HeadingTier) : 4,
+    ...under(ctx, name),
+    headingLevel: name && level < 5 ? ((level + 1) as HeadingLevel) : level,
+    headingTier: name && tier < 4 ? ((tier + 1) as HeadingTier) : tier,
   };
 
   return (
     <Box>
-      {entry.name ? (
+      {name ? (
         <SubHeading level={level} tier={tier} first={first}>
-          {inline(entry.name, ctx)}
+          {inline(name, ctx)}
         </SubHeading>
       ) : null}
       <Entries entries={entry.entries} {...nested} />

@@ -88,3 +88,39 @@ test("puts a sidebar's contents inside it", async ({ page }) => {
   expect(inside.name).toBe("Languages");
   expect(inside.level).toBe(sidebar.level + 1);
 });
+
+/**
+ * The whole outline, rather than one relationship inside it.
+ *
+ * This is the assertion the sidebar test above had to be narrowed down from. It
+ * could not pass while a nameless grouping stepped the heading level whether or
+ * not it printed anything: on this page that put `Brutal and Cruel` at `h5`
+ * directly beneath an `h3`, a jump nothing visible accounts for. A reader
+ * navigating by heading hears a section open inside a parent that was never
+ * announced.
+ *
+ * Closing any number of sections at once is ordinary — a page returns from a
+ * deep subsection to the next top-level one all the time. Opening more than one
+ * at a time is the fault, and it is the only thing asserted here.
+ */
+test("never skips a heading level", async ({ page }) => {
+  await page.goto(`${MONSTERS}/mm/adult-black-dragon`);
+  await expectHydrated(page);
+
+  const outline = await page
+    .locator("main :is(h1,h2,h3,h4,h5,h6)")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        level: Number(node.tagName.slice(1)),
+        name: node.textContent?.trim() ?? "",
+      })),
+    );
+
+  expect(outline.length).toBeGreaterThan(3);
+
+  const skips = outline.filter(
+    (heading, index) => index > 0 && heading.level > outline[index - 1]!.level + 1,
+  );
+
+  expect(skips).toEqual([]);
+});

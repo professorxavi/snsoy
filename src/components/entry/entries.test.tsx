@@ -1032,6 +1032,89 @@ describe("the heading over a named sub-section", () => {
 });
 
 /**
+ * What a grouping with nothing to print costs the things beneath it.
+ *
+ * The answer has to be nothing. The books wrap sections in nameless `entries`
+ * constantly, and a wrapper that draws no heading is invisible — so a reader
+ * moving by headings has no way to account for the level it used to consume.
+ * It read as though a heading were nested inside something that was not there,
+ * and because the visual step moves with the level, the type shrank to match.
+ */
+describe("a grouping with no name of its own", () => {
+  const named = (name?: string): Entry => ({
+    type: "entries",
+    name,
+    entries: ["The dragon is vain and cruel."],
+  });
+
+  const wrap = (entry: Entry, name?: string): Entry => ({
+    type: "entries",
+    name,
+    entries: [entry],
+  });
+
+  const headings = () =>
+    screen.getAllByRole("heading").map((node) => node.tagName);
+
+  it("does not step the level of what it holds", () => {
+    render(<Entries entries={[wrap(named("Brutal and Cruel"))]} headingLevel={3} />);
+
+    expect(headings()).toEqual(["H3"]);
+  });
+
+  it("does not step it however many wrappers deep the name sits", () => {
+    render(
+      <Entries
+        entries={[wrap(wrap(wrap(named("Brutal and Cruel"))))]}
+        headingLevel={2}
+      />,
+    );
+
+    expect(headings()).toEqual(["H2"]);
+  });
+
+  /** A name of one space is not a name, and `under` has always agreed. */
+  it("treats a blank name as no name", () => {
+    render(<Entries entries={[wrap(named("Brutal and Cruel"), "   ")]} headingLevel={3} />);
+
+    expect(headings()).toEqual(["H3"]);
+  });
+
+  /**
+   * The visual half. Level and tier move together, so a wrapper that stopped
+   * stepping the level must stop stepping the type too — otherwise two headings
+   * at the same level render differently depending on whether something
+   * invisible sat above one of them.
+   */
+  it("leaves the heading looking as it would with no wrapper at all", () => {
+    const classesFor = (entry: Entry) => {
+      const { container, unmount } = render(
+        <Entries entries={[entry]} headingLevel={3} />,
+      );
+      const className = container.querySelector("h3")?.className;
+      unmount();
+      return className;
+    };
+
+    expect(classesFor(wrap(named("Brutal and Cruel")))).toBe(
+      classesFor(named("Brutal and Cruel")),
+    );
+  });
+
+  /** The wrapper is ignored, not the nesting: a real name still steps. */
+  it("still steps for a wrapper that does have a name", () => {
+    render(
+      <Entries
+        entries={[wrap(named("Brutal and Cruel"), "Lore")]}
+        headingLevel={2}
+      />,
+    );
+
+    expect(headings()).toEqual(["H2", "H3"]);
+  });
+});
+
+/**
  * A sidebar's place in the outline.
  *
  * The box is the only thing on the page that says a sidebar contains its own
