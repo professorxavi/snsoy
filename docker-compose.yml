@@ -1,19 +1,30 @@
+# Credentials come from `.env`, which is never committed. The password has no
+# default on purpose: `:?` makes a missing one fail `docker compose up` with a
+# readable message, which is the right failure. A default would instead start a
+# database whose password nobody knows — and on a public host, one everybody does.
 services:
   postgres:
     image: postgres:16-alpine
     container_name: snsoy-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: snsoy
-      POSTGRES_PASSWORD: snsoy
-      POSTGRES_DB: snsoy
+      POSTGRES_USER: ${POSTGRES_USER:-snsoy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env — see .env.example}
+      POSTGRES_DB: ${POSTGRES_DB:-snsoy}
+    # Bound to the loopback address, not published on every interface. Nothing
+    # reaches this database except the app beside it, and a deployed instance
+    # would otherwise be offering Postgres to the internet.
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - snsoy-pgdata:/var/lib/postgresql/data
       - ./docker/initdb:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U snsoy -d snsoy"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-snsoy} -d ${POSTGRES_DB:-snsoy}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 10
